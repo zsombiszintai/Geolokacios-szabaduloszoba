@@ -1,0 +1,10 @@
+What's next? -------------------------------+
+|                                              |
+|  📁 Project steps                            |
+|                                              |
+|    1: cd geoszabaduloszoba-frontend          |
+|    2: npm run dev -- --open                  |
+|                                              |
+|  To close the dev server, hit Ctrl-C         |
+|                                              |
+|  Stuck? Visit us at https://svelte.dev/chat  |

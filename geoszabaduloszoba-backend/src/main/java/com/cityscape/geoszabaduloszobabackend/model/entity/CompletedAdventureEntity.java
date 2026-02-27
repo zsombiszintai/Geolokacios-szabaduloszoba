@@ -27,6 +27,6 @@ public class CompletedAdventureEntity {
     private Double distanceTravelled;
 
     private Integer durationSec;
-    
+
 }
 

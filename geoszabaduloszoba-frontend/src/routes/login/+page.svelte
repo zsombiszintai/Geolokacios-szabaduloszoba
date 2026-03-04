@@ -1,15 +1,42 @@
 <script lang="ts">
-    let username = '';
-    let password = '';
+    let username = $state('');
+    let password = $state('');
 
-    function handleLogin() {
+    async function handleLogin(event: SubmitEvent) {
         console.log('Adatok:', username, password);
+
+        try{
+                const response = await fetch('http://localhost:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password})
+                });
+
+                console.log('2. Válasz megérkezett, státusz:', response.status);
+
+                if (response.ok){
+                    const userAdatok = await response.json();
+                    console.log('3. Sikeres JSON feldolgozás:', userAdatok);
+                }else {
+                console.log("Hiba: Rossz felhasználónév vagy jelszó.");
+                }
+
+        }catch(err){
+            console.log("A szerver nem elérhető.");
+        }
     }
 </script>
 
 <main style="display: flex; justify-content: center; margin-top: 50px;">
     
-    <form on:submit|preventDefault={handleLogin} style="display: flex; flex-direction: column; gap: 15px; width: 300px; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+    <form onsubmit={handleLogin} 
+    style="display: flex; 
+            flex-direction: column; 
+            gap: 15px; width: 300px;
+            padding: 20px; border: 1px solid #ccc;
+            border-radius: 8px;">
         
         <h1 style="text-align: center;">Bejelentkezés</h1>
 

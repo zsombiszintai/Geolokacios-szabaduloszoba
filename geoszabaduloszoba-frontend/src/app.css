@@ -7,24 +7,25 @@
 }
 
   @layer components {
-    .header-city {
+    
+        .header-city {
             @apply bg-[#2F5D50] text-[#F5F2EA] py-8 px-6 fixed top-0 w-full z-50 
            flex justify-between items-center shadow-lg transition-all;
-    }
+        }
 
-    .header-city-title {
+        .header-city-title {
             @apply text-2xl font-bold tracking-[0.2em] absolute left-1/2 -translate-x-1/2 uppercase;
-    }
+        }
   
-    .header-icon-btn {
+        .header-icon-btn {
             @apply p-1 hover:bg-white/10 rounded-full transition-all text-[#F5F2EA];
-    }
+        }
 
-    body {
+        body {
             @apply bg-city-cream font-sans;
-    }
+        }
     
-    .input-city {
+        .input-city {
             @apply rounded-2xl !important;
             @apply border-[#775D4D]/20 !important;
             @apply bg-white/70 !important;
@@ -34,6 +35,28 @@
             @apply focus:ring-[#775D4D] !important;
             @apply focus:border-[#775D4D] !important;
             @apply text-lg !important;
-  }
+        }
+
+        .adventure-card {
+        @apply w-full bg-[#775D4D] hover:bg-[#634d40] text-[#F5F2EA] rounded-xl p-4 
+               flex justify-between items-center shadow-md transition-all 
+               active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#2F5D50]/50;
+        }
+
+        .label-city{
+                @apply text-lg font-bold text-city-brown mb-0.5 ml-1;
+        }
+
+        .text-cream-city{
+                @apply text-lg font-medium tracking-tight;
+        }
+
+        .text-black-city{
+                @apply text-xl font-bold text-black mb-4 tracking-tight;
+        }
+
+        .text-grey-city{
+               @apply px-4 mb-2 text-[10px] font-bold uppercase text-gray-600 tracking-wider border-b border-gray-300 pb-1;
+        }
 
 }

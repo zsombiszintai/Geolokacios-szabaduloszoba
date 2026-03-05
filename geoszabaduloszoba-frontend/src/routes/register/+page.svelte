@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { Card, Button, Label, Input, Alert, Helper } from 'flowbite-svelte';
-    import { UserOutline, MailBoxOutline, LockOutline} from 'flowbite-svelte-icons';
+    import { Label, Input, Alert, Helper } from 'flowbite-svelte';
     import { goto } from '$app/navigation';
 
     let username = $state('');
@@ -24,7 +23,7 @@
                 setTimeout(() => goto('/login'), 1500);
             } else {
                 status = 'danger';
-                message = "Hiba: A felhasználónév vagy email már foglalt.";
+                message = "A felhasználónév vagy email már foglalt.";
             }
         } catch (err) {
             status = 'danger';

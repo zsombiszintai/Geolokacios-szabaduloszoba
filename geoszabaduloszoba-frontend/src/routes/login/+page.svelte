@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { Card, Button, Label, Input, Alert, Helper } from 'flowbite-svelte';
-    import { UserOutline, MailBoxOutline, LockOutline} from 'flowbite-svelte-icons';
+    import { Label, Input, Alert, Helper } from 'flowbite-svelte';
     import { goto } from '$app/navigation';
 
     let username = $state('');
     let password = $state('');
     let message = $state('');
+    let status = $state('');
 
     async function handleLogin(event: SubmitEvent) {
         console.log('Adatok:', username, password);
@@ -23,12 +23,11 @@
 
                 if (response.ok){
                     const userAdatok = await response.json();
-                    console.log('3. Sikeres JSON feldolgozás:', userAdatok);
+                    message = "Sikeres bejelentkezés.";
                     setTimeout(() => {
                         goto('/dashboard');
                     }, 1200);
                 }else {
-                console.log("Hiba: Rossz felhasználónév vagy jelszó.");
                 message = "Rossz felhasználónév vagy jelszó.";
                 }
 
@@ -42,7 +41,6 @@
     <h1 class="header-city-title">
         CityScape
     </h1>
-    
     <div class="w-8"></div> 
 </header>
 
@@ -55,7 +53,7 @@
         </header>
 
         {#if status !== 'none'}
-            <Alert color={status === 'success' ? 'green' : 'red'} class="mb-4 bg-white/80">
+            <Alert color={status === 'success' ? 'green' : 'red'} class="mb-4 cream">
                 {message}
             </Alert>
         {/if}
@@ -63,7 +61,7 @@
         <form onsubmit={handleLogin} class="space-y-4">
             <fieldset class="space-y-3 border-none p-0 m-0">
                 <div>
-                    <Label for="username" class="text-lg font-bold text-[#775D4D] mb-0.5 ml-1">
+                    <Label for="username" class="label-city">
                         Felhasználónév
                     </Label>
                     <Input 
@@ -77,7 +75,7 @@
                 </div>
 
                 <div>
-                    <Label for="password" class="text-lg font-bold text-[#775D4D] mb-0.5 ml-1">
+                    <Label for="password" class="label-city">
                         Jelszó
                     </Label>
                     <Input 

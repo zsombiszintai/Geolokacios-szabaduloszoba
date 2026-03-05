@@ -24,10 +24,8 @@ public class UserEntity {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
     private LocalDate registrationDate = LocalDate.now();
 
-    @Column(length = 10, nullable = false)
     private String userRole = "USER";
 
     @Column(length = 100)

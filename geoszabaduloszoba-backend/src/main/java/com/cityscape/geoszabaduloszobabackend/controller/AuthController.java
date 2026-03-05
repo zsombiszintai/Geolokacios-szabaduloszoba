@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.POST, RequestMethod.GET})
+@CrossOrigin(origins = "http://localhost:5174", allowCredentials = "true", allowedHeaders = "*", methods = {RequestMethod.POST, RequestMethod.GET})
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
@@ -18,5 +18,15 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request){
         UserEntity user = authService.login(request.getUsername(), request.getPassword());
         return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody UserEntity user) {
+        try {
+            UserEntity savedUser = authService.register(user);
+            return ResponseEntity.ok(savedUser);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

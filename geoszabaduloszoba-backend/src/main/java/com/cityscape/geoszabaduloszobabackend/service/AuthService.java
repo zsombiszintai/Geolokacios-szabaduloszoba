@@ -6,16 +6,23 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserEntity login(String username, String password){
-        return userRepository.findByUsername(username)
-                .filter(user -> user.getPassword().equals(password))
-                .orElseThrow(() -> new RuntimeException("Érvénytelen adatok."));
+    public UserEntity login(String username, String rawPassword) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Felhasználó nem található!"));
+
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new RuntimeException("Hibás jelszó!");
+        }
+
+        return user;
     }
 
     public UserEntity register(UserEntity user) {

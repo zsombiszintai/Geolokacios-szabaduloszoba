@@ -24,6 +24,9 @@
                 if (response.ok){
                     const userAdatok = await response.json();
                     console.log('3. Sikeres JSON feldolgozás:', userAdatok);
+                    setTimeout(() => {
+                        goto('/dashboard');
+                    }, 1200);
                 }else {
                 console.log("Hiba: Rossz felhasználónév vagy jelszó.");
                 message = "Rossz felhasználónév vagy jelszó.";

@@ -1,35 +1,27 @@
 <script lang="ts">
     import "../app.css";
     import favicon from '$lib/assets/favicon.svg';
-    import { BottomNav, BottomNavItem } from "flowbite-svelte";
-    import { 
-        HomeOutline, 
-        LockOutline, 
-        PlusOutline, 
-        StarOutline, 
-        PlayOutline, 
+    import {
+        HomeOutline,
+        LockOutline,
+        PlusOutline,
+        StarOutline,
+        PlayOutline,
         UserCircleOutline,
         UserSettingsOutline
     } from "flowbite-svelte-icons";
     import { page } from '$app/stores';
     import { onMount } from "svelte";
-	import keycloak from "../config/keycloak.config";
-    import { browser } from "$app/environment";
-
-    let authenticated = false;
-    let loading = true;
+    import { goto } from '$app/navigation';
+    import { auth } from "$lib/auth.svelte";
 
     onMount(async () => {
-    if (!browser) return;
-
-    const auth = await keycloak.init({
-        onLoad: "login-required",
-        checkLoginIframe: false
+        await auth.init();
+        if ($page.url.pathname === '/') {
+            // eslint-disable-next-line svelte/no-navigation-without-resolve
+            goto('/dashboard');
+        }
     });
-
-    authenticated = auth;
-    loading = false;
-});
 
     let { children } = $props();
 
@@ -42,13 +34,19 @@
     <link rel="icon" href="{favicon}" />
 </svelte:head>
 
-{#if loading}
+{#if auth.loading}
 
 <div class="flex items-center justify-center min-h-screen">
     <p>Authenticating...</p>
 </div>
 
-{:else if authenticated}
+{:else if auth.error}
+
+<div class="flex items-center justify-center min-h-screen">
+    <p class="text-red-500">{auth.error}</p>
+</div>
+
+{:else if auth.authenticated}
 
 <div class="flex flex-col min-h-screen bg-[#F5F2EA]">
     
@@ -56,7 +54,9 @@
         <header class="fixed top-0 left-0 w-full h-16 bg-[#2F5D50] text-[#F5F2EA] flex items-center justify-between px-6 z-50 shadow-md">
             <UserSettingsOutline class="w-7 h-7 cursor-pointer" />
             <h1 class="text-2xl font-bold tracking-[0.2em] font-josefin">CityScape</h1>
-            <div class="w-7"></div> 
+            <span class="text-sm font-josefin opacity-80 truncate max-w-[7rem] text-right">
+                {auth.fullName ?? auth.username ?? ''}
+            </span>
         </header>
     {/if}
 
@@ -94,12 +94,6 @@
         </nav>
     {/if}
 
-</div>
-
-{:else}
-
-<div class="flex items-center justify-center min-h-screen">
-    <p>Loading authentication...</p>
 </div>
 
 {/if}

@@ -39,6 +39,7 @@
 	"dependencies": {
 		"flowbite-svelte": "^1.31.0",
 		"flowbite-svelte-icons": "^3.1.0",
+		"keycloak-js": "^26.2.3",
 		"leaflet": "^1.9.4",
 		"lucide-svelte": "^0.577.0"
 	}

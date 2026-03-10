@@ -12,6 +12,24 @@
         UserSettingsOutline
     } from "flowbite-svelte-icons";
     import { page } from '$app/stores';
+    import { onMount } from "svelte";
+	import keycloak from "../config/keycloak.config";
+    import { browser } from "$app/environment";
+
+    let authenticated = false;
+    let loading = true;
+
+    onMount(async () => {
+    if (!browser) return;
+
+    const auth = await keycloak.init({
+        onLoad: "login-required",
+        checkLoginIframe: false
+    });
+
+    authenticated = auth;
+    loading = false;
+});
 
     let { children } = $props();
 
@@ -23,6 +41,14 @@
 <svelte:head>
     <link rel="icon" href="{favicon}" />
 </svelte:head>
+
+{#if loading}
+
+<div class="flex items-center justify-center min-h-screen">
+    <p>Authenticating...</p>
+</div>
+
+{:else if authenticated}
 
 <div class="flex flex-col min-h-screen bg-[#F5F2EA]">
     
@@ -67,4 +93,13 @@
 
         </nav>
     {/if}
+
 </div>
+
+{:else}
+
+<div class="flex items-center justify-center min-h-screen">
+    <p>Loading authentication...</p>
+</div>
+
+{/if}

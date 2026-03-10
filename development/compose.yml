@@ -1,0 +1,61 @@
+services:
+
+  ###   KEYCLOAK   ####
+  keycloak:
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    command: start
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME: ${HOST}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KEYCLOAK_ADMIN: ${ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    restart: always
+    ports:
+      - "8090:8080"
+    depends_on:
+      - keycloak-db
+    networks:
+      - shared_network
+
+  ###   POSTGRES   ####
+  keycloak-db:
+    image: postgres:${POSTGRES_VERSION}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/18/docker
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    restart: always
+    ports:
+      - "5435:5432"
+    networks:
+      - shared_network
+
+
+ ###   POSTGRES   ####
+  pg-db:
+    image: postgres:${POSTGRES_VERSION}
+    volumes:
+      - ./postgres_data_2:/var/lib/postgresql/18/docker
+    environment:
+      POSTGRES_DB: cityscape_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: geolokaciosadmin
+    restart: always
+    ports:
+      - "5432:5432"
+    networks:
+      - shared_network
+      
+      
+networks:
+  shared_network:
+  
+

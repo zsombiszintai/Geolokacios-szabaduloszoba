@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "completed_adventure")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Data
 public class CompletedAdventureEntity {
 
     @Id

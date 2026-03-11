@@ -5,7 +5,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "station")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Data
 public class StationEntity {
 
     @Id

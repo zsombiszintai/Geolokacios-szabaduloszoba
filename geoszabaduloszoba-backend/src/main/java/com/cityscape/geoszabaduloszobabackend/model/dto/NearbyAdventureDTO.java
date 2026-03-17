@@ -1,8 +1,12 @@
 package com.cityscape.geoszabaduloszobabackend.model.dto;
 
 public record NearbyAdventureDTO(
+
         Long id,
-        String name,
+
+        String title,
+
         Integer distanceInMeters,
+
         String averageTime
 ) {}

@@ -36,5 +36,5 @@ public class AdventureEntity {
     private Double totalDistance;
 
     private Double averageRating;
-
+    private Integer averageTimeInSeconds;
 }

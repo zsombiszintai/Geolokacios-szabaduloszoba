@@ -45,7 +45,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/**")
-                        .hasRole("admin")
+                        .hasRole("cityscape-admin")
                         .anyRequest()
                         .authenticated()
                 )

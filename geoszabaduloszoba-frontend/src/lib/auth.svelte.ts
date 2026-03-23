@@ -25,7 +25,8 @@ export const auth = {
     get authenticated() { return authenticated; },
     get loading() { return loading; },
     get error() { return error; },
-    get username() { return keycloak.tokenParsed?.preferred_username as string | undefined; },
+		get token(): string | undefined { return keycloak.token; },
+		get username() { return keycloak.tokenParsed?.preferred_username as string | undefined; },
     get fullName() { return keycloak.tokenParsed?.name as string | undefined; },
     init,
     logout

@@ -21,7 +21,6 @@ public class UserEntity {
     @Column(length = 50, unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
     private String password;
 
     private LocalDate registrationDate = LocalDate.now();

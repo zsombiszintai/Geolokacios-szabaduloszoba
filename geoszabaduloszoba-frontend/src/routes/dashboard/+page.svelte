@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { browser } from "$app/environment";
-  import { UserSettingsOutline, ChevronRightOutline } from "flowbite-svelte-icons";
+  import { ChevronRightOutline } from "flowbite-svelte-icons";
 
   import 'leaflet/dist/leaflet.css';
 

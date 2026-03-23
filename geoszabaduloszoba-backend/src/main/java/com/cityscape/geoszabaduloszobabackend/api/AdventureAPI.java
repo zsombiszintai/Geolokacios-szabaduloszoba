@@ -1,6 +1,6 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
-import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureDTO;
+import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.service.AdventureService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/adventures")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class AdventureAPI {
 
     private final AdventureService adventureService;
@@ -32,12 +33,12 @@ public class AdventureAPI {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AdventureDTO> getAdventureDetails(
+    public ResponseEntity<AdventureProfileDTO> getAdventureDetails(
             @PathVariable Long id,
             @RequestParam Double lat,
             @RequestParam Double lon) {
 
-        AdventureDTO details = adventureService.getDetails(id, lat, lon);
+        AdventureProfileDTO details = adventureService.getDetails(id, lat, lon);
         return ResponseEntity.ok(details);
     }
 }

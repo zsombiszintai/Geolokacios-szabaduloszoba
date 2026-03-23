@@ -1,13 +1,17 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
-import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureDTO;
-import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
+import com.cityscape.geoszabaduloszobabackend.model.dto.*;
+import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
+import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.repository.AdventureRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.StationRepository;
+import com.cityscape.geoszabaduloszobabackend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +22,7 @@ public class AdventureService{
 
     private final AdventureRepository adventureRepository;
     private final StationRepository stationRepository;
+    private final UserRepository userRepository;
 
     public List<NearbyAdventureDTO> searchAndMap(String query, Double uLat, Double uLon) {
 
@@ -51,7 +56,7 @@ public class AdventureService{
     }
 
 
-    public AdventureDTO getDetails(Long id, Double uLat, Double uLon) {
+    public AdventureProfileDTO getDetails(Long id, Double uLat, Double uLon) {
 
         AdventureEntity adv = adventureRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Kaland nem található"));
@@ -60,9 +65,10 @@ public class AdventureService{
         Double advLat = startStation.map(StationEntity::getLatitude).orElse(0.0);
         Double advLon = startStation.map(StationEntity::getLongitude).orElse(0.0);
 
-        AdventureDTO dto = new AdventureDTO();
+        AdventureProfileDTO dto = new AdventureProfileDTO();
         dto.setId(adv.getId());
         dto.setTitle(adv.getTitle());
+        dto.setDescription(adv.getDescription());
         dto.setAverageTime(formatTime(adv.getAverageTimeInSeconds()));
         dto.setDistanceInMeters(calculateDistance(uLat, uLon, advLat, advLon));
 
@@ -76,9 +82,58 @@ public class AdventureService{
         return dto;
     }
 
-    
+    @Transactional
+    public Long createAdventureWithStations(AdventureCreateDTO dto, Jwt jwt) {
+
+        String username = jwt.getClaimAsString("preferred_username");
+        String email = jwt.getClaimAsString("email");
+
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseGet(() -> {
+                    UserEntity newUser = new UserEntity();
+                    newUser.setUsername(username);
+                    newUser.setEmail(email);
+                    newUser.setPassword("KEYCLOAK_MANAGED"); // Kamu jelszó
+                    return userRepository.save(newUser);
+                });
+
+        AdventureEntity adventure = new AdventureEntity();
+        adventure.setTitle(dto.getTitle());
+        adventure.setDescription(dto.getDescription());
+        adventure.setDifficulty(dto.getDifficulty());
+        adventure.setCreator(user);
+
+        double totalDistance = 0.0;
+        List<StationCreateDTO> stationDTOs = dto.getStations();
+
+        if (stationDTOs != null && !stationDTOs.isEmpty()) {
+            for (int i = 0; i < stationDTOs.size(); i++) {
+                if (i > 0) {
+                    totalDistance += calculateDistance(
+                            stationDTOs.get(i-1).getLatitude(), stationDTOs.get(i-1).getLongitude(),
+                            stationDTOs.get(i).getLatitude(), stationDTOs.get(i).getLongitude()
+                    );
+                }
+            }
+        }
+
+        adventure.setTotalDistance(totalDistance);
+        adventureRepository.save(adventure);
+
+        for (int i = 0; i < stationDTOs.size(); i++) {
+            StationEntity station = new StationEntity();
+            station.setAdventure(adventure);
+            station.setLatitude(stationDTOs.get(i).getLatitude());
+            station.setLongitude(stationDTOs.get(i).getLongitude());
+            station.setSeqNumber(i + 1);
+            stationRepository.save(station);
+        }
+
+        return adventure.getId();
+    }
 
     /// SEGÉD METÓDUSOK
+
     private String translateDifficulty(Integer diff) {
         if (diff == null) return "Ismeretlen";
         return switch (diff) {

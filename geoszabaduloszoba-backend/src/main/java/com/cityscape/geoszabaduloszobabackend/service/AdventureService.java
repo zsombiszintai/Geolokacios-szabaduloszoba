@@ -71,11 +71,14 @@ public class AdventureService{
         dto.setCreatorName(adv.getCreator() != null ? adv.getCreator().getUsername() : "Ismeretlen");
         dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);
 
-        dto.setRatingDistribution(List.of(5, 10, 45, 30, 10)); // példa adat
+        dto.setRatingDistribution(List.of(5, 10, 45, 30, 10));
 
         return dto;
     }
 
+    
+
+    /// SEGÉD METÓDUSOK
     private String translateDifficulty(Integer diff) {
         if (diff == null) return "Ismeretlen";
         return switch (diff) {

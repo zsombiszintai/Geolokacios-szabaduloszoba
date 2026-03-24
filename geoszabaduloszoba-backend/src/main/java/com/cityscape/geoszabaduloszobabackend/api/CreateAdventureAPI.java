@@ -18,14 +18,9 @@ public class CreateAdventureAPI {
     private final AdventureService adventureService;
 
     @PostMapping
-    public ResponseEntity<Long> create(@RequestBody AdventureCreateDTO dto,
+    public Long create(@RequestBody AdventureCreateDTO dto,
                                        @AuthenticationPrincipal Jwt jwt) {
 
-        String userSub = jwt.getSubject();
-        String username = jwt.getClaimAsString("preferred_username");
-
-        Long adventureId = adventureService.createAdventureWithStations(dto, jwt);
-
-        return ResponseEntity.ok(adventureId);
+        return adventureService.createAdventureWithStations(dto, jwt);
     }
 }

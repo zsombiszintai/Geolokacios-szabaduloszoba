@@ -15,6 +15,9 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
+    private String keycloakSub;
+
     @Column(length = 20, unique = true, nullable = false)
     private String username;
 

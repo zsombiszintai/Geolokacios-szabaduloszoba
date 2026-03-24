@@ -1,5 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
+import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
+import com.cityscape.geoszabaduloszobabackend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +16,8 @@ import java.util.UUID;
 @Transactional
 @RequiredArgsConstructor
 public class UserService {
+
+    private final UserRepository userRepository;
 
     public UUID getUserUUID() {
         return UUID.fromString(this.getJwt()
@@ -34,5 +38,20 @@ public class UserService {
         var auth = (JwtAuthenticationToken) SecurityContextHolder.getContext()
                 .getAuthentication();
         return auth.getToken();
+    }
+
+    public UserEntity getOrCreateCurrentUser() {
+        String keycloakSub = this.getJwt().getSubject();
+        String username = this.getJwt().getClaimAsString("preferred_username");
+        String email = this.getJwt().getClaimAsString("email");
+
+        return userRepository.findByKeycloakSub(keycloakSub)
+                .orElseGet(() -> {
+                    UserEntity newUser = new UserEntity();
+                    newUser.setKeycloakSub(keycloakSub);
+                    newUser.setUsername(username);
+                    newUser.setEmail(email);
+                    return userRepository.save(newUser);
+                });
     }
 }

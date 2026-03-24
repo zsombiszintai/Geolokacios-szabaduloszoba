@@ -23,6 +23,8 @@ public class AdventureService{
     private final AdventureRepository adventureRepository;
     private final StationRepository stationRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
+    private final StationService stationService;
 
     public List<NearbyAdventureDTO> searchAndMap(String query, Double uLat, Double uLon) {
 
@@ -83,67 +85,18 @@ public class AdventureService{
     }
 
     @Transactional
-    public Long createAdventureWithStations(AdventureCreateDTO dto, Jwt jwt) {
+    public AdventureEntity createAdventureWithStations(AdventureEntity adventure, List<StationEntity> stations) {
 
-        String username = jwt.getClaimAsString("preferred_username");
-        String email = jwt.getClaimAsString("email");
-
-        UserEntity user = userRepository.findByUsername(username)
-                .orElseGet(() -> {
-                    UserEntity newUser = new UserEntity();
-                    newUser.setUsername(username);
-                    newUser.setEmail(email);
-                    newUser.setPassword("KEYCLOAK_MANAGED"); // Kamu jelszó
-                    return userRepository.save(newUser);
-                });
-
-        AdventureEntity adventure = new AdventureEntity();
-        adventure.setTitle(dto.getTitle());
-        adventure.setDescription(dto.getDescription());
-        adventure.setDifficulty(dto.getDifficulty());
+        UserEntity user = userService.getOrCreateCurrentUser();
         adventure.setCreator(user);
 
-        double totalDistance = 0.0;
-        List<StationCreateDTO> stationDTOs = dto.getStations();
+        AdventureEntity savedAdventure = adventureRepository.save(adventure);
+        stationService.saveStations(stations, savedAdventure);
 
-        if (stationDTOs != null && !stationDTOs.isEmpty()) {
-            for (int i = 0; i < stationDTOs.size(); i++) {
-                if (i > 0) {
-                    totalDistance += calculateDistance(
-                            stationDTOs.get(i-1).getLatitude(), stationDTOs.get(i-1).getLongitude(),
-                            stationDTOs.get(i).getLatitude(), stationDTOs.get(i).getLongitude()
-                    );
-                }
-            }
-        }
-
-        adventure.setTotalDistance(totalDistance);
-        adventureRepository.save(adventure);
-
-        for (int i = 0; i < stationDTOs.size(); i++) {
-            StationEntity station = new StationEntity();
-            station.setAdventure(adventure);
-            station.setLatitude(stationDTOs.get(i).getLatitude());
-            station.setLongitude(stationDTOs.get(i).getLongitude());
-            station.setSeqNumber(i + 1);
-            stationRepository.save(station);
-        }
-
-        return adventure.getId();
+        return savedAdventure;
     }
 
     /// SEGÉD METÓDUSOK
-
-    private String translateDifficulty(Integer diff) {
-        if (diff == null) return "Ismeretlen";
-        return switch (diff) {
-            case 1 -> "Könnyű";
-            case 2 -> "Közepes";
-            case 3 -> "Nehéz";
-            default -> "Ismeretlen";
-        };
-    }
-
 
     private Integer calculateDistance(double lat1, double lon1, double lat2, double lon2) {
 

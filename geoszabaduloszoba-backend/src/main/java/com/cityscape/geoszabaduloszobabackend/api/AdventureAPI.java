@@ -18,27 +18,26 @@ public class AdventureAPI {
     private final AdventureService adventureService;
 
     @GetMapping("/map")
-    public ResponseEntity<List<NearbyAdventureDTO>> getMapData(
+    public List<NearbyAdventureDTO> getMapData(
             @RequestParam Double lat,
             @RequestParam Double lon) {
-        return ResponseEntity.ok(adventureService.searchAndMap(null, lat, lon));
+        return adventureService.searchAndMap(null, lat, lon);
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<NearbyAdventureDTO>> search(
+    public List<NearbyAdventureDTO> search(
             @RequestParam String query,
             @RequestParam Double lat,
             @RequestParam Double lon) {
-        return ResponseEntity.ok(adventureService.searchAndMap(query, lat, lon));
+        return adventureService.searchAndMap(query, lat, lon);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AdventureProfileDTO> getAdventureDetails(
+    public AdventureProfileDTO getAdventureDetails(
             @PathVariable Long id,
             @RequestParam Double lat,
             @RequestParam Double lon) {
 
-        AdventureProfileDTO details = adventureService.getDetails(id, lat, lon);
-        return ResponseEntity.ok(details);
+        return adventureService.getDetails(id, lat, lon);
     }
 }

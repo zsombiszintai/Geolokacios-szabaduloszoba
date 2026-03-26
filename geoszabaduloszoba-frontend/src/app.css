@@ -7,66 +7,67 @@
 }
 
   @layer components {
-    
-        .header-city {
-            @apply bg-[#2F5D50] text-[#F5F2EA] py-8 px-6 fixed top-0 w-full z-50 
-           flex justify-between items-center shadow-lg transition-all;
-        }
 
-        .header-city-title {
-            @apply text-2xl font-bold tracking-[0.2em] absolute left-1/2 -translate-x-1/2 uppercase;
-        }
-  
-        .header-icon-btn {
-            @apply p-1 hover:bg-white/10 rounded-full transition-all text-[#F5F2EA];
-        }
+      .header-city {
+          @apply bg-[#2F5D50] text-[#F5F2EA] py-8 px-6 fixed top-0 w-full z-50
+          flex justify-between items-center shadow-lg transition-all;
+      }
 
-        body {
-            @apply bg-city-cream font-sans;
-        }
-    
-        .input-city {
-            @apply rounded-2xl !important;
-            @apply border-[#775D4D]/20 !important;
-            @apply bg-white/70 !important;
-            @apply text-[#775D4D] !important;
-            @apply py-4 !important;
-            @apply pl-6 !important;
-            @apply focus:ring-[#775D4D] !important;
-            @apply focus:border-[#775D4D] !important;
-            @apply text-lg !important;
-        }
+      .header-city-title {
+          @apply text-2xl font-bold tracking-[0.2em] absolute left-1/2 -translate-x-1/2 uppercase;
+      }
+
+      .header-icon-btn {
+          @apply p-1 hover:bg-white/10 rounded-full transition-all text-[#F5F2EA];
+      }
+
+      body {
+          @apply bg-city-cream font-sans;
+      }
+
+      .input-city {
+          @apply rounded-2xl !important;
+          @apply border-[#775D4D]/20 !important;
+          @apply bg-white/70 !important;
+          @apply text-[#775D4D] !important;
+          @apply py-4 !important;
+          @apply pl-6 !important;
+          @apply focus:ring-[#775D4D] !important;
+          @apply focus:border-[#775D4D] !important;
+          @apply text-lg !important;
+      }
 
       .input-city-brown {
           @apply w-full bg-[#8D7462] text-white rounded-xl p-4 mb-5 border-none;
           @apply shadow-[inset_0_4px_4px_rgba(0,0,0,0.25),0_4px_4px_rgba(0,0,0,0.1)];
           @apply placeholder:text-white/60 focus:ring-2 focus:ring-[#2F5D50] outline-none transition-all;
       }
+
       .map-picker-container {
           @apply flex items-center gap-3 cursor-pointer py-2 hover:opacity-80 transition-opacity;
       }
 
-        .adventure-card {
-        @apply w-full bg-[#775D4D] hover:bg-[#634d40] text-[#F5F2EA] rounded-xl p-4 
-               flex justify-between items-center shadow-md transition-all 
-               active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#2F5D50]/50;
-        }
+      .adventure-card {
+          @apply w-full bg-[#775D4D] hover:bg-[#634d40] text-[#F5F2EA] rounded-xl p-4
+          flex justify-between items-center shadow-md transition-all
+          active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#2F5D50]/50;
+      }
 
-        .label-city{
-                @apply text-lg font-bold text-city-brown mb-0.5 ml-1;
-        }
+      .label-city {
+          @apply text-lg font-bold text-city-brown mb-0.5 ml-1;
+      }
 
-        .text-cream-city{
-                @apply text-lg font-medium tracking-tight;
-        }
+      .text-cream-city {
+          @apply text-lg font-medium tracking-tight;
+      }
 
-        .text-black-city{
-                @apply text-xl font-bold text-black mb-4 tracking-tight;
-        }
+      .text-black-city {
+          @apply text-xl font-bold text-black mb-4 tracking-tight;
+      }
 
-        .text-grey-city{
-               @apply px-4 mb-2 text-[10px] font-bold uppercase text-gray-600 tracking-wider border-b border-gray-300 pb-1;
-        }
+      .text-grey-city {
+          @apply px-4 mb-2 text-[10px] font-bold uppercase text-gray-600 tracking-wider border-b border-gray-300 pb-1;
+      }
 
       .btn-primary {
           @apply w-full bg-[#775D4D] text-[#F5F2EA] py-3.5 rounded-2xl font-bold uppercase tracking-widest;
@@ -95,4 +96,25 @@
           z-index: 1;
       }
 
-}
+      .slider-city {
+          -webkit-appearance: none;
+          @apply h-3 bg-[#8D7462]/20 rounded-full outline-none transition-all;
+      }
+
+      .sticky-post-nav {
+          @apply fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F5F2EA] via-[#F5F2EA]/90 to-transparent z-[60];
+      }
+
+      .bg-green-500 {
+          @apply shadow-[0_0_8px_rgba(34,197,94,0.8)];
+      }
+
+      .bg-yellow-500 {
+          @apply shadow-[0_0_8px_rgba(234,179,8,0.8)];
+      }
+
+      .bg-red-500 {
+          @apply shadow-[0_0_8px_rgba(239,68,68,0.8)];
+      }
+
+  }

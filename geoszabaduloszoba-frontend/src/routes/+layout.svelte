@@ -3,7 +3,7 @@
     import favicon from '$lib/assets/favicon.svg';
     import {
         HomeOutline,
-        LockOutline,
+        MapPinSolid,
         PlusOutline,
         StarOutline,
         PlayOutline,
@@ -19,7 +19,6 @@
     onMount(async () => {
         await auth.init();
         if ($page.url.pathname === '/') {
-            // eslint-disable-next-line svelte/no-navigation-without-resolve
             goto('/dashboard');
         }
     });
@@ -72,11 +71,11 @@
                 <HomeOutline class="w-7 h-7 {activePath === '/dashboard' ? 'text-white' : 'text-white/50'}" />
             </a>
             
-            <a href="/games" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
-                <LockOutline class="w-7 h-7 text-white/50" />
+            <a href="./map" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+                <MapPinSolid class="w-7 h-7 {activePath === '/map' ? 'text-white' : 'text-white/50'}" />
             </a>
             
-            <a href="./create-adventure" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+            <a href="./created-adventures" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <PlusOutline class="w-7 h-7 {activePath === '/create-adventure' ? 'text-white' : 'text-white/50'}" />
             </a>
             

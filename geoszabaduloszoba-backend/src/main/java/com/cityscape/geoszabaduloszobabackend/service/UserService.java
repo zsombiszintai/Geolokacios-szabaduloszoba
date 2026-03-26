@@ -46,6 +46,14 @@ public class UserService {
         String email = this.getJwt().getClaimAsString("email");
 
         return userRepository.findByKeycloakSub(keycloakSub)
+                .or(() -> userRepository.findByEmail(email))
+                .map(user -> {
+                    if (user.getKeycloakSub() == null) {
+                        user.setKeycloakSub(keycloakSub);
+                        return userRepository.save(user);
+                    }
+                    return user;
+                })
                 .orElseGet(() -> {
                     UserEntity newUser = new UserEntity();
                     newUser.setKeycloakSub(keycloakSub);

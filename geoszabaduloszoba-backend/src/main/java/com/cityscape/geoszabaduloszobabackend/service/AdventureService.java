@@ -22,18 +22,26 @@ public class AdventureService{
 
     private final AdventureRepository adventureRepository;
     private final StationRepository stationRepository;
-    private final UserRepository userRepository;
     private final UserService userService;
     private final StationService stationService;
+
+    public List<AdventureCreatedDTO> getAdventuresByUser(UserEntity creator) {
+        return adventureRepository.findAllByCreator(creator).stream()
+                .map(entity -> new AdventureCreatedDTO(
+                        entity.getId(),
+                        entity.getTitle(),
+                        entity.getCreatedAt(),
+                        entity.getStatus()
+                ))
+                .toList();
+    }
 
     public List<NearbyAdventureDTO> searchAndMap(String query, Double uLat, Double uLon) {
 
         List<AdventureEntity> adventures;
 
         if (query == null || query.isBlank()) {
-
             adventures = adventureRepository.findAll();
-
         } else {
             adventures = adventureRepository.findByTitleContainingIgnoreCase(query);
         }
@@ -50,7 +58,9 @@ public class AdventureService{
                             adv.getId(),
                             adv.getTitle(),
                             calculateDistance(uLat, uLon, advLat, advLon),
-                            formatTime(adv.getAverageTimeInSeconds())
+                            adv.getAverageTimeInSeconds(),
+                            advLon,
+                            advLat
 
                     );
                 })
@@ -74,7 +84,7 @@ public class AdventureService{
         dto.setAverageTime(formatTime(adv.getAverageTimeInSeconds()));
         dto.setDistanceInMeters(calculateDistance(uLat, uLon, advLat, advLon));
 
-        dto.setDifficulty(translateDifficulty(adv.getDifficulty()));
+        dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
 
         dto.setCreatorName(adv.getCreator() != null ? adv.getCreator().getUsername() : "Ismeretlen");
         dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);

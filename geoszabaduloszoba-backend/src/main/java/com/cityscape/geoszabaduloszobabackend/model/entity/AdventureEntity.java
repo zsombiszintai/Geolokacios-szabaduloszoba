@@ -1,5 +1,6 @@
 package com.cityscape.geoszabaduloszobabackend.model.entity;
 
+import com.cityscape.geoszabaduloszobabackend.model.enums.Difficulty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,7 +21,9 @@ public class AdventureEntity {
     @Column(length = 500)
     private String description;
 
-    private Integer difficulty;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "difficulty")
+    private Difficulty difficulty;
 
     @ManyToOne
     @JoinColumn(name = "creator_id", nullable = false)

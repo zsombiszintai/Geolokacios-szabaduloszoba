@@ -25,4 +25,6 @@ public class StationEntity {
 
     @Column(length = 100)
     private String riddleText;
+
+    private boolean isLastStation;
 }

@@ -62,13 +62,25 @@
 						iconAnchor: [20, 40]
 					});
 
+					const userIcon = L.divIcon({
+						className: 'custom-div-icon',
+						html: `<div class="w-4 h-4 bg-[#2F5D50] rounded-full border-2 border-white shadow-lg"></div>`,
+						iconSize: [16, 16],
+						iconAnchor: [8, 8]
+					});
+					L.marker([userPos.lat, userPos.lon], { icon: userIcon }).addTo(map);
+
 					L.marker([adv.advLat, adv.advLon], { icon: adventureIcon })
 						.addTo(map!)
 						.bindPopup(`
-              <div class="p-1 font-josefin">
-                <p class="font-bold text-[#2F5D50] text-sm">${adv.title}</p>
-                <p class="text-[10px] text-gray-500">${adv.distanceInMeters} m távolságra</p>
-              </div>
+							<div class="p-2 font-josefin">
+								<h3 class="font-bold text-lg">${adv.title}</h3>
+								<p class="text-sm text-gray-600 mb-2">${adv.distanceInMeters} m távolságra</p>
+								<a href="/adventures/${adv.id}"
+								class="block text-center bg-[#2F5D50] text-white py-2 px-4 rounded-lg font-bold no-underline active:scale-95 transition-transform">
+								Megtekintés
+								</a>
+						</div>
             `);
 				}
 			});

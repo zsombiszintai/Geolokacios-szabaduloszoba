@@ -39,9 +39,10 @@ public class AdventureService{
     public List<NearbyAdventureDTO> searchAndMap(String query, Double uLat, Double uLon) {
 
         List<AdventureEntity> adventures;
+        final String PUBLIC_STATUS = "PUBLIC";
 
         if (query == null || query.isBlank()) {
-            adventures = adventureRepository.findAll();
+            adventures = adventureRepository.findByStatus(PUBLIC_STATUS);
         } else {
             adventures = adventureRepository.findByTitleContainingIgnoreCase(query);
         }
@@ -82,7 +83,7 @@ public class AdventureService{
         dto.setTitle(adv.getTitle());
         dto.setDescription(adv.getDescription());
         dto.setAverageTime(formatTime(adv.getAverageTimeInSeconds()));
-        dto.setDistanceInMeters(calculateDistance(uLat, uLon, advLat, advLon));
+        dto.setDistanceInMeters(adv.getTotalDistance());
 
         dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
 

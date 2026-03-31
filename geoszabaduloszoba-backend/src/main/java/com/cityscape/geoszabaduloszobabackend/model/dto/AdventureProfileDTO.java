@@ -10,7 +10,7 @@ public class AdventureProfileDTO {
     private String description;
 
     private String averageTime;
-    private Integer distanceInMeters;
+    private Double distanceInMeters;
     private String difficulty;
     private String creatorName;
 

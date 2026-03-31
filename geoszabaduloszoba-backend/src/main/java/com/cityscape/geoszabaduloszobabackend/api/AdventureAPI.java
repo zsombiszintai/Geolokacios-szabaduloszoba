@@ -4,11 +4,13 @@ import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.service.AdventureService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/adventures")
 @RequiredArgsConstructor

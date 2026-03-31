@@ -67,15 +67,15 @@
     {#if showNavbar}
         <nav class="fixed bottom-0 left-0 w-full h-16 bg-[#2F5D50] border-t border-white/10 z-50 flex items-center justify-around px-2">
             
-            <a href="./dashboard" class="flex flex-col items-center justify-center w-full h-full transition-colors">
+            <a href="/dashboard" class="flex flex-col items-center justify-center w-full h-full transition-colors">
                 <HomeOutline class="w-7 h-7 {activePath === '/dashboard' ? 'text-white' : 'text-white/50'}" />
             </a>
             
-            <a href="./map" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+            <a href="/map" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <MapPinSolid class="w-7 h-7 {activePath === '/map' ? 'text-white' : 'text-white/50'}" />
             </a>
             
-            <a href="./created-adventures" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+            <a href="/adventures" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <PlusOutline class="w-7 h-7 {activePath === '/create-adventure' ? 'text-white' : 'text-white/50'}" />
             </a>
             

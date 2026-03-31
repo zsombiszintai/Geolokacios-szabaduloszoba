@@ -4,6 +4,7 @@
   import { auth } from '$lib/auth.svelte';
 
   import 'leaflet/dist/leaflet.css';
+  import { goto } from '$app/navigation';
 
   let mapElement: HTMLElement | undefined = $state(undefined);
   let map: L.Map | undefined = undefined;
@@ -56,7 +57,8 @@
 
 <main class="flex flex-col items-center min-h-screen pt-6 pb-24 px-4 bg-[#F5F2EA] font-josefin">
     
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden border-4 border-white mb-8">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden border-4 border-white mb-8"
+         onclick={() => goto(`/map`)}>
         <div class="bg-[#775D4D] text-[#F5F2EA] p-3 flex justify-between items-center cursor-pointer">
             <span class="text-cream-city">Fedezz fel kalandokat</span>
             <ChevronRightOutline class="w-5 h-5" />
@@ -78,11 +80,11 @@
             {#each adventures as adventure (adventure.id)}
                 <button 
                     class="adventure-card"
+                    onclick={() => goto(`/adventures/${adventure.id}`)}
                 >
                     <span class="text-left text-cream-city">{adventure.title}</span>
                     <span class="text-center text-cream-city">{adventure.averageTime} p</span>
                     <span class="text-right text-cream-city">{adventure.distanceInMeters} m</span>
-                    <ChevronRightOutline class="w-4 h-4" />
                 </button>
             {/each}
         </div>

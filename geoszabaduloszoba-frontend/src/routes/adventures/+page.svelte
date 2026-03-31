@@ -44,7 +44,7 @@
 		<button
 			type="button"
 			class="w-full flex flex-col items-start gap-2 group"
-			on:click={() => goto('/create-adventure')}
+			on:click={() => goto('./adventures/create')}
 		>
 			<div class="w-full h-16 bg-[#8D7462] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
 				<span class="text-white text-4xl font-light leading-none">+</span>

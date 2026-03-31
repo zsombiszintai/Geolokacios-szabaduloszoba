@@ -1,20 +1,32 @@
 import keycloak from '../config/keycloak.config';
+import { pushState, replaceState } from '$app/navigation';
 
 let authenticated = $state(false);
 let loading = $state(true);
 let error = $state<string | null>(null);
 
 async function init() {
-    try {
-        authenticated = await keycloak.init({
-            onLoad: 'login-required',
-            checkLoginIframe: false
-        });
-    } catch (e) {
-        error = e instanceof Error ? e.message : 'Authentication failed';
-    } finally {
-        loading = false;
-    }
+	try {
+		authenticated = await keycloak.init({
+			onLoad: 'login-required',
+			checkLoginIframe: false,
+			adapter: 'default',
+			redirectUri: window.location.origin + window.location.pathname
+		});
+
+		const originalReplaceState = window.history.replaceState;
+		window.history.replaceState = (data, unused, url) => {
+			if (url) {
+				replaceState(url.toString(), data || {});
+			} else {
+				originalReplaceState.apply(window.history, [data, unused, url]);
+			}
+		};
+	} catch (e) {
+		error = e instanceof Error ? e.message : 'Authentication failed';
+	} finally {
+		loading = false;
+	}
 }
 
 function logout() {

@@ -24,18 +24,19 @@ public class GameService {
         AbandonedAdventureEntity session = abandonedRepository.findById(dto.sessionId())
                 .orElseThrow(() -> new RuntimeException("Session nem található"));
 
+        System.out.println("Mentés: SessionID: " + dto.sessionId() + " Távolság: " + dto.distanceInMeters());
+
         session.setElapsedSec(dto.elapsedSec());
         session.setDistanceTravelled(dto.distanceInMeters());
         session.setLastStationId(dto.lastStationId());
 
-        abandonedRepository.save(session);
+        abandonedRepository.saveAndFlush(session);
 
-        StationEntity currentStation = stationRepository.findById(dto.lastStationId())
-                .orElseThrow();
-
-        if (currentStation.isLastStation()) {
-            finishGame(session);
-        }
+        stationRepository.findById(dto.lastStationId()).ifPresent(currentStation -> {
+            if (currentStation.isLastStation()) {
+                finishGame(session);
+            }
+        });
     }
 
     private void finishGame(AbandonedAdventureEntity abandoned) {

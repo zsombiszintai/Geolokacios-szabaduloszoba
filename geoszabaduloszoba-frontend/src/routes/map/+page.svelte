@@ -3,7 +3,6 @@
 	import { browser } from '$app/environment';
 	import { auth } from '$lib/auth.svelte';
 	import 'leaflet/dist/leaflet.css';
-	import { MapPinSolid } from 'flowbite-svelte-icons';
 
 	let mapElement: HTMLElement | undefined = $state(undefined);
 	let map: L.Map | undefined = undefined;

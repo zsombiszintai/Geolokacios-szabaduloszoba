@@ -1,80 +1,100 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
+import com.cityscape.geoszabaduloszobabackend.mapper.AbstractMapper;
 import com.cityscape.geoszabaduloszobabackend.model.dto.ActiveGameDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.*;
 import com.cityscape.geoszabaduloszobabackend.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.mapstruct.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class GameService {
+
     private final AbandonedAdventureRepository abandonedRepository;
     private final CompletedAdventureRepository completedRepository;
     private final StationRepository stationRepository;
     private final UserRepository userRepository;
     private final AdventureRepository adventureRepository;
+    private final GameServiceMapper gameServiceMapper;
 
-    @Transactional
     public void updateActiveGame(ActiveGameDTO dto) {
-        AbandonedAdventureEntity session = abandonedRepository.findById(dto.sessionId())
+        var existing = abandonedRepository.findById(dto.sessionId())
                 .orElseThrow(() -> new RuntimeException("Session nem található"));
 
-        System.out.println("Mentés: SessionID: " + dto.sessionId() + " Távolság: " + dto.distanceInMeters());
+        this.gameServiceMapper.mergeUpdate(existing, dto);
 
-        session.setElapsedSec(dto.elapsedSec());
-        session.setDistanceTravelled(dto.distanceInMeters());
-        session.setLastStationId(dto.lastStationId());
+        abandonedRepository.save(existing);
 
-        abandonedRepository.saveAndFlush(session);
-
-        stationRepository.findById(dto.lastStationId()).ifPresent(currentStation -> {
-            if (currentStation.isLastStation()) {
-                finishGame(session);
+        stationRepository.findById(dto.lastStationId()).ifPresent(station -> {
+            if (station.isLastStation()) {
+                finishGame(existing);
             }
         });
     }
 
     private void finishGame(AbandonedAdventureEntity abandoned) {
-        CompletedAdventureEntity completed = new CompletedAdventureEntity();
-
-        completed.setUser(abandoned.getUser());
-        completed.setAdventure(abandoned.getAdventure());
-        completed.setDurationSec(abandoned.getElapsedSec());
-        completed.setDistanceTravelled(abandoned.getDistanceTravelled());
-        completed.setCompletedAt(LocalDate.now());
-
+        var completed = gameServiceMapper.toCompleted(abandoned);
         completedRepository.save(completed);
 
         abandoned.setCompleted(true);
         abandonedRepository.save(abandoned);
     }
 
-    @Transactional
-    public Long startGame(Long adventureId, String KeycloakSub) {
-        UserEntity user = userRepository.findByKeycloakSub(KeycloakSub)
-                .orElseThrow(() -> new RuntimeException("Felhasználó nem található: " + KeycloakSub));
+    public Long startGame(Long adventureId, String keycloakSub) {
+        var user = userRepository.findByKeycloakSub(keycloakSub)
+                .orElseThrow(() -> new RuntimeException("Felhasználó nem található"));
 
-        AdventureEntity adventure = adventureRepository.findById(adventureId)
-                .orElseThrow(() -> new RuntimeException("Kaland nem található: " + adventureId));
+        var adventure = adventureRepository.findById(adventureId)
+                .orElseThrow(() -> new RuntimeException("Kaland nem található"));
 
-        StationEntity firstStation = stationRepository.findByAdventureIdAndSeqNumber(adventureId, 1)
-                .orElseThrow(() -> new RuntimeException("Ehhez a kalandhoz nincsenek állomások!"));
+        var firstStation = stationRepository.findByAdventureIdAndSeqNumber(adventureId, 1)
+                .orElseThrow(() -> new RuntimeException("Nincsenek állomások"));
 
-        AbandonedAdventureEntity abandoned = new AbandonedAdventureEntity();
-        abandoned.setUser(user);
-        abandoned.setAdventure(adventure);
-        abandoned.setLastStationId(firstStation.getId());
-        abandoned.setStartedAt(LocalDateTime.now());
-        abandoned.setElapsedSec(0);
-        abandoned.setDistanceTravelled(0.0);
-        abandoned.setCompleted(false);
+        var abandoned = gameServiceMapper.buildAbandoned(user, adventure, firstStation.getId());
+        return abandonedRepository.save(abandoned).getId();
+    }
 
-        AbandonedAdventureEntity saved = abandonedRepository.save(abandoned);
-        return saved.getId();
+    @Mapper(config = AbstractMapper.class, imports = {LocalDateTime.class, LocalDate.class})
+    public interface GameServiceMapper {
+
+        @Mappings({
+                @Mapping(target = "id", ignore = true),
+                @Mapping(target = "user", source = "user"),
+                @Mapping(target = "adventure", source = "adventure"),
+                @Mapping(target = "lastStationId", source = "firstStationId"),
+                @Mapping(target = "startedAt", expression = "java(LocalDateTime.now())"),
+                @Mapping(target = "distanceTravelled", constant = "0.0"),
+                @Mapping(target = "elapsedSec", constant = "0"),
+                @Mapping(target = "completed", constant = "false")
+        })
+        AbandonedAdventureEntity buildAbandoned(UserEntity user, AdventureEntity adventure, Long firstStationId);
+
+        @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+                nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS)
+        @Mappings({
+                @Mapping(target = "id", ignore = true),
+                @Mapping(target = "user", ignore = true),
+                @Mapping(target = "adventure", ignore = true),
+                @Mapping(target = "startedAt", ignore = true),
+                @Mapping(target = "distanceTravelled", source = "distanceInMeters"),
+                @Mapping(target = "completed", ignore = true)
+        })
+        void mergeUpdate(@MappingTarget AbandonedAdventureEntity target, ActiveGameDTO src);
+
+        @Mappings({
+                @Mapping(target = "id", ignore = true),
+                @Mapping(target = "durationSec", source = "elapsedSec"),
+                @Mapping(target = "completedAt", expression = "java(LocalDate.now())")
+        })
+        CompletedAdventureEntity toCompleted(AbandonedAdventureEntity abandoned);
     }
 }

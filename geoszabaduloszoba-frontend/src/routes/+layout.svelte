@@ -79,7 +79,7 @@
                 <PlusOutline class="w-7 h-7 {activePath === '/create-adventure' ? 'text-white' : 'text-white/50'}" />
             </a>
             
-            <a href="/favorites" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+            <a href="/completed-adventures" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <StarOutline class="w-7 h-7 text-white/50" />
             </a>
             

@@ -14,6 +14,7 @@ public class GameAPI {
 
     @PostMapping("/update")
     public void updateStatus(@RequestBody ActiveGameDTO dto) {
+
         gameService.updateActiveGame(dto);
     }
 

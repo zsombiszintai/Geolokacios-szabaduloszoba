@@ -74,9 +74,17 @@ public class AdventureService{
         AdventureEntity adv = adventureRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Kaland nem található"));
 
-        Optional<StationEntity> startStation = stationRepository.findByAdventureIdAndSeqNumber(adv.getId(), 1);
-        Double advLat = startStation.map(StationEntity::getLatitude).orElse(0.0);
-        Double advLon = startStation.map(StationEntity::getLongitude).orElse(0.0);
+        List<StationEntity> stationEntities = stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id);
+
+        List<StationDTO> stationDTOs = stationEntities.stream()
+                .map(s -> new StationDTO(
+                        s.getId(),
+                        s.getLatitude(),
+                        s.getLongitude(),
+                        s.getRiddleText(),
+                        s.getSeqNumber()
+                ))
+                .toList();
 
         AdventureProfileDTO dto = new AdventureProfileDTO();
         dto.setId(adv.getId());
@@ -84,13 +92,12 @@ public class AdventureService{
         dto.setDescription(adv.getDescription());
         dto.setAverageTime(formatTime(adv.getAverageTimeInSeconds()));
         dto.setDistanceInMeters(adv.getTotalDistance());
-
         dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
-
         dto.setCreatorName(adv.getCreator() != null ? adv.getCreator().getUsername() : "Ismeretlen");
         dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);
-
         dto.setRatingDistribution(List.of(5, 10, 45, 30, 10));
+
+        dto.setStations(stationDTOs);
 
         return dto;
     }

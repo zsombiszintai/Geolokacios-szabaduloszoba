@@ -30,9 +30,9 @@
 	);
 
 	const statusColors = {
-		'PUBLISHED': 'bg-green-500',
+		'PUBLIC': 'bg-green-500',
 		'PENDING': 'bg-yellow-500',
-		'ARCHIVED': 'bg-red-500'
+		'REJECTED': 'bg-red-500'
 	};
 </script>
 

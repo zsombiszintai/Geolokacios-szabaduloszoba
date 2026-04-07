@@ -12,13 +12,17 @@
 	let adventureTitle = $state("Betöltés...");
 	let elapsedSec = $state(0);
 	let distanceInMeters = $state(0);
-	let userPos = $state({ lat: 46.0754, lon: 18.2205 });
+	let userPos = $state({ lat: 46.079721, lon: 18.227176 });
 	let firstStationPos = $state<{lat: number, lon: number} | null>(null);
 	let routePath = $state<[number, number][]>([]);
 	let compassRotation = $state(0);
 	let lastStationId = $state<number | null>(null);
 	let isCompassOpen = $state(false);
 	let isInitializing = false;
+	let allStations = $state<any[]>([]);
+	let guideLine: L.Polyline;
+	let showRiddle = $state(false);
+	let currentRiddleText = $state("");
 
 	let map: L.Map;
 	let playerMarker: L.Marker;
@@ -42,6 +46,31 @@
 		return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 	}
 
+	function updateCompass() {
+		const target = currentTarget();
+		if (target) {
+			compassRotation = calculateAngle(userPos, { lat: target.latitude, lon: target.longitude });
+		}
+	}
+
+	function nextStation() {
+		showRiddle = false;
+		const currentIndex = allStations.findIndex(s => s.id === lastStationId);
+		if (currentIndex < allStations.length - 1) {
+			lastStationId = allStations[currentIndex + 1].id;
+			const next = allStations[currentIndex + 1];
+			guideLine.setLatLngs([[userPos.lat, userPos.lon], [next.latitude, next.longitude]]);
+			compassRotation = calculateAngle(userPos, { lat: next.latitude, lon: next.longitude });
+		} else {
+			guideLine.setLatLngs([]);
+		}
+	}
+	const currentTarget = $derived(() => {
+		if (allStations.length === 0 || lastStationId === null) return null;
+		const currentIndex = allStations.findIndex(s => s.id === lastStationId);
+		return allStations[currentIndex];
+	});
+
 	onMount(async () => {
 		if (isInitializing) return;
 		isInitializing = true;
@@ -64,6 +93,13 @@
 
 		playerMarker = L.marker([userPos.lat, userPos.lon], { icon: userIcon }).addTo(map);
 
+		guideLine = L.polyline([], {
+			color: '#ef4444',
+			weight: 3,
+			dashArray: '10, 10',
+			opacity: 0.6
+		}).addTo(map);
+
 		if (!adventureId || !auth.token) return;
 
 		try {
@@ -73,11 +109,22 @@
 
 			if (advRes.ok) {
 				const data = await advRes.json();
+
+				console.log("DEBUG: Kaland adatok megérkeztek:", data);
 				adventureTitle = data.title;
-				if (data.stations && data.stations.length > 0) {
-					lastStationId = data.stations[0].id;
-					firstStationPos = { lat: data.stations[0].latitude, lon: data.stations[0].longitude };
-					compassRotation = calculateAngle(userPos, firstStationPos);
+				allStations = data.stations || [];
+
+				if (allStations.length > 0) {
+					const first = allStations[0];
+					firstStationPos = { lat: first.latitude, lon: first.longitude};
+					lastStationId = first.id;
+
+					guideLine.setLatLngs([
+						[userPos.lat, userPos.lon],
+						[first.latitude, first.longitude]
+					]);
+
+					updateCompass();
 				}
 			}
 
@@ -99,12 +146,24 @@
 	function updateLocation(newLat: number, newLon: number) {
 		const newPos = { lat: newLat, lon: newLon };
 		distanceInMeters += calculateDistance(userPos, newPos);
-
 		userPos = newPos;
 		routePath = [...routePath, [newLat, newLon]];
 
-		if (firstStationPos) {
-			compassRotation = calculateAngle(userPos, firstStationPos);
+		const target = currentTarget();
+		if (target) {
+			compassRotation = calculateAngle(userPos, { lat: target.latitude, lon: target.longitude });
+
+			guideLine.setLatLngs([
+				[userPos.lat, userPos.lon],
+				[target.latitude, target.longitude]
+			]);
+
+			const distToTarget = calculateDistance(userPos, { lat: target.latitude, lon: target.longitude });
+
+			if (distToTarget < 20 && !showRiddle) {
+				currentRiddleText = target.riddleText || "Nincs megadva rejtvény szöveg, de megérkeztél!";
+				showRiddle = true;
+			}
 		}
 
 		if (playerMarker && map) {
@@ -158,7 +217,8 @@
 
 		if (syncInterval) clearInterval(syncInterval);
 		syncInterval = setInterval(async () => {
-			if (sessionId === null || lastStationId === null || !auth.token) return;
+
+			if (!sessionId || !lastStationId || !auth.token) return;
 
 			try {
 				await fetch('http://localhost:8080/api/game/update', {
@@ -198,8 +258,27 @@
 		<div id="map-container" class="w-full h-full z-0"></div>
 
 		<button onclick={saveAndExit} class="absolute top-4 left-4 z-[400] bg-[#775D4D]/90 p-2 px-4 rounded-lg text-white shadow-md active:scale-95 transition-transform">
-			🚪 Kilépés
+			Kilépés
 		</button>
+
+		{#if showRiddle}
+			<div class="absolute inset-0 z-[600] bg-black/70 backdrop-blur-md flex items-center justify-center p-6">
+				<div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border-4 border-[#775D4D] text-center animate-in zoom-in duration-300">
+					<span class="text-4xl mb-4 block">🧩</span>
+					<h2 class="text-2xl font-bold text-[#775D4D] mb-4">Megérkeztél!</h2>
+					<p class="text-gray-700 mb-8 leading-relaxed font-medium">
+						{currentRiddleText}
+					</p>
+
+					<button
+						onclick={nextStation}
+						class="w-full bg-[#775D4D] text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform"
+					>
+						OK
+					</button>
+				</div>
+			</div>
+		{/if}
 
 		{#if isCompassOpen}
 			<div

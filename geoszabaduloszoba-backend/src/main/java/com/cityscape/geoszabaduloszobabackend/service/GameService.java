@@ -27,8 +27,9 @@ public class GameService {
     private final GameServiceMapper gameServiceMapper;
 
     public void updateActiveGame(ActiveGameDTO dto) {
+
         var existing = abandonedRepository.findById(dto.sessionId())
-                .orElseThrow(() -> new RuntimeException("Session nem található"));
+                .orElseThrow(() -> new RuntimeException("Session nem található: " + dto.sessionId()));
 
         this.gameServiceMapper.mergeUpdate(existing, dto);
 

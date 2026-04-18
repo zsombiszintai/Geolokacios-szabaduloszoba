@@ -264,7 +264,7 @@
 		{#if showRiddle}
 			<div class="absolute inset-0 z-[600] bg-black/70 backdrop-blur-md flex items-center justify-center p-6">
 				<div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border-4 border-[#775D4D] text-center animate-in zoom-in duration-300">
-					<span class="text-4xl mb-4 block">🧩</span>
+					<span class="text-4xl mb-4 block">R</span>
 					<h2 class="text-2xl font-bold text-[#775D4D] mb-4">Megérkeztél!</h2>
 					<p class="text-gray-700 mb-8 leading-relaxed font-medium">
 						{currentRiddleText}

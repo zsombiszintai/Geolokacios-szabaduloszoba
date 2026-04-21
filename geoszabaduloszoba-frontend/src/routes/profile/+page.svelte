@@ -57,19 +57,19 @@
 
 		<nav class="space-y-3 pt-2">
 			{#each [
-				{ label: 'Lejátszott kalandok', count: stats.completedCount },
-				{ label: 'Félbehagyott kalandok', count: stats.abandonedCount },
-				{ label: 'Saját kalandok', count: stats.ownedCount },
-				{ label: 'Értékelt kalandok', count: stats.ratedCount },
-				{ label: 'Vélemények', count: stats.reviewsCount }
+				{ label: 'Lejátszott kalandok', key: 'completed-adventure', count: stats.completedCount },
+				{ label: 'Félbehagyott kalandok', key: 'abandoned-adventure', count: stats.abandonedCount },
+				{ label: 'Saját kalandok', key: 'created', count: stats.ownedCount },
+				{ label: 'Értékelt kalandok', key: 'rated', count: stats.ratedCount },
+				{ label: 'Vélemények', key: 'reviewed', count: stats.reviewsCount }
 			] as item}
-				<button class="adventure-card">
+				<a href="/profile/list/{item.key}" class="adventure-card block no-underline">
 					<span class="text-cream-city">{item.label}</span>
 					<div class="flex items-center gap-4">
 						<span class="text-xl font-bold">{item.count || 0}</span>
 						<span class="opacity-60">❯</span>
 					</div>
-				</button>
+				</a>
 			{/each}
 		</nav>
 	{:else}

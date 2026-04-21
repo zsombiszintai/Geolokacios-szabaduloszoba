@@ -10,4 +10,6 @@ import java.util.List;
 public interface CompletedAdventureRepository extends JpaRepository<CompletedAdventureEntity, Long> {
 
     List<CompletedAdventureEntity> findCompletedAdventureEntitiesByUserId(Long userId);
+
+    List<CompletedAdventureEntity> findAllByUserKeycloakSub(String sub);
 }

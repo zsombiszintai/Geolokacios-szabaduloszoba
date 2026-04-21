@@ -15,5 +15,7 @@ public interface AdventureRepository extends JpaRepository<AdventureEntity, Long
 
     List<AdventureEntity> findAllByCreator(UserEntity creator);
 
+    List<AdventureEntity> findAllByCreatorKeycloakSub(String sub);
+
     List<AdventureEntity> findByStatus(String status);
 }

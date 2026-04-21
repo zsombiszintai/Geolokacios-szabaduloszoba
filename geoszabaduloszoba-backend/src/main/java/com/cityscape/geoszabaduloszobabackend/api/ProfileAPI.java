@@ -1,14 +1,14 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
+import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureListDTO;
 import com.cityscape.geoszabaduloszobabackend.model.view.UserAdventureStatistics;
 import com.cityscape.geoszabaduloszobabackend.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/profile")
@@ -25,5 +25,11 @@ public class ProfileAPI {
     @GetMapping("/user/{username}")
     public UserAdventureStatistics getUserProfile(@PathVariable String username) {
         return profileService.getUserStats(username);
+    }
+
+    @GetMapping("/list")
+    public List<AdventureListDTO> getList(@RequestParam String type, @AuthenticationPrincipal Jwt jwt) {
+
+        return profileService.getListByType(jwt.getSubject(), type);
     }
 }

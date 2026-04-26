@@ -14,4 +14,5 @@ public interface StationRepository extends JpaRepository<StationEntity, Long> {
 
     List<StationEntity> findAllByAdventureIdOrderBySeqNumberAsc(Long adventureId);
 
+    void deleteByAdventureId(Long id);
 }

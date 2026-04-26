@@ -114,6 +114,17 @@ public class AdventureService{
         return savedAdventure;
     }
 
+    @Transactional
+    public void deleteAdventure(Long id) {
+        if (!adventureRepository.existsById(id)) {
+            throw new RuntimeException("A kaland nem található ezzel az azonosítóval: " + id);
+        }
+
+        stationRepository.deleteByAdventureId(id);
+
+        adventureRepository.deleteById(id);
+    }
+
     /// SEGÉD METÓDUSOK
 
     private Integer calculateDistance(double lat1, double lon1, double lat2, double lon2) {

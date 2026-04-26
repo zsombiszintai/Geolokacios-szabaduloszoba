@@ -10,9 +10,37 @@
 		status: 'PUBLISHED' | 'DRAFT' | 'ARCHIVED' | 'PENDING';
 	}
 
-	let adventures: Adventure[] = [];
-	let searchTerm = "";
-	let loading = true;
+	let adventures = $state<Adventure[]>([]);
+	let searchTerm = $state("");
+	let loading = $state(true);
+
+	let showDeleteModal = $state(false);
+	let adventureToDelete = $state<number | null>(null);
+
+	function confirmDelete(id: number) {
+		adventureToDelete = id;
+		showDeleteModal = true;
+	}
+
+	async function executeDelete() {
+		if (adventureToDelete === null) return;
+
+		try {
+			const response = await fetch(`http://localhost:8080/api/create-adventure/${adventureToDelete}`, {
+				method: 'DELETE',
+				headers: { 'Authorization': `Bearer ${auth.token}` }
+			});
+
+			if (response.ok) {
+				adventures = adventures.filter(a => a.id !== adventureToDelete);
+			}
+		} catch (err) {
+			console.error("Hiba a törlés során:", err);
+		} finally {
+			showDeleteModal = false;
+			adventureToDelete = null;
+		}
+	}
 
 	onMount(async () => {
 		try {
@@ -25,8 +53,9 @@
 		}
 	});
 
-	$: filteredAdventures = adventures.filter(a =>
-		a.title.toLowerCase().includes(searchTerm.toLowerCase())
+	// Szűrt lista Svelte 5 rúnával (derived state)
+	let filteredAdventures = $derived(
+		adventures.filter(a => a.title.toLowerCase().includes(searchTerm.toLowerCase()))
 	);
 
 	const statusColors = {
@@ -44,7 +73,7 @@
 		<button
 			type="button"
 			class="w-full flex flex-col items-start gap-2 group"
-			on:click={() => goto('./adventures/create')}
+			onclick={() => goto('./adventures/create')}
 		>
 			<div class="w-full h-16 bg-[#8D7462] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
 				<span class="text-white text-4xl font-light leading-none">+</span>
@@ -67,7 +96,7 @@
 		<input
 			type="text"
 			placeholder="Keress a kalandjaid között..."
-			class="input-city-brown pl-12 mb-0"
+			class="input-city-brown pl-12 mb-0 w-full"
 			bind:value={searchTerm}
 		/>
 	</div>
@@ -75,11 +104,12 @@
 	<section>
 		<h2 class="label-city mb-4">Létrehozott kalandjaid</h2>
 
-		<header class="grid grid-cols-[2fr_1fr_1.5fr_1fr] px-4 mb-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest border-b border-gray-300 pb-2">
+		<header class="grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] px-4 mb-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest border-b border-gray-300 pb-2">
 			<span>Kaland neve</span>
 			<span class="text-center">Állapot</span>
 			<span class="text-center">Létrehozás</span>
 			<span class="text-right">Szerk.</span>
+			<span class="text-right">Törlés</span>
 		</header>
 
 		<div class="space-y-3">
@@ -89,7 +119,7 @@
 				<p class="text-center py-10 opacity-50 italic">Nincs talált kaland.</p>
 			{:else}
 				{#each filteredAdventures as adventure}
-					<article class="adventure-card grid grid-cols-[2fr_1fr_1.5fr_1fr] items-center">
+					<article class="adventure-card grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] items-center">
 						<span class="font-bold truncate pr-2">{adventure.title}</span>
 
 						<div class="flex justify-center">
@@ -102,8 +132,17 @@
             </span>
 
 						<button class="flex justify-end opacity-80 hover:opacity-100 transition-opacity">
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
 								<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+							</svg>
+						</button>
+
+						<button
+							onclick={() => confirmDelete(adventure.id)}
+							class="flex justify-end text-red-600 opacity-80 hover:opacity-100 transition-opacity"
+						>
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+								<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
 							</svg>
 						</button>
 					</article>
@@ -111,5 +150,31 @@
 			{/if}
 		</div>
 	</section>
+
+	{#if showDeleteModal}
+		<div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+			<div class="bg-[#F5F2EA] w-full max-w-sm rounded-3xl p-8 shadow-2xl border-2 border-[#8D7462]">
+				<h3 class="text-[#2F5D50] text-xl font-bold mb-4">Biztosan törlöd?</h3>
+				<p class="text-city-brown mb-8 leading-relaxed">
+					Ez a művelet nem vonható vissza. A kaland és az összes hozzá tartozó állomás véglegesen törlődik.
+				</p>
+
+				<div class="flex gap-4">
+					<button
+						onclick={() => showDeleteModal = false}
+						class="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+					>
+						Mégse
+					</button>
+					<button
+						onclick={executeDelete}
+						class="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white shadow-lg active:scale-95 transition-all"
+					>
+						Törlés
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 </main>

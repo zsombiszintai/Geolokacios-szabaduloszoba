@@ -37,4 +37,9 @@ public class CreateAdventureAPI {
         UserEntity currentUser = userService.getOrCreateCurrentUser();
         return adventureService.getAdventuresByUser(currentUser);
     }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        adventureService.deleteAdventure(id);
+    }
 }

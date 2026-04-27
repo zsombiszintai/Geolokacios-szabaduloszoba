@@ -1,0 +1,25 @@
+package com.cityscape.geoszabaduloszobabackend.api;
+
+import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
+import com.cityscape.geoszabaduloszobabackend.service.SearchService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/search")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
+public class SearchAPI {
+
+    private final SearchService searchService;
+
+    @GetMapping("/adventures")
+    public List<NearbyAdventureDTO> searchAdventures(
+            @RequestParam String q,
+            @RequestParam Double lat,
+            @RequestParam Double lon) {
+        return searchService.searchNearbyAdventures(q, lat, lon);
+    }
+}

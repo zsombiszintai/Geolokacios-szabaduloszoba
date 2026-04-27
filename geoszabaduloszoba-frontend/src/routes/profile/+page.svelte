@@ -1,12 +1,27 @@
 <script lang="ts">
 	import { auth } from '$lib/auth.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
 
 	let stats = $state<any>(null);
 	let loading = $state(true);
+	let isFollowing = $state(false);
+	let followLoading = $state(false);
 
 	const usernameParam = $derived(page?.params?.username || null);
+	const isOwnProfile = $derived(!usernameParam || (stats && stats.username === auth.user?.preferred_username));
+
+	async function checkFollowStatus() {
+		if (isOwnProfile || !stats?.id) return;
+		try {
+			const res = await fetch(`http://localhost:8080/follows/is-following/${stats.id}`, {
+				headers: { 'Authorization': `Bearer ${auth.token}` }
+			});
+			if (res.ok) isFollowing = await res.json();
+		} catch (err) {
+			console.error("Hiba a követési állapot lekérdezésekor:", err);
+		}
+	}
 
 	async function fetchProfile() {
 		if (!auth.token) return;
@@ -33,9 +48,35 @@
 
 	$effect(() => {
 		if (auth.token) {
+			usernameParam;
 			fetchProfile();
 		}
 	});
+
+	$effect(() => {
+		if (stats?.id && !isOwnProfile) {
+			untrack(() => checkFollowStatus());
+		}
+	});
+
+	async function toggleFollow() {
+		if (!stats?.id || followLoading) return;
+		followLoading = true;
+
+		const method = isFollowing ? 'DELETE' : 'POST';
+		try {
+			const res = await fetch(`http://localhost:8080/follows/${stats.id}`, {
+				method,
+				headers: { 'Authorization': `Bearer ${auth.token}` }
+			});
+
+			if (res.ok) {
+				isFollowing = !isFollowing;
+			}
+		} finally {
+			followLoading = false;
+		}
+	}
 </script>
 
 <main class="min-h-screen bg-[#F5F2EA] font-sans pb-24 px-6 pt-24">
@@ -49,6 +90,16 @@
 				{/if}
 			</div>
 			<span class="text-xl font-bold text-black tracking-tight">@{stats.username}</span>
+
+			{#if !isOwnProfile}
+				<button
+					onclick={toggleFollow}
+					disabled={followLoading}
+					class="px-6 py-2 rounded-full font-bold transition-all active:scale-95 {isFollowing ? 'bg-gray-200 text-gray-700' : 'bg-[#2F5D50] text-white shadow-lg'}"
+				>
+					{followLoading ? '...' : (isFollowing ? 'Kikövetés' : 'Követés')}
+				</button>
+			{/if}
 		</section>
 
 		<div class="bg-[#2F5D50] text-[#F5F2EA] p-4 rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.3)] min-h-[60px] text-lg font-medium italic">

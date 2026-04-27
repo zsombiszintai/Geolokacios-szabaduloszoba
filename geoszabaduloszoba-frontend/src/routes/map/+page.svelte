@@ -3,17 +3,70 @@
 	import { browser } from '$app/environment';
 	import { auth } from '$lib/auth.svelte';
 	import 'leaflet/dist/leaflet.css';
+	import { goto } from '$app/navigation';
 
 	let mapElement: HTMLElement | undefined = $state(undefined);
 	let map: L.Map | undefined = undefined;
 	let userPos = { lat: 46.0754, lon: 18.2205 };
 
+	let searchQuery = $state("");
+	let searchType = $state("adventure");
+	let isExpanded = $state(false);
+
+	let searchResults = $state<any[]>([]);
+	let isSearching = $state(false);
+
+	function handleSearch(e?: Event) {
+		e?.preventDefault();
+		if (!searchQuery.trim()) {
+			isExpanded = false;
+			return;
+		}
+		if (searchType === "user") {
+			goto(`/profile/user/${searchQuery}`);
+		} else if (searchType === "adventure") {
+			goto(`/adventures?search=${searchQuery}`);
+		}
+	}
+
+	async function performSearch() {
+		if (searchQuery.length < 2) {
+			searchResults = [];
+			return;
+		}
+		isSearching = true;
+		try {
+			const res = await fetch(`http://localhost:8080/search/adventures?q=${searchQuery}&lat=${userPos.lat}&lon=${userPos.lon}`, {
+				headers: { 'Authorization': `Bearer ${auth.token}` }
+			});
+			if (res.ok) {
+				searchResults = await res.json();
+			}
+		} catch (err) {
+			console.error("Keresési hiba:", err);
+		} finally {
+			isSearching = false;
+		}
+	}
+
 	async function loadMapData(L: any) {
-		map = L.map(mapElement!).setView([userPos.lat, userPos.lon], 14);
+		if (!mapElement) return;
+		map = L.map(mapElement).setView([userPos.lat, userPos.lon], 14);
 
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			attribution: '© OpenStreetMap'
 		}).addTo(map);
+
+		const userIcon = L.divIcon({
+			className: 'custom-user-marker',
+			html: `
+        <div class="relative flex items-center justify-center">
+          <div class="absolute w-8 h-8 bg-blue-500 rounded-full opacity-30 animate-ping"></div>
+          <div class="relative w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
+        </div>`,
+			iconSize: [32, 32],
+			iconAnchor: [16, 16]
+		});
 
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition((pos) => {
@@ -21,71 +74,30 @@
 				if (map) {
 					map.setView([userPos.lat, userPos.lon], 14);
 
-					const userIcon = L.divIcon({
-						className: 'custom-user-marker',
-						html: `
-              <div class="relative flex items-center justify-center">
-                <div class="absolute w-8 h-8 bg-blue-500 rounded-full opacity-30 animate-ping"></div>
-                <div class="relative w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-                  <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
-                </div>
-              </div>`,
-						iconSize: [32, 32],
-						iconAnchor: [16, 16]
-					});
-
 					L.marker([userPos.lat, userPos.lon], { icon: userIcon })
 						.addTo(map)
 						.bindPopup("<b>Te itt vagy</b>");
 				}
+			}, (err) => {
+				console.warn("Helymeghatározás elutasítva, marad az alapértelmezett pozíció.");
+				L.marker([userPos.lat, userPos.lon], { icon: userIcon }).addTo(map!);
 			});
 		}
 
 		try {
-			const res = await fetch(`http://localhost:8080/api/adventures/map?lat=${userPos.lat}&lon=${userPos.lon}`, {
+			const res = await fetch(`http://localhost:8080/adventures/map?lat=${userPos.lat}&lon=${userPos.lon}`, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
-			const adventures = await res.json();
-
-			adventures.forEach((adv: any) => {
-				if (adv.advLat && adv.advLon) {
-					const adventureIcon = L.divIcon({
-						className: 'custom-adventure-icon',
-						html: `
-              <div class="text-red-600 drop-shadow-xl hover:scale-110 transition-transform">
-                <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
-                  <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.155-1.122c1.112-1.158 2.502-2.823 3.48-5.076 1.077-2.479 1.444-4.733 1.444-6.382 0-4.667-3.806-8.45-8.5-8.45s-8.5 3.783-8.5 8.45c0 1.649.367 3.903 1.445 6.382.977 2.253 2.367 3.918 3.479 5.076a16.994 16.994 0 001.156 1.122zM12 13.25a3.25 3.25 0 100-6.5 3.25 3.25 0 000 6.5z" clip-rule="evenodd" />
-                </svg>
-              </div>`,
-						iconSize: [40, 40],
-						iconAnchor: [20, 40]
-					});
-
-					const userIcon = L.divIcon({
-						className: 'custom-div-icon',
-						html: `<div class="w-4 h-4 bg-[#2F5D50] rounded-full border-2 border-white shadow-lg"></div>`,
-						iconSize: [16, 16],
-						iconAnchor: [8, 8]
-					});
-					L.marker([userPos.lat, userPos.lon], { icon: userIcon }).addTo(map);
-
-					L.marker([adv.advLat, adv.advLon], { icon: adventureIcon })
-						.addTo(map!)
-						.bindPopup(`
-							<div class="p-2 font-josefin">
-								<h3 class="font-bold text-lg">${adv.title}</h3>
-								<p class="text-sm text-gray-600 mb-2">${adv.distanceInMeters} m távolságra</p>
-								<a href="/adventures/${adv.id}"
-								class="block text-center bg-[#2F5D50] text-white py-2 px-4 rounded-lg font-bold no-underline active:scale-95 transition-transform">
-								Megtekintés
-								</a>
-						</div>
-            `);
-				}
-			});
-		} catch (e) {
-			console.error("Hiba a térképadatok betöltésekor:", e);
-		}
+			if (res.ok) {
+				const adventures = await res.json();
+				adventures.forEach((adv: any) => {
+					if (adv.advLat && adv.advLon) {
+						L.marker([adv.advLat, adv.advLon]).addTo(map!)
+							.bindPopup(`<b>${adv.title}</b><br><a href="/adventures/${adv.id}">Megtekintés</a>`);
+					}
+				});
+			}
+		} catch (e) { console.error(e); }
 	}
 
 	$effect(() => {
@@ -93,27 +105,100 @@
 			import('leaflet').then((L) => loadMapData(L));
 		}
 	});
+
+	$effect(() => {
+		if (searchQuery.length >= 2) {
+			const timer = setTimeout(performSearch, 300);
+			return () => clearTimeout(timer);
+		} else {
+			searchResults = [];
+		}
+	});
 </script>
 
-<div class="fixed inset-0 w-full h-full flex flex-col">
-	<header class="bg-[#2F5D50] text-white p-4 flex items-center z-[1000]">
-		<a href="/dashboard" class="mr-4">
-			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
+<div class="fixed inset-0 w-full h-full flex flex-col overflow-hidden bg-[#F5F2EA]">
+	<header class="bg-[#2F5D50] text-white p-4 flex items-center shrink-0 z-[1200] shadow-md">
+		<a href="/dashboard" class="mr-4 text-white">
+			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
 		</a>
-		<h1 class="italic text-xl">Felfedezés</h1>
+		<h1 class="italic text-xl font-medium">Felfedezés</h1>
 	</header>
 
-	<div bind:this={mapElement} class="flex-1 w-full z-10"></div>
+	<section class="absolute top-20 left-0 right-0 px-6 z-[1100] pointer-events-none">
+		<form
+			onsubmit={handleSearch}
+			class="max-w-md mx-auto w-full pointer-events-auto bg-[#F5F2EA] rounded-3xl shadow-2xl border-2 border-[#2F5D50]/20 transition-all duration-300 ease-in-out flex flex-col overflow-hidden"
+			style="height: {isExpanded ? (searchResults.length > 0 ? 'auto' : '112px') : '48px'}; max-height: 400px;"
+		>
+			<div class="flex items-center px-4 h-12 shrink-0 gap-2">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="2.5" class="opacity-50">
+					<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+				</svg>
+				<input
+					type="search"
+					bind:value={searchQuery}
+					onfocus={() => isExpanded = true}
+					placeholder="Keresés..."
+					class="flex-1 bg-transparent border-none outline-none text-[#2F5D50] py-2 font-medium placeholder:text-[#2F5D50]/40"
+				/>
+				{#if searchQuery}
+					<button type="button" onclick={() => {searchQuery = ""; searchResults = [];}} class="text-gray-400">✕</button>
+				{/if}
+			</div>
 
+			{#if isExpanded}
+				<nav class="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar shrink-0">
+					{#each ['adventure', 'user', 'list'] as type}
+						<button
+							type="button"
+							onclick={() => searchType = type}
+							class="px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all
+              {searchType === type ? 'bg-[#2F5D50] text-white' : 'bg-[#E8E4D8] text-[#2F5D50]'}"
+						>
+							{type === 'adventure' ? '🗺️ Kaland' : type === 'user' ? '👤 Játékos' : '📜 Lista'}
+						</button>
+					{/each}
+				</nav>
+
+				{#if searchResults.length > 0 || isSearching}
+					<ul class="border-t border-[#2F5D50]/10 overflow-y-auto no-scrollbar bg-white/50 flex-1">
+						{#if isSearching}
+							<li class="px-4 py-3 italic text-sm text-[#2F5D50]/60 text-center">Keresés...</li>
+						{:else}
+							{#each searchResults as adv}
+								<li>
+									<button
+										type="button"
+										onclick={() => {
+                      if (map && adv.advLat) map.setView([adv.advLat, adv.advLon], 16);
+                      isExpanded = false;
+                    }}
+										class="w-full text-left px-4 py-3 hover:bg-[#2F5D50]/5 border-b border-[#2F5D50]/5 flex justify-between items-center group"
+									>
+										<div>
+											<span class="block font-bold text-[#2F5D50] group-hover:underline">{adv.title}</span>
+											<span class="text-[10px] text-gray-500">{adv.distanceInMeters} m • {adv.averageTime} perc</span>
+										</div>
+										<span class="text-xs opacity-40">❯</span>
+									</button>
+								</li>
+							{/each}
+						{/if}
+					</ul>
+				{/if}
+			{/if}
+		</form>
+	</section>
+
+	<main bind:this={mapElement} class="flex-1 w-full z-0"></main>
 </div>
 
 <style>
-    :global(.leaflet-div-icon) {
-    @apply bg-transparent border-none;
-    }
+    .no-scrollbar::-webkit-scrollbar {
+				display: none;
+		}
 
-    :global(.leaflet-popup-content-wrapper) {
-        @apply bg-[#F5F2EA] text-[#775D4D] rounded-lg border-none;
-
-    }
+    :global(.leaflet-top.leaflet-left) {
+				margin-top: 100px !important; transition: margin-top 0.3s ease;
+		}
 </style>

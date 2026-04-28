@@ -14,7 +14,6 @@
     import { onMount } from "svelte";
     import { goto } from '$app/navigation';
     import { auth } from "$lib/auth.svelte";
-    import { base } from '$app/paths';
 
     onMount(async () => {
         await auth.init();
@@ -86,9 +85,10 @@
             <a href="/play" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <PlayOutline class="w-7 h-7 text-white/50" />
             </a>
-            
-            <a href="/profile" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
-                <UserCircleOutline class="w-7 h-7 text-white/50" />
+
+            <a href="/profile/user/{auth.username || 'me'}"
+               class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+                <UserCircleOutline class="w-7 h-7 {activePath.startsWith('/profile') ? 'text-white' : 'text-white/50'}" />
             </a>
 
         </nav>

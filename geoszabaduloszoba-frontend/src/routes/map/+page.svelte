@@ -24,11 +24,12 @@
 		}
 		if (searchType === "user") {
 			goto(`/profile/user/${searchQuery}`);
-		} else if (searchType === "adventure") {
+		} else {
 			goto(`/adventures?search=${searchQuery}`);
 		}
 	}
 
+	// Automatikus keresés, ahogy gépel
 	async function performSearch() {
 		if (searchQuery.length < 2) {
 			searchResults = [];
@@ -36,9 +37,10 @@
 		}
 		isSearching = true;
 		try {
-			const res = await fetch(`http://localhost:8080/search/adventures?q=${searchQuery}&lat=${userPos.lat}&lon=${userPos.lon}`, {
-				headers: { 'Authorization': `Bearer ${auth.token}` }
-			});
+			const res = await fetch(
+				`http://localhost:8080/search?q=${searchQuery}&type=${searchType}&lat=${userPos.lat}&lon=${userPos.lon}`,
+				{ headers: { 'Authorization': `Bearer ${auth.token}` } }
+			);
 			if (res.ok) {
 				searchResults = await res.json();
 			}
@@ -46,6 +48,19 @@
 			console.error("Keresési hiba:", err);
 		} finally {
 			isSearching = false;
+		}
+	}
+
+	function handleResultClick(res: any) {
+		if (searchType === 'user' || res.type === 'USER') {
+			goto(`/profile/user/${res.title}`);
+		} else {
+			if (map && res.advLat && res.advLon) {
+				map.setView([res.advLat, res.advLon], 16);
+				isExpanded = false;
+			} else {
+				goto(`/adventures/${res.id}`);
+			}
 		}
 	}
 
@@ -59,11 +74,10 @@
 
 		const userIcon = L.divIcon({
 			className: 'custom-user-marker',
-			html: `
-        <div class="relative flex items-center justify-center">
-          <div class="absolute w-8 h-8 bg-blue-500 rounded-full opacity-30 animate-ping"></div>
-          <div class="relative w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
-        </div>`,
+			html: `<div class="relative flex items-center justify-center">
+              <div class="absolute w-8 h-8 bg-blue-500 rounded-full opacity-30 animate-ping"></div>
+              <div class="relative w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
+            </div>`,
 			iconSize: [32, 32],
 			iconAnchor: [16, 16]
 		});
@@ -73,13 +87,9 @@
 				userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
 				if (map) {
 					map.setView([userPos.lat, userPos.lon], 14);
-
-					L.marker([userPos.lat, userPos.lon], { icon: userIcon })
-						.addTo(map)
-						.bindPopup("<b>Te itt vagy</b>");
+					L.marker([userPos.lat, userPos.lon], { icon: userIcon }).addTo(map).bindPopup("Te itt vagy");
 				}
-			}, (err) => {
-				console.warn("Helymeghatározás elutasítva, marad az alapértelmezett pozíció.");
+			}, () => {
 				L.marker([userPos.lat, userPos.lon], { icon: userIcon }).addTo(map!);
 			});
 		}
@@ -128,7 +138,7 @@
 		<form
 			onsubmit={handleSearch}
 			class="max-w-md mx-auto w-full pointer-events-auto bg-[#F5F2EA] rounded-3xl shadow-2xl border-2 border-[#2F5D50]/20 transition-all duration-300 ease-in-out flex flex-col overflow-hidden"
-			style="height: {isExpanded ? (searchResults.length > 0 ? 'auto' : '112px') : '48px'}; max-height: 400px;"
+			style="height: {isExpanded ? 'auto' : '48px'}; max-height: 400px;"
 		>
 			<div class="flex items-center px-4 h-12 shrink-0 gap-2">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="2.5" class="opacity-50">
@@ -151,7 +161,7 @@
 					{#each ['adventure', 'user', 'list'] as type}
 						<button
 							type="button"
-							onclick={() => searchType = type}
+							onclick={() => { searchType = type; performSearch(); }}
 							class="px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all
               {searchType === type ? 'bg-[#2F5D50] text-white' : 'bg-[#E8E4D8] text-[#2F5D50]'}"
 						>
@@ -165,19 +175,18 @@
 						{#if isSearching}
 							<li class="px-4 py-3 italic text-sm text-[#2F5D50]/60 text-center">Keresés...</li>
 						{:else}
-							{#each searchResults as adv}
+							{#each searchResults as res}
 								<li>
 									<button
 										type="button"
-										onclick={() => {
-                      if (map && adv.advLat) map.setView([adv.advLat, adv.advLon], 16);
-                      isExpanded = false;
-                    }}
+										onclick={() => handleResultClick(res)}
 										class="w-full text-left px-4 py-3 hover:bg-[#2F5D50]/5 border-b border-[#2F5D50]/5 flex justify-between items-center group"
 									>
 										<div>
-											<span class="block font-bold text-[#2F5D50] group-hover:underline">{adv.title}</span>
-											<span class="text-[10px] text-gray-500">{adv.distanceInMeters} m • {adv.averageTime} perc</span>
+											<span class="block font-bold text-[#2F5D50] group-hover:underline">{res.title}</span>
+											<span class="text-[10px] text-gray-500">
+                        {res.subtitle || (res.distanceInMeters ? `${res.distanceInMeters} m • ${res.averageTime} perc` : 'Kalandor')}
+                      </span>
 										</div>
 										<span class="text-xs opacity-40">❯</span>
 									</button>
@@ -192,13 +201,3 @@
 
 	<main bind:this={mapElement} class="flex-1 w-full z-0"></main>
 </div>
-
-<style>
-    .no-scrollbar::-webkit-scrollbar {
-				display: none;
-		}
-
-    :global(.leaflet-top.leaflet-left) {
-				margin-top: 100px !important; transition: margin-top 0.3s ease;
-		}
-</style>

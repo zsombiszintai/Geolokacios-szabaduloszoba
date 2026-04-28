@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { auth } from '$lib/auth.svelte';
+	import { auth } from '$lib/auth.svelte.js';
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
 
@@ -112,9 +112,11 @@
 				{ label: 'Félbehagyott kalandok', key: 'abandoned-adventure', count: stats.abandonedCount },
 				{ label: 'Saját kalandok', key: 'created', count: stats.ownedCount },
 				{ label: 'Értékelt kalandok', key: 'rated', count: stats.ratedCount },
-				{ label: 'Vélemények', key: 'reviewed', count: stats.reviewsCount }
+				{ label: 'Vélemények', key: 'reviewed', count: stats.reviewsCount },
+				{ label: 'Követők', key: 'followers', count: stats.followerCount },
+				{ label: 'Követés', key: 'following', count: stats.followingCount }
 			] as item}
-				<a href="/profile/list/{item.key}" class="adventure-card block no-underline">
+				<a href="/profile/list/{item.key}}" class="adventure-card block no-underline">
 					<span class="text-cream-city">{item.label}</span>
 					<div class="flex items-center gap-4">
 						<span class="text-xl font-bold">{item.count || 0}</span>

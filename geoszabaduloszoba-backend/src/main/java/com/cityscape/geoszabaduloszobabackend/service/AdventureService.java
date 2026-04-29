@@ -5,6 +5,7 @@ import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
+import com.cityscape.geoszabaduloszobabackend.repository.AbandonedAdventureRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.AdventureRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.StationRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.UserRepository;
@@ -24,6 +25,20 @@ public class AdventureService{
     private final StationRepository stationRepository;
     private final UserService userService;
     private final StationService stationService;
+    private final AbandonedAdventureRepository abandonedRepository;
+
+    public List<AbandonedAdventureDTO> getAllAbandonedByUser(String sub) {
+        return abandonedRepository.findAllByUserKeycloakSub(sub).stream()
+                .filter(entity -> !entity.isCompleted())
+                .map(entity -> new AbandonedAdventureDTO(
+                        entity.getAdventure().getId(),
+                        entity.getAdventure().getTitle(),
+                        entity.getLastStationId(),
+                        entity.getElapsedSec(),
+                        entity.getDistanceTravelled()
+                ))
+                .toList();
+    }
 
     public List<AdventureCreatedDTO> getAdventuresByUser(UserEntity creator) {
         return adventureRepository.findAllByCreator(creator).stream()
@@ -158,5 +173,6 @@ public class AdventureService{
         }
 
     }
+
 
 }

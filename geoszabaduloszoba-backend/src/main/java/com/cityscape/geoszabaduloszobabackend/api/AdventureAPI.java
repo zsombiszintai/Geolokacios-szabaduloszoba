@@ -1,11 +1,14 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
+import com.cityscape.geoszabaduloszobabackend.model.dto.AbandonedAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.service.AdventureService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,4 +45,10 @@ public class AdventureAPI {
 
         return adventureService.getDetails(id, lat, lon);
     }
+
+    @GetMapping("/abandoned-all")
+    public List<AbandonedAdventureDTO> getAllAbandoned(@AuthenticationPrincipal Jwt jwt) {
+        return adventureService.getAllAbandonedByUser(jwt.getSubject());
+    }
+
 }

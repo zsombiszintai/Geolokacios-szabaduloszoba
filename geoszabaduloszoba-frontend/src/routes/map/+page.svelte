@@ -24,12 +24,13 @@
 		}
 		if (searchType === "user") {
 			goto(`/profile/user/${searchQuery}`);
-		} else {
+		} else if (searchType === "adventure") {
 			goto(`/adventures?search=${searchQuery}`);
+		}else {
+			goto('/list/${searchQuery}')
 		}
 	}
 
-	// Automatikus keresés, ahogy gépel
 	async function performSearch() {
 		if (searchQuery.length < 2) {
 			searchResults = [];

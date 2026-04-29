@@ -7,174 +7,236 @@
 		id: number;
 		title: string;
 		createdAt: string;
-		status: 'PUBLISHED' | 'DRAFT' | 'ARCHIVED' | 'PENDING';
+		status: 'PUBLISHED' | 'DRAFT' | 'PENDING';
 	}
 
+	interface AdventureList {
+		id: number;
+		title: string;
+		description: string;
+		adventures: any[];
+	}
+
+	let activeTab = $state<'adventures' | 'lists'>('adventures');
 	let adventures = $state<Adventure[]>([]);
+	let lists = $state<AdventureList[]>([]);
 	let searchTerm = $state("");
 	let loading = $state(true);
 
 	let showDeleteModal = $state(false);
-	let adventureToDelete = $state<number | null>(null);
+	let itemToDelete = $state<{id: number, type: 'adventure' | 'list'} | null>(null);
 
-	function confirmDelete(id: number) {
-		adventureToDelete = id;
+	async function loadData() {
+		loading = true;
+		try {
+			const [advRes, listRes] = await Promise.all([
+				fetch('http://localhost:8080/api/create-adventure/created-adventures', {
+					headers: { 'Authorization': `Bearer ${auth.token}` }
+				}),
+				fetch('http://localhost:8080/lists', {
+					headers: { 'Authorization': `Bearer ${auth.token}` }
+				})
+			]);
+
+			if (advRes.ok) adventures = await advRes.ok ? await advRes.json() : [];
+			if (listRes.ok) lists = await listRes.json();
+		} catch (err) {
+			console.error("Betöltési hiba:", err);
+		} finally {
+			loading = false;
+		}
+	}
+
+	onMount(loadData);
+
+	function confirmDelete(id: number, type: 'adventure' | 'list') {
+		itemToDelete = { id, type };
 		showDeleteModal = true;
 	}
 
 	async function executeDelete() {
-		if (adventureToDelete === null) return;
+		if (!itemToDelete) return;
+
+		const url = itemToDelete.type === 'adventure'
+			? `http://localhost:8080/api/create-adventure/${itemToDelete.id}`
+			: `http://localhost:8080/lists/${itemToDelete.id}`;
 
 		try {
-			const response = await fetch(`http://localhost:8080/api/create-adventure/${adventureToDelete}`, {
+			const response = await fetch(url, {
 				method: 'DELETE',
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 
 			if (response.ok) {
-				adventures = adventures.filter(a => a.id !== adventureToDelete);
+				if (itemToDelete.type === 'adventure') {
+					adventures = adventures.filter(a => a.id !== itemToDelete!.id);
+				} else {
+					lists = lists.filter(l => l.id !== itemToDelete!.id);
+				}
 			}
 		} catch (err) {
 			console.error("Hiba a törlés során:", err);
 		} finally {
 			showDeleteModal = false;
-			adventureToDelete = null;
+			itemToDelete = null;
 		}
 	}
 
-	onMount(async () => {
-		try {
-			const response = await fetch('http://localhost:8080/api/create-adventure/created-adventures', {
-				headers: { 'Authorization': `Bearer ${auth.token}` }
-			});
-			if (response.ok) adventures = await response.json();
-		} finally {
-			loading = false;
-		}
-	});
-
-	// Szűrt lista Svelte 5 rúnával (derived state)
 	let filteredAdventures = $derived(
 		adventures.filter(a => a.title.toLowerCase().includes(searchTerm.toLowerCase()))
 	);
 
+	let filteredLists = $derived(
+		lists.filter(l => l.title.toLowerCase().includes(searchTerm.toLowerCase()))
+	);
+
 	const statusColors = {
-		'PUBLIC': 'bg-green-500',
-		'PENDING': 'bg-yellow-500',
-		'REJECTED': 'bg-red-500'
+		'PUBLISHED': 'bg-green-500',
+		'DRAFT': 'bg-gray-400',
+		'PENDING': 'bg-yellow-500'
 	};
 </script>
 
-<main class="flex flex-col p-6 pt-6 pb-20 min-h-screen bg-city-cream">
+<main class="flex flex-col p-6 pt-24 pb-20 min-h-screen bg-[#F5F2EA]">
 
-	<section class="mb-10 px-1">
-		<h2 class="text-sm font-bold text-[#2F5D50] mb-4 uppercase tracking-wider">Új kaland létrehozása</h2>
-
+	<div class="flex bg-white/50 rounded-2xl p-1 mb-8 shadow-inner border border-[#2F5D50]/10">
 		<button
-			type="button"
-			class="w-full flex flex-col items-start gap-2 group"
-			onclick={() => goto('./adventures/create')}
-		>
-			<div class="w-full h-16 bg-[#8D7462] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
-				<span class="text-white text-4xl font-light leading-none">+</span>
-			</div>
-
-			<div class="text-left">
-				<p class="text-city-brown leading-tight">
-					Készítsd el a saját kalandod...
-				</p>
-			</div>
+			class="flex-1 py-3 rounded-xl font-bold transition-all {activeTab === 'adventures' ? 'bg-[#2F5D50] text-white shadow-md' : 'text-[#2F5D50]'}"
+			onclick={() => activeTab = 'adventures'}>
+			Kalandjaim
 		</button>
-	</section>
+		<button
+			class="flex-1 py-3 rounded-xl font-bold transition-all {activeTab === 'lists' ? 'bg-[#2F5D50] text-white shadow-md' : 'text-[#2F5D50]'}"
+			onclick={() => activeTab = 'lists'}>
+			Listáim
+		</button>
+	</div>
 
 	<div class="relative mb-8">
-    <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-50">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+    <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="2.5">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
       </svg>
     </span>
 		<input
 			type="text"
-			placeholder="Keress a kalandjaid között..."
-			class="input-city-brown pl-12 mb-0 w-full"
+			placeholder={activeTab === 'adventures' ? "Keress a kalandjaid között..." : "Keress a listáid között..."}
+			class="w-full h-12 pl-12 pr-4 bg-white rounded-2xl border-2 border-[#2F5D50]/10 outline-none focus:border-[#2F5D50]/30 transition-all text-[#2F5D50]"
 			bind:value={searchTerm}
 		/>
 	</div>
 
-	<section>
-		<h2 class="label-city mb-4">Létrehozott kalandjaid</h2>
+	{#if activeTab === 'adventures'}
+		<section>
+			<div class="flex justify-between items-end mb-4">
+				<h2 class="text-sm font-bold text-[#2F5D50] uppercase tracking-wider">Új kaland</h2>
+			</div>
 
-		<header class="grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] px-4 mb-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest border-b border-gray-300 pb-2">
-			<span>Kaland neve</span>
-			<span class="text-center">Állapot</span>
-			<span class="text-center">Létrehozás</span>
-			<span class="text-right">Szerk.</span>
-			<span class="text-right">Törlés</span>
-		</header>
+			<button
+				type="button"
+				class="w-full flex flex-col items-start gap-2 group mb-10"
+				onclick={() => goto('/adventures/create')}
+			>
+				<div class="w-full h-16 bg-[#8D7462] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
+					<span class="text-white text-4xl font-light">+</span>
+				</div>
+				<p class="text-[#8D7462] text-sm italic">Készítsd el a saját kalandod...</p>
+			</button>
 
-		<div class="space-y-3">
-			{#if loading}
-				<p class="text-center py-10 opacity-50 italic">Kalandok betöltése...</p>
-			{:else if filteredAdventures.length === 0}
-				<p class="text-center py-10 opacity-50 italic">Nincs talált kaland.</p>
-			{:else}
-				{#each filteredAdventures as adventure}
-					<article class="adventure-card grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] items-center">
-						<span class="font-bold truncate pr-2">{adventure.title}</span>
+			<h2 class="label-city mb-4">Létrehozott kalandjaid</h2>
+			<header class="grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] px-4 mb-2 text-[10px] font-bold text-gray-500 uppercase border-b border-gray-200 pb-2">
+				<span>Név</span>
+				<span class="text-center">Állapot</span>
+				<span class="text-center">Dátum</span>
+				<span class="text-right">Szerk.</span>
+				<span class="text-right">Törlés</span>
+			</header>
 
-						<div class="flex justify-center">
-							<div class="w-4 h-4 rounded-full shadow-inner {statusColors[adventure.status] || 'bg-gray-400'}"
-									 title={adventure.status}></div>
-						</div>
+			<div class="space-y-3">
+				{#if loading}
+					<p class="text-center py-10 italic opacity-50">Betöltés...</p>
+				{:else if filteredAdventures.length === 0}
+					<p class="text-center py-10 italic opacity-50">Nincs talált kaland.</p>
+				{:else}
+					{#each filteredAdventures as adventure}
+						<article class="bg-white p-4 rounded-2xl shadow-sm border border-[#2F5D50]/5 grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] items-center">
+							<span class="font-bold truncate text-[#2F5D50]">{adventure.title}</span>
+							<div class="flex justify-center">
+								<div class="w-3 h-3 rounded-full {statusColors[adventure.status] || 'bg-gray-400'}" title={adventure.status}></div>
+							</div>
+							<span class="text-[10px] text-center text-gray-500">{new Date(adventure.createdAt).toLocaleDateString('hu-HU')}</span>
+							<button class="flex justify-end text-gray-400 hover:text-[#2F5D50]"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+							<button onclick={() => confirmDelete(adventure.id, 'adventure')} class="flex justify-end text-red-400 hover:text-red-600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+						</article>
+					{/each}
+				{/if}
+			</div>
+		</section>
 
-						<span class="text-[10px] text-center opacity-80">
-              {new Date(adventure.createdAt).toLocaleDateString('hu-HU')}
-            </span>
+	{:else}
+		<section>
+			<h2 class="text-sm font-bold text-[#2F5D50] mb-4 uppercase tracking-wider">Új lista</h2>
+			<button
+				type="button"
+				class="w-full flex flex-col items-start gap-2 group mb-10"
+				onclick={() => goto('/adventures/lists/create')}
+			>
+				<div class="w-full h-16 bg-[#2F5D50] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
+					<span class="text-white text-4xl font-light">+</span>
+				</div>
+				<p class="text-[#2F5D50] text-sm italic">Gyűjtsd össze kedvenc kalandjaidat...</p>
+			</button>
 
-						<button class="flex justify-end opacity-80 hover:opacity-100 transition-opacity">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-								<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-							</svg>
-						</button>
-
-						<button
-							onclick={() => confirmDelete(adventure.id)}
-							class="flex justify-end text-red-600 opacity-80 hover:opacity-100 transition-opacity"
-						>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-								<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
-							</svg>
-						</button>
-					</article>
-				{/each}
-			{/if}
-		</div>
-	</section>
+			<h2 class="label-city mb-4">Saját listáid</h2>
+			<div class="space-y-4">
+				{#if loading}
+					<p class="text-center py-10 italic opacity-50">Betöltés...</p>
+				{:else if filteredLists.length === 0}
+					<p class="text-center py-10 italic opacity-50">Nincs létrehozott listád.</p>
+				{:else}
+					{#each filteredLists as list}
+						<article class="bg-white p-5 rounded-2xl shadow-sm border border-[#2F5D50]/10 flex justify-between items-start">
+							<div class="flex-1">
+								<h3 class="font-bold text-[#2F5D50] text-lg">{list.title}</h3>
+								<p class="text-xs text-gray-500 mb-3 line-clamp-2">{list.description || 'Nincs leírás'}</p>
+								<div class="flex gap-2">
+                  <span class="text-[10px] font-bold bg-[#F5F2EA] text-[#8D7462] px-2 py-1 rounded-lg uppercase">
+                    {list.adventures?.length || 0} KALAND
+                  </span>
+								</div>
+							</div>
+							<button
+								onclick={() => confirmDelete(list.id, 'list')}
+								class="text-red-400 p-2 hover:bg-red-50 rounded-full transition-colors"
+							>
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+							</button>
+						</article>
+					{/each}
+				{/if}
+			</div>
+		</section>
+	{/if}
 
 	{#if showDeleteModal}
-		<div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+		<div class="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
 			<div class="bg-[#F5F2EA] w-full max-w-sm rounded-3xl p-8 shadow-2xl border-2 border-[#8D7462]">
 				<h3 class="text-[#2F5D50] text-xl font-bold mb-4">Biztosan törlöd?</h3>
-				<p class="text-city-brown mb-8 leading-relaxed">
-					Ez a művelet nem vonható vissza. A kaland és az összes hozzá tartozó állomás véglegesen törlődik.
+				<p class="text-[#8D7462] mb-8 leading-relaxed text-sm">
+					Ez a művelet végleges. A {itemToDelete?.type === 'adventure' ? 'kaland' : 'lista'} minden adata törlődik a rendszerből.
 				</p>
-
 				<div class="flex gap-4">
-					<button
-						onclick={() => showDeleteModal = false}
-						class="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
-					>
-						Mégse
-					</button>
-					<button
-						onclick={executeDelete}
-						class="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white shadow-lg active:scale-95 transition-all"
-					>
-						Törlés
-					</button>
+					<button onclick={() => showDeleteModal = false} class="flex-1 py-3 rounded-xl font-bold text-gray-400">Mégse</button>
+					<button onclick={executeDelete} class="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white shadow-lg active:scale-95 transition-all">Törlés</button>
 				</div>
 			</div>
 		</div>
 	{/if}
 
 </main>
+
+<style>
+    .label-city {
+        @apply text-[10px] font-black uppercase tracking-widest text-[#2F5D50] opacity-40;
+    }
+</style>

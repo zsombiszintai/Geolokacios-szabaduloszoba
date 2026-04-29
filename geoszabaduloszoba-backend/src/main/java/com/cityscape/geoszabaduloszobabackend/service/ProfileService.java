@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureListDTO;
+import com.cityscape.geoszabaduloszobabackend.model.dto.UserListDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.ReviewEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
@@ -22,6 +23,7 @@ public class ProfileService {
     private final CompletedAdventureRepository completedRepository;
     private final AbandonedAdventureRepository abandonedRepository;
     private final ReviewRepository reviewRepository;
+    private final FollowRepository followRepository;
 
     @Transactional(readOnly = true)
     public UserAdventureStatistics getMyStats(String keycloakSub) {
@@ -35,7 +37,7 @@ public class ProfileService {
                 .orElseThrow(() -> new RuntimeException("User not found:" + username));
     }
 
-    public List<AdventureListDTO> getListByType(String sub, String type) {
+    public List<?> getListByType(String sub, String type) {
         return switch (type) {
             case "completed-adventure" -> completedRepository.findAllByUserKeycloakSub(sub).stream()
                     .map(entity -> mapToDTO(entity.getAdventure()))
@@ -52,6 +54,13 @@ public class ProfileService {
                     .toList();
             case "reviewed" -> reviewRepository.findAllByUserKeycloakSub(sub).stream()
                     .map(this::mapReviewToDTO).toList();
+            case "followers" -> followRepository.findAllByFollowedKeycloakSub(sub).stream()
+                    .map(follow -> mapUserToDTO(follow.getFollowed()))
+                    .toList();
+
+            case "following" -> followRepository.findAllByFollowerKeycloakSub(sub).stream()
+                    .map(follow -> mapUserToDTO(follow.getFollower()))
+                    .toList();
             default -> Collections.emptyList();
         };
     }
@@ -75,6 +84,15 @@ public class ProfileService {
                 adv.getTitle(),
                 review.getReviewText(),
                 adv.getDifficulty()
+        );
+    }
+
+    private UserListDTO mapUserToDTO(UserEntity user) {
+        return new UserListDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getProfileDescription(),
+                user.getProfilePictureUrl()
         );
     }
 

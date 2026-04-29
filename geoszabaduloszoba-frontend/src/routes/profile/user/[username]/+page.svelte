@@ -9,7 +9,11 @@
 	let followLoading = $state(false);
 
 	const usernameParam = $derived(page?.params?.username || null);
-	const isOwnProfile = $derived(!usernameParam || (stats && stats.username === auth.user?.preferred_username));
+	const isOwnProfile = $derived(
+		!usernameParam ||
+		usernameParam === 'me' ||
+		(stats && auth.username && stats.username === auth.username)
+	);
 
 	async function checkFollowStatus() {
 		if (isOwnProfile || !stats?.id) return;
@@ -80,6 +84,7 @@
 </script>
 
 <main class="min-h-screen bg-[#F5F2EA] font-sans pb-24 px-6 pt-24">
+
 	{#if stats}
 		<section class="flex items-center gap-5 py-4">
 			<div class="w-20 h-20 bg-white rounded-full border-2 border-gray-200 shadow-md flex items-center justify-center overflow-hidden">
@@ -116,7 +121,7 @@
 				{ label: 'Követők', key: 'followers', count: stats.followerCount },
 				{ label: 'Követés', key: 'following', count: stats.followingCount }
 			] as item}
-				<a href="/profile/list/{item.key}}" class="adventure-card block no-underline">
+				<a href="/profile/list/{item.key}" class="adventure-card block no-underline">
 					<span class="text-cream-city">{item.label}</span>
 					<div class="flex items-center gap-4">
 						<span class="text-xl font-bold">{item.count || 0}</span>

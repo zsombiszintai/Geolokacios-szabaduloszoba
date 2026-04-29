@@ -30,6 +30,8 @@
 	let timerInterval: any;
 	let syncInterval: any;
 
+	const savedStationId = $derived(page.url.searchParams.get('station'));
+
 	function toggleCompass() {
 		isCompassOpen = !isCompassOpen;
 	}
@@ -56,13 +58,17 @@
 	function nextStation() {
 		showRiddle = false;
 		const currentIndex = allStations.findIndex(s => s.id === lastStationId);
-		if (currentIndex < allStations.length - 1) {
-			lastStationId = allStations[currentIndex + 1].id;
+
+		if (currentIndex !== -1 && currentIndex < allStations.length - 1) {
 			const next = allStations[currentIndex + 1];
+			lastStationId = next.id;
+
 			guideLine.setLatLngs([[userPos.lat, userPos.lon], [next.latitude, next.longitude]]);
-			compassRotation = calculateAngle(userPos, { lat: next.latitude, lon: next.longitude });
+			updateCompass();
 		} else {
 			guideLine.setLatLngs([]);
+			alert("Gratulálunk! Teljesítetted a kalandot!");
+			saveAndExit();
 		}
 	}
 	const currentTarget = $derived(() => {
@@ -109,19 +115,25 @@
 
 			if (advRes.ok) {
 				const data = await advRes.json();
-
-				console.log("DEBUG: Kaland adatok megérkeztek:", data);
 				adventureTitle = data.title;
 				allStations = data.stations || [];
 
 				if (allStations.length > 0) {
-					const first = allStations[0];
-					firstStationPos = { lat: first.latitude, lon: first.longitude};
-					lastStationId = first.id;
+					let targetStation = allStations[0];
+
+					if (savedStationId) {
+						const found = allStations.find(s => s.id === parseInt(savedStationId));
+						if (found) {
+							targetStation = found;
+							console.log("Játék folytatása a mentett állomástól:", targetStation.id);
+						}
+					}
+
+					lastStationId = targetStation.id;
 
 					guideLine.setLatLngs([
 						[userPos.lat, userPos.lon],
-						[first.latitude, first.longitude]
+						[targetStation.latitude, targetStation.longitude]
 					]);
 
 					updateCompass();
@@ -174,36 +186,29 @@
 	}
 
 	async function saveAndExit() {
-
-		console.log("Kilépés megkezdése...", { sessionId, lastStationId });
 		if (sessionId === null) {
-			goto('/dashboard');
+			goto('/completed-adventures');
 			return;
 		}
 
 		const data = {
 			sessionId,
-			lastStationId: lastStationId || 1,
+			lastStationId,
 			elapsedSec,
 			distanceInMeters,
 			currentLat: userPos.lat,
 			currentLon: userPos.lon
 		};
 
-		const payloadString = JSON.stringify(data);
-
 		try {
-			fetch('http://localhost:8080/api/game/update', {
+			await fetch('http://localhost:8080/api/game/update', {
 				method: 'POST',
-				keepalive: true,
 				headers: {
 					'Content-Type': 'application/json',
 					'Authorization': `Bearer ${auth.token}`
 				},
-				body: payloadString
+				body: JSON.stringify(data)
 			});
-
-			console.log("Mentési kérés elküldve, navigálás...");
 		} catch (err) {
 			console.error("Hiba a mentésnél:", err);
 		} finally {

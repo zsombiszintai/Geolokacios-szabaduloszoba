@@ -27,9 +27,8 @@ public class ProfileAPI {
         return profileService.getUserStats(username);
     }
 
-    @GetMapping("/list")
-    public List<AdventureListDTO> getList(@RequestParam String type, @AuthenticationPrincipal Jwt jwt) {
-
+    @GetMapping("/list/{type}")
+    public List<?> getList(@PathVariable String type, @AuthenticationPrincipal Jwt jwt) {
         return profileService.getListByType(jwt.getSubject(), type);
     }
 }

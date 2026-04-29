@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
 import com.cityscape.geoszabaduloszobabackend.model.dto.SearchDTO;
+import com.cityscape.geoszabaduloszobabackend.repository.ListRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ public class SearchService {
 
     private final AdventureService adventureService;
     private final UserRepository  userRepository;
+    private final ListRepository listRepository;
 
     public List<SearchDTO> searchEverything(String query, String type, Double lat, Double lon) {
         String term = query.toLowerCase();
@@ -37,7 +39,14 @@ public class SearchService {
                             .type("ADVENTURE")
                             .build())
                     .toList();
-
+            case "LIST" -> listRepository.findByTitleContainingIgnoreCase(term)
+                    .stream()
+                    .map(list -> SearchDTO.builder()
+                            .id(list.getId())
+                            .title(list.getTitle())
+                            .type("LIST")
+                            .build())
+                    .toList();
             default -> List.of();
         };
     }

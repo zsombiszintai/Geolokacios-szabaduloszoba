@@ -89,18 +89,20 @@
 		<section class="flex items-center gap-2 py-4">
 			<div class="w-20 h-20 bg-white rounded-full border-2 border-gray-200 shadow-md flex items-center justify-center overflow-hidden">
 				<img
-				src={stats.profilePictureUrl?.startsWith('http')
-					? stats.profilePictureUrl
-					: `http://localhost:8080${stats.profilePictureUrl}`}
-							alt="Avatar"
-							class="w-full h-full object-cover"
-							onerror={(e) => {
-					const target = e.currentTarget as HTMLImageElement;
-					const defaultSrc = 'http://localhost:8080/images/default-avatar.png';
-					if (target.src !== defaultSrc) {
-						 target.src = defaultSrc;
-					}
-					}}
+					src={stats.profilePictureUrl ? (
+      stats.profilePictureUrl.startsWith('http')
+      ? stats.profilePictureUrl
+      : `http://localhost:8080/images/${stats.profilePictureUrl}`
+  ) : 'http://localhost:8080/images/default-avatar.png'}
+					alt="Avatar"
+					class="w-full h-full object-cover"
+					onerror={(e) => {
+      const target = e.currentTarget;
+      const defaultSrc = 'http://localhost:8080/images/default-avatar.png';
+      if (target.src !== defaultSrc) {
+          target.src = defaultSrc;
+      }
+  }}
 				/>
 			</div>
 			<span class="text-xl font-bold text-black tracking-tight">@{stats.username}</span>

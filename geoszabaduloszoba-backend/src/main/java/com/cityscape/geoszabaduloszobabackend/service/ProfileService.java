@@ -31,17 +31,17 @@ public class ProfileService {
         UserAdventureStatistics stats = statsRepository.findByKeycloakSub(keycloakSub)
                 .orElseThrow(() -> new RuntimeException("User not found:" + keycloakSub));
 
-        if (stats.getProfilePictureUrl() != null && !stats.getProfilePictureUrl().startsWith("http")) {
-            stats.setProfilePictureUrl(avatarStorageService.publicUrl(stats.getProfilePictureUrl()));
-        }
-
+        stats.setProfilePictureUrl(formatAvatarUrl(stats.getProfilePictureUrl()));
         return stats;
     }
 
     @Transactional(readOnly = true)
     public UserAdventureStatistics getUserStats(String username) {
-        return statsRepository.findByUsername(username)
+        UserAdventureStatistics stats = statsRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found:" + username));
+
+        stats.setProfilePictureUrl(formatAvatarUrl(stats.getProfilePictureUrl()));
+        return stats;
     }
 
     public List<?> getListByType(String sub, String type) {
@@ -107,6 +107,16 @@ public class ProfileService {
                 user.getProfileDescription(),
                 finalUrl
         );
+    }
+
+    private String formatAvatarUrl(String urlOrKey) {
+        if (urlOrKey == null || urlOrKey.isBlank()) {
+            return null;
+        }
+        if (urlOrKey.startsWith("http")) {
+            return urlOrKey;
+        }
+        return avatarStorageService.publicUrl(urlOrKey);
     }
 
 }

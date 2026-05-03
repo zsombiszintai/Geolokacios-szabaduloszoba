@@ -34,3 +34,15 @@ build/
 development/postgres_data
 development/postgres_data_2
 
+# MinIO
+
+**/minio_data/
+
+.minio.sys/
+**/*.xl.meta
+**/*.part.*
+
+**/*.bin.bkp
+**/*.tmp
+
+.mc/

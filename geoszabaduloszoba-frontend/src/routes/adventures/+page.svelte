@@ -120,8 +120,8 @@
     </span>
 		<input
 			type="text"
-			placeholder={activeTab === 'adventures' ? "Keress a kalandjaid között..." : "Keress a listáid között..."}
-			class="w-full h-12 pl-12 pr-4 bg-white rounded-2xl border-2 border-[#2F5D50]/10 outline-none focus:border-[#2F5D50]/30 transition-all text-[#2F5D50]"
+			placeholder="Keresés..."
+			class="w-full h-12 pl-12 pr-4 bg-white/80 rounded-xl border-b-4 border-[#2F5D50]/20 outline-none focus:border-[#2F5D50] transition-all text-[#2F5D50] font-bold"
 			bind:value={searchTerm}
 		/>
 	</div>

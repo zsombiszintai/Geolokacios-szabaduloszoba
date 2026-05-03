@@ -27,7 +27,7 @@
 		} else if (searchType === "adventure") {
 			goto(`/adventures?search=${searchQuery}`);
 		}else {
-			goto('/list/${searchQuery}')
+			goto(`/list/${searchQuery}`);
 		}
 	}
 
@@ -185,33 +185,41 @@
 	<section class="absolute top-20 left-0 right-0 px-6 z-[1100] pointer-events-none">
 		<form
 			onsubmit={handleSearch}
-			class="max-w-md mx-auto w-full pointer-events-auto bg-[#F5F2EA] rounded-3xl shadow-2xl border-2 border-[#2F5D50]/20 transition-all duration-300 ease-in-out flex flex-col overflow-hidden"
+			class="max-w-md mx-auto w-full pointer-events-auto bg-white/80 rounded-xl border-b-4 border-[#2F5D50]/20 transition-all duration-300 ease-in-out flex flex-col overflow-hidden focus-within:border-[#2F5D50]"
 			style="height: {isExpanded ? 'auto' : '48px'}; max-height: 400px;"
 		>
-			<div class="flex items-center px-4 h-12 shrink-0 gap-2">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="2.5" class="opacity-50">
+			<div class="flex items-center px-4 h-12 shrink-0 gap-3">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="3" class="opacity-40">
 					<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
 				</svg>
+
 				<input
 					type="search"
 					bind:value={searchQuery}
 					onfocus={() => isExpanded = true}
 					placeholder="Keresés..."
-					class="flex-1 bg-transparent border-none outline-none text-[#2F5D50] py-2 font-medium placeholder:text-[#2F5D50]/40"
+					class="flex-1 bg-transparent border-none outline-none text-[#2F5D50] py-2 font-bold placeholder:text-[#2F5D50]/40"
 				/>
+
 				{#if searchQuery}
-					<button type="button" onclick={() => {searchQuery = ""; searchResults = [];}} class="text-gray-400"></button>
+					<button
+						type="button"
+						onclick={() => {searchQuery = ""; searchResults = [];}}
+						class="text-[#2F5D50] opacity-50 hover:opacity-100 font-bold text-xl"
+					>
+						×
+					</button>
 				{/if}
 			</div>
 
 			{#if isExpanded}
-				<nav class="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar shrink-0">
+				<nav class="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar shrink-0 border-t border-[#2F5D50]/5 pt-3">
 					{#each ['adventure', 'user', 'list'] as type}
 						<button
 							type="button"
 							onclick={() => { searchType = type; performSearch(); }}
-							class="px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all
-              {searchType === type ? 'bg-[#2F5D50] text-white' : 'bg-[#E8E4D8] text-[#2F5D50]'}"
+							class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all
+                {searchType === type ? 'bg-[#2F5D50] text-white' : 'bg-[#2F5D50]/10 text-[#2F5D50]'}"
 						>
 							{type === 'adventure' ? 'Kaland' : type === 'user' ? 'Játékos' : 'Lista'}
 						</button>
@@ -219,24 +227,26 @@
 				</nav>
 
 				{#if searchResults.length > 0 || isSearching}
-					<ul class="border-t border-[#2F5D50]/10 overflow-y-auto no-scrollbar bg-white/50 flex-1">
+					<ul class="border-t-2 border-[#2F5D50]/10 overflow-y-auto no-scrollbar bg-white/30 flex-1">
 						{#if isSearching}
-							<li class="px-4 py-3 italic text-sm text-[#2F5D50]/60 text-center">Keresés...</li>
+							<li class="px-4 py-6 italic text-sm text-[#2F5D50]/60 text-center font-bold">
+								Keresés...
+							</li>
 						{:else}
 							{#each searchResults as res}
 								<li>
 									<button
 										type="button"
 										onclick={() => handleResultClick(res)}
-										class="w-full text-left px-4 py-3 hover:bg-[#2F5D50]/5 border-b border-[#2F5D50]/5 flex justify-between items-center group"
+										class="w-full text-left px-4 py-3 hover:bg-white/60 border-b border-[#2F5D50]/5 flex justify-between items-center group transition-colors"
 									>
 										<div>
-											<span class="block font-bold text-[#2F5D50] group-hover:underline">{res.title}</span>
-											<span class="text-[10px] text-gray-500">
-                        {res.description || (res.distanceInMeters ? `${res.distanceInMeters} m • ${res.averageTime} perc` : 'Kalandor')}
-                      </span>
+											<span class="block font-black text-[#2F5D50] group-hover:text-black">{res.title}</span>
+											<span class="text-[11px] font-medium text-[#2F5D50]/60">
+                    {res.description || (res.distanceInMeters ? `${res.distanceInMeters} m • ${res.averageTime} perc` : 'Aktív kalandor')}
+                  </span>
 										</div>
-										<span class="text-xs opacity-40">❯</span>
+										<span class="text-[#2F5D50] opacity-30 group-hover:opacity-100 font-black">❯</span>
 									</button>
 								</li>
 							{/each}

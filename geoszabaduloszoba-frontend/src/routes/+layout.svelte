@@ -51,10 +51,12 @@
     
     {#if showNavbar}
         <header class="fixed top-0 left-0 w-full h-16 bg-[#2F5D50] text-[#F5F2EA] flex items-center justify-between px-6 z-50 shadow-md">
-            <UserSettingsOutline class="w-7 h-7 cursor-pointer" />
+            <a href="/settings">
+                <UserSettingsOutline class="w-7 h-7 cursor-pointer" />
+            </a>
             <h1 class="text-2xl font-bold tracking-[0.2em] font-josefin">CityScape</h1>
             <span class="text-sm font-josefin opacity-80 truncate max-w-[7rem] text-right">
-                {auth.fullName ?? auth.username ?? ''}
+                {auth.username ?? ''}
             </span>
         </header>
     {/if}

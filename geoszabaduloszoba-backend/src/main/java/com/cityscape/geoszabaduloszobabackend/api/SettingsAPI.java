@@ -24,20 +24,16 @@ public class SettingsAPI {
                                             @AuthenticationPrincipal Jwt jwt) throws Exception {
 
         String sub = jwt.getSubject();
-        // Kiterjesztés kinyerése
         String ext = "jpg";
         if (file.getOriginalFilename() != null && file.getOriginalFilename().contains(".")) {
             ext = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf('.') + 1);
         }
 
-        // 1. Kulcs generálása (itt használhatjuk a User belső ID-ját vagy a Sub-ot)
         var user = userService.getOrCreateCurrentUser();
         String key = storageService.newKey(user.getId(), ext);
 
-        // 2. Feltöltés MinIO-ba
         storageService.uploadRaw(key, file, file.getContentType());
 
-        // 3. Kulcs mentése a felhasználóhoz
         userService.updateAvatarKey(sub, key);
 
         return Map.of(

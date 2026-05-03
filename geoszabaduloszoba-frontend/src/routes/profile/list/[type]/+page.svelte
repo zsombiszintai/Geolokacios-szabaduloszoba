@@ -43,7 +43,7 @@
 	<button
 		type="button"
 		class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8"
-		onclick={() => goto(`/profile/user/${auth.username || 'me'}`)}
+		onclick={() => window.history.back()}
 	>
 		<div class="p-2 rounded-full bg-[#8D7462]/10 group-hover:bg-[#2F5D50]/10">
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

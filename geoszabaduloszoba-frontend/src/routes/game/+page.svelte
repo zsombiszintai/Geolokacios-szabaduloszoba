@@ -250,8 +250,8 @@
 	});
 </script>
 
-<main class="flex flex-col h-screen bg-[#F5F2EA] font-josefin overflow-hidden">
-	<header class="h-14 bg-[#775D4D] text-[#F5F2EA] flex items-center px-4 rounded-xl mx-2 mt-2 shadow-lg z-10">
+<main class="flex flex-col h-[calc(100vh-64px)] bg-[#F5F2EA] font-josefin overflow-hidden">
+	<header class="h-14 bg-[#775D4D] text-[#F5F2EA] flex items-center px-4 rounded-xl mx-2 mt-2 shadow-lg z-10 shrink-0">
 		<div class="flex-1 font-mono text-sm tracking-tighter">
 			{new Date(elapsedSec * 1000).toISOString().substr(11, 8)}
 		</div>
@@ -259,74 +259,35 @@
 		<div class="flex-1 text-right text-sm font-bold">{Math.round(distanceInMeters)} m</div>
 	</header>
 
-	<section class="flex-grow m-2 rounded-2xl overflow-hidden shadow-inner border-2 border-[#775D4D] relative">
+	<section class="flex-grow m-2 mb-1 rounded-2xl overflow-hidden shadow-inner border-2 border-[#775D4D] relative bg-gray-200">
 		<div id="map-container" class="w-full h-full z-0"></div>
 
-		<button onclick={saveAndExit} class="absolute top-4 left-4 z-[400] bg-[#775D4D]/90 p-2 px-4 rounded-lg text-white shadow-md active:scale-95 transition-transform">
+		<button onclick={saveAndExit} class="absolute top-4 left-4 z-[400] bg-[#775D4D]/90 p-2 px-4 rounded-lg text-white text-xs font-bold shadow-md">
 			Kilépés
 		</button>
-
-		{#if showRiddle}
-			<div class="absolute inset-0 z-[600] bg-black/70 backdrop-blur-md flex items-center justify-center p-6">
-				<div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border-4 border-[#775D4D] text-center animate-in zoom-in duration-300">
-					<span class="text-4xl mb-4 block">R</span>
-					<h2 class="text-2xl font-bold text-[#775D4D] mb-4">Megérkeztél!</h2>
-					<p class="text-gray-700 mb-8 leading-relaxed font-medium">
-						{currentRiddleText}
-					</p>
-
-					<button
-						onclick={nextStation}
-						class="w-full bg-[#775D4D] text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform"
-					>
-						OK
-					</button>
-				</div>
-			</div>
-		{/if}
-
-		{#if isCompassOpen}
-			<div
-				class="absolute inset-0 z-[500] bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300"
-				onclick={toggleCompass}
-				role="button"
-				tabindex="0"
-				onkeydown={(e) => e.key === 'Enter' && toggleCompass()}
-			>
-				<div class="text-[#F5F2EA] text-center pointer-events-none">
-					<p class="mb-8 text-lg font-bold tracking-widest uppercase drop-shadow-md">Következő állomás</p>
-
-					<div
-						class="relative w-56 h-56 border-4 border-[#F5F2EA] rounded-full flex items-center justify-center shadow-2xl bg-[#775D4D]/20 transition-transform duration-700 ease-out"
-						style="transform: rotate({compassRotation}deg)"
-					>
-						<span class="absolute top-2 font-black text-red-500 text-xl">N</span>
-						<div class="w-1.5 h-36 bg-gradient-to-b from-red-500 via-[#F5F2EA] to-[#775D4D] rounded-full shadow-lg"></div>
-						<div class="absolute w-4 h-4 bg-[#775D4D] rounded-full border-2 border-[#F5F2EA] shadow-sm"></div>
-					</div>
-
-					<p class="mt-8 opacity-70 italic text-xs">Kattints a bezáráshoz</p>
-				</div>
-			</div>
-		{/if}
 
 		{#if !isCompassOpen}
 			<button
 				onclick={toggleCompass}
-				class="absolute bottom-6 right-6 z-[400] bg-[#775D4D] p-4 rounded-full shadow-2xl transition-all border-2 border-white/20 active:scale-90 hover:brightness-110"
+				class="absolute bottom-4 right-4 z-[450] bg-[#775D4D] w-14 h-14 rounded-full shadow-2xl border-2 border-white/20 flex items-center justify-center transition-transform active:scale-90"
 				style="transform: rotate({compassRotation}deg)"
 			>
-				<span class="text-white text-2xl block">🧭</span>
+				<span class="text-2xl">🧭</span>
 			</button>
+		{/if}
+
+		{#if isCompassOpen}
+			<div class="absolute inset-0 z-[500] bg-black/40 backdrop-blur-sm flex items-center justify-center" onclick={toggleCompass}>
+				<div class="text-white font-bold">Iránytű nyitva</div>
+			</div>
 		{/if}
 	</section>
 
-	<footer class="p-2 flex justify-center bg-transparent">
-		<button onclick={() => updateLocation(userPos.lat + 0.0001, userPos.lon + 0.0001)}
-						class="bg-[#775D4D]/10 text-[#775D4D] text-[10px] font-bold px-3 py-1 rounded-full border border-[#775D4D]/20 hover:bg-[#775D4D]/20 transition-colors">
-			POZÍCIÓ SZIMULÁLÁSA
+	<div class="h-5 flex justify-center items-center shrink-0 mb-1">
+		<button onclick={() => updateLocation(userPos.lat + 0.0001, userPos.lon + 0.0001)} class="text-[#775D4D] text-[8px] font-black opacity-20">
+			[ DEBUG ]
 		</button>
-	</footer>
+	</div>
 </main>
 
 <style>
@@ -334,13 +295,18 @@
         height: 100%;
         width: 100%;
         background: #e5e7eb;
+        display: block;
+        box-sizing: border-box;
     }
 
     :global(.leaflet-control-container) {
         display: none !important;
     }
 
-    .relative, button {
-        transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    :global(body) {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
     }
 </style>

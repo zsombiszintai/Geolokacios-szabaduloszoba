@@ -24,11 +24,18 @@ public class ProfileService {
     private final AbandonedAdventureRepository abandonedRepository;
     private final ReviewRepository reviewRepository;
     private final FollowRepository followRepository;
+    private final AvatarStorageService avatarStorageService;
 
     @Transactional(readOnly = true)
     public UserAdventureStatistics getMyStats(String keycloakSub) {
-        return statsRepository.findByKeycloakSub(keycloakSub)
+        UserAdventureStatistics stats = statsRepository.findByKeycloakSub(keycloakSub)
                 .orElseThrow(() -> new RuntimeException("User not found:" + keycloakSub));
+
+        if (stats.getProfilePictureUrl() != null && !stats.getProfilePictureUrl().startsWith("http")) {
+            stats.setProfilePictureUrl(avatarStorageService.publicUrl(stats.getProfilePictureUrl()));
+        }
+
+        return stats;
     }
 
     @Transactional(readOnly = true)
@@ -54,11 +61,11 @@ public class ProfileService {
                     .toList();
             case "reviewed" -> reviewRepository.findAllByUserKeycloakSub(sub).stream()
                     .map(this::mapReviewToDTO).toList();
-            case "followers" -> followRepository.findAllByFollowedKeycloakSub(sub).stream()
+            case "followers" -> followRepository.findAllByFollowerKeycloakSub(sub).stream()
                     .map(follow -> mapUserToDTO(follow.getFollowed()))
                     .toList();
 
-            case "following" -> followRepository.findAllByFollowerKeycloakSub(sub).stream()
+            case "following" -> followRepository.findAllByFollowedKeycloakSub(sub).stream()
                     .map(follow -> mapUserToDTO(follow.getFollower()))
                     .toList();
             default -> Collections.emptyList();
@@ -88,11 +95,17 @@ public class ProfileService {
     }
 
     private UserListDTO mapUserToDTO(UserEntity user) {
+        String finalUrl = user.getProfilePictureUrl();
+
+        if (finalUrl != null && !finalUrl.startsWith("http")) {
+            finalUrl = avatarStorageService.publicUrl(finalUrl);
+        }
+
         return new UserListDTO(
                 user.getId(),
                 user.getUsername(),
                 user.getProfileDescription(),
-                user.getProfilePictureUrl()
+                finalUrl
         );
     }
 

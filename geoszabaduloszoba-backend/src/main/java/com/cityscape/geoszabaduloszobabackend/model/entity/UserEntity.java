@@ -36,6 +36,9 @@ public class UserEntity {
     @Column(length = 400)
     private String profilePictureUrl;
 
+    @Transient
+    private String avatarUrl;
+
 }
 
 

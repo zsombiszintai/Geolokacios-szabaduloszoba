@@ -115,13 +115,13 @@
 
 		<input
 			class="input-city-brown"
-			placeholder="Lista neve (pl. Pécsi rejtélyek)..."
+			placeholder="Lista neve..."
 			bind:value={title}
 		/>
 
 		<textarea
 			class="input-city-brown h-24"
-			placeholder="Miről szól ez a válogatás?"
+			placeholder="Leírás..."
 			bind:value={description}
 		></textarea>
 	</section>

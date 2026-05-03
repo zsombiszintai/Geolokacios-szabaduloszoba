@@ -18,6 +18,7 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final AvatarStorageService avatarStorageService;
 
     public UUID getUserUUID() {
         return UUID.fromString(this.getJwt()
@@ -45,14 +46,14 @@ public class UserService {
         String username = this.getJwt().getClaimAsString("preferred_username");
         String email = this.getJwt().getClaimAsString("email");
 
-        return userRepository.findByKeycloakSub(keycloakSub)
+        UserEntity user = userRepository.findByKeycloakSub(keycloakSub)
                 .or(() -> userRepository.findByEmail(email))
-                .map(user -> {
-                    if (user.getKeycloakSub() == null) {
-                        user.setKeycloakSub(keycloakSub);
-                        return userRepository.save(user);
+                .map(existingUser -> {
+                    if (existingUser.getKeycloakSub() == null) {
+                        existingUser.setKeycloakSub(keycloakSub);
+                        return userRepository.save(existingUser);
                     }
-                    return user;
+                    return existingUser;
                 })
                 .orElseGet(() -> {
                     UserEntity newUser = new UserEntity();
@@ -61,5 +62,26 @@ public class UserService {
                     newUser.setEmail(email);
                     return userRepository.save(newUser);
                 });
+
+        resolveAvatarUrl(user);
+        return user;
+    }
+
+    public void updateAvatarKey(String keycloakSub, String objectKey) {
+        UserEntity user = userRepository.findByKeycloakSub(keycloakSub)
+                .orElseThrow(() -> new RuntimeException("User not found with sub: " + keycloakSub));
+
+        user.setProfilePictureUrl(objectKey);
+        userRepository.save(user);
+    }
+
+    public void resolveAvatarUrl(UserEntity user) {
+        String current = user.getProfilePictureUrl();
+
+        if (current != null && !current.isEmpty() && !current.startsWith("http")) {
+            user.setProfilePictureUrl(avatarStorageService.publicUrl(current));
+        } else if (current == null || current.isEmpty()) {
+            user.setProfilePictureUrl("/images/default-avatar.png");
+        }
     }
 }

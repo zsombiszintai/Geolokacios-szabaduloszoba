@@ -83,16 +83,25 @@
 	}
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] font-sans pb-24 px-6 pt-24">
+<main class="min-h-screen bg-[#F5F2EA] font-sans pb-8 px-6 pt-6">
 
 	{#if stats}
-		<section class="flex items-center gap-5 py-4">
+		<section class="flex items-center gap-2 py-4">
 			<div class="w-20 h-20 bg-white rounded-full border-2 border-gray-200 shadow-md flex items-center justify-center overflow-hidden">
-				{#if stats.profilePictureUrl}
-					<img src={stats.profilePictureUrl} alt="Avatar" class="w-full h-full object-cover" />
-				{:else}
-					<span class="text-4xl">👤</span>
-				{/if}
+				<img
+				src={stats.profilePictureUrl?.startsWith('http')
+					? stats.profilePictureUrl
+					: `http://localhost:8080${stats.profilePictureUrl}`}
+							alt="Avatar"
+							class="w-full h-full object-cover"
+							onerror={(e) => {
+					const target = e.currentTarget as HTMLImageElement;
+					const defaultSrc = 'http://localhost:8080/images/default-avatar.png';
+					if (target.src !== defaultSrc) {
+						 target.src = defaultSrc;
+					}
+					}}
+				/>
 			</div>
 			<span class="text-xl font-bold text-black tracking-tight">@{stats.username}</span>
 

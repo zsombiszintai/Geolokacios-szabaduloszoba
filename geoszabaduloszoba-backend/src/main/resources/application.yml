@@ -24,3 +24,10 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8090/realms/cityscape-realm
+
+
+minio:
+  url: http://localhost:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  bucketName: cityscape-avatars

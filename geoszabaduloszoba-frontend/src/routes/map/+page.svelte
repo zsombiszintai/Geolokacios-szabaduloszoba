@@ -65,46 +65,93 @@
 		}
 	}
 
-	async function loadMapData(L: any) {
-		if (!mapElement) return;
-		map = L.map(mapElement).setView([userPos.lat, userPos.lon], 14);
+	function createAdventureIcon() {
+		return L.divIcon({
+			className: 'custom-adventure-marker',
+			html: `<div class="w-5 h-5 bg-red-600 rounded-full border-2 border-white shadow-md transition-transform hover:scale-125"></div>`,
 
-		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '© OpenStreetMap'
-		}).addTo(map);
+			iconSize: [24, 24],
+			iconAnchor: [12, 12]
+		});
+	}
 
-		const userIcon = L.divIcon({
+	function createUserIcon() {
+		return L.divIcon({
 			className: 'custom-user-marker',
 			html: `<div class="relative flex items-center justify-center">
-              <div class="absolute w-8 h-8 bg-blue-500 rounded-full opacity-30 animate-ping"></div>
-              <div class="relative w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
-            </div>`,
+                <div class="absolute w-6 h-6 bg-[#2F5D50] rounded-full opacity-20 animate-ping"></div>
+                <div class="relative w-4 h-4 bg-[#2F5D50] rounded-full border-2 border-white shadow-lg"></div>
+             </div>`,
 			iconSize: [32, 32],
 			iconAnchor: [16, 16]
 		});
+	}
+
+	async function loadMapData(L: any) {
+		if (!mapElement) return;
+		map = L.map(mapElement, { zoomControl: false }).setView([userPos.lat, userPos.lon], 14);
+
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition((pos) => {
 				userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
 				if (map) {
 					map.setView([userPos.lat, userPos.lon], 14);
-					L.marker([userPos.lat, userPos.lon], { icon: userIcon }).addTo(map).bindPopup("Te itt vagy");
+					L.marker([userPos.lat, userPos.lon], { icon: createUserIcon() }).addTo(map).bindPopup("Te itt vagy");
 				}
 			}, () => {
-				L.marker([userPos.lat, userPos.lon], { icon: userIcon }).addTo(map!);
+				L.marker([userPos.lat, userPos.lon], { icon: createUserIcon() }).addTo(map!);
 			});
 		}
 
 		try {
-			const res = await fetch(`http://localhost:8080/adventures/map?lat=${userPos.lat}&lon=${userPos.lon}`, {
+			const res = await fetch(`http://localhost:8080/api/adventures/map?lat=${userPos.lat}&lon=${userPos.lon}`, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 			if (res.ok) {
 				const adventures = await res.json();
 				adventures.forEach((adv: any) => {
 					if (adv.advLat && adv.advLon) {
-						L.marker([adv.advLat, adv.advLon]).addTo(map!)
-							.bindPopup(`<b>${adv.title}</b><br><a href="/adventures/${adv.id}">Megtekintés</a>`);
+						const marker = L.marker([adv.advLat, adv.advLon], { icon: createAdventureIcon() }).addTo(map!);
+
+						marker.bindPopup(`
+								<div style="
+									background: white;
+									padding: 15px;
+									text-align: center;
+								">
+									<div style="
+										color: #775D4D;
+										font-size: 20px;
+										font-weight: bold;
+										margin-bottom: 5px;
+										font-family: sans-serif;
+									">${adv.title}</div>
+
+									<div style="
+										color: #775D4D;
+										font-size: 14px;
+										margin-bottom: 15px;
+										font-family: sans-serif;
+									">${adv.distanceInMeters} m</div>
+
+									<a href="/adventures/${adv.id}" style="
+										display: block;
+										background-color: #007542;
+										color: white !important;
+										text-decoration: none !important;
+										padding: 10px;
+										font-weight: bold;
+										font-family: sans-serif;
+										font-size: 14px;
+										border-radius: 8px;
+									">Megtekintés</a>
+								</div>
+							`, {
+							closeButton: false,
+							className: 'custom-leaflet-popup'
+						});
 					}
 				});
 			}
@@ -153,7 +200,7 @@
 					class="flex-1 bg-transparent border-none outline-none text-[#2F5D50] py-2 font-medium placeholder:text-[#2F5D50]/40"
 				/>
 				{#if searchQuery}
-					<button type="button" onclick={() => {searchQuery = ""; searchResults = [];}} class="text-gray-400">✕</button>
+					<button type="button" onclick={() => {searchQuery = ""; searchResults = [];}} class="text-gray-400"></button>
 				{/if}
 			</div>
 
@@ -166,7 +213,7 @@
 							class="px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all
               {searchType === type ? 'bg-[#2F5D50] text-white' : 'bg-[#E8E4D8] text-[#2F5D50]'}"
 						>
-							{type === 'adventure' ? '🗺️ Kaland' : type === 'user' ? '👤 Játékos' : '📜 Lista'}
+							{type === 'adventure' ? 'Kaland' : type === 'user' ? 'Játékos' : 'Lista'}
 						</button>
 					{/each}
 				</nav>
@@ -186,7 +233,7 @@
 										<div>
 											<span class="block font-bold text-[#2F5D50] group-hover:underline">{res.title}</span>
 											<span class="text-[10px] text-gray-500">
-                        {res.subtitle || (res.distanceInMeters ? `${res.distanceInMeters} m • ${res.averageTime} perc` : 'Kalandor')}
+                        {res.description || (res.distanceInMeters ? `${res.distanceInMeters} m • ${res.averageTime} perc` : 'Kalandor')}
                       </span>
 										</div>
 										<span class="text-xs opacity-40">❯</span>

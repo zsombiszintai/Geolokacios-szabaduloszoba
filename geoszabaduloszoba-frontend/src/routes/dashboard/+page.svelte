@@ -69,16 +69,16 @@
 
     <div class="w-full max-w-md">
         <h2 class="text-black-city">Új kalandok a közeledben</h2>
-        
-        <div class="px-4 mb-2 text-[10px] border-b border-gray-300 pb-1">
-            <span class="text-right text-grey-city">Kaland neve</span>
-            <span class="text-center text-grey-city">Teljesítési idő</span>
-            <span class="text-right text-grey-city">Táv</span>
+
+        <div class="px-5 mb-2 text-[10px] uppercase font-bold tracking-widest border-b border-gray-300 pb-1 flex justify-between items-center opacity-60">
+            <span class="w-1/3 text-left">Kaland neve</span>
+            <span class="w-1/3 text-center">Idő</span>
+            <span class="w-1/3 text-right">Távolság</span>
         </div>
 
         <div class="space-y-3">
             {#each adventures as adventure (adventure.id)}
-                <button 
+                <button
                     class="adventure-card"
                     onclick={() => goto(`/adventures/${adventure.id}`)}
                 >

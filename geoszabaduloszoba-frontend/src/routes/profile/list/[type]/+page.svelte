@@ -39,7 +39,7 @@
 	onMount(fetchListData);
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] font-sans pb-24 px-6 pt-10">
+<main class="min-h-screen bg-[#F5F2EA] font-sans pb-24 px-6 pt-4">
 	<button
 		type="button"
 		class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8"
@@ -62,7 +62,7 @@
 			<div class="text-center py-10 text-gray-500 italic">Még nincs itt semmi látnivaló.</div>
 		{:else}
 			{#each items as item}
-				<div class="adventure-card flex flex-col items-start gap-2 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+				<div class="adventure-card flex flex-col items-start gap-2 bg-city-brown p-4 rounded-xl shadow-sm border border-gray-100">
 					{#if item.username}
 						<button
 							class="flex items-center gap-3 w-full text-left"
@@ -72,12 +72,12 @@
 								{#if item.profilePictureUrl}
 									<img src={item.profilePictureUrl} alt="avatar" class="w-full h-full object-cover" />
 								{:else}
-									<span class="text-xl">👤</span>
+									<span class="text-city-brown text-xl">t</span>
 								{/if}
 							</div>
 							<div class="flex flex-col">
 								<span class="font-bold text-black">@{item.username}</span>
-								<span class="text-xs text-gray-500 truncate max-w-[200px]">{item.description || 'Nincs leírás'}</span>
+								<span class="text-xs text-city-cream truncate max-w-[200px]">{item.description || 'Nincs leírás'}</span>
 							</div>
 							<span class="ml-auto text-gray-400">❯</span>
 						</button>
@@ -85,12 +85,12 @@
 						<div class="flex justify-between w-full">
 							<span class="font-bold text-lg text-black">{item.title}</span>
 							{#if item.difficulty}
-                <span class="text-xs font-bold px-2 py-1 bg-[#2F5D50]/10 text-[#2F5D50] rounded-md">
+                <span class="text-xs font-bold px-2 py-1 bg-[#2F5D50] text-city-cream rounded-md">
                   {item.difficulty}
                 </span>
 							{/if}
 						</div>
-						<p class="text-sm text-gray-600 line-clamp-2">{item.description || 'Nincs leírás'}</p>
+						<p class="text-sm text-city-cream line-clamp-2">{item.description || 'Nincs leírás'}</p>
 					{/if}
 				</div>
 			{/each}

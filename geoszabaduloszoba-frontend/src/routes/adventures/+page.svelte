@@ -91,7 +91,7 @@
 	);
 
 	const statusColors = {
-		'PUBLISHED': 'bg-green-500',
+		'PUBLIC': 'bg-green-500',
 		'DRAFT': 'bg-gray-400',
 		'PENDING': 'bg-yellow-500'
 	};

@@ -16,5 +16,6 @@ public class AdventureProfileDTO {
 
     private Double averageRating;
     private List<Integer> ratingDistribution;
-    List<StationDTO> stations;
+    private List<StationDTO> stations;
+    private List<ReviewDTO> reviews;
 }

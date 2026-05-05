@@ -16,4 +16,6 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity, Long> {
     List<ReviewEntity> findByUserOrderByReviewedAtDesc(UserEntity user);
 
     List<ReviewEntity> findAllByUserKeycloakSub(String sub);
+
+    List<ReviewEntity> findByAdventureId(Long id);
 }

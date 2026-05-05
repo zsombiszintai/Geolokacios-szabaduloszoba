@@ -5,10 +5,7 @@ import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
-import com.cityscape.geoszabaduloszobabackend.repository.AbandonedAdventureRepository;
-import com.cityscape.geoszabaduloszobabackend.repository.AdventureRepository;
-import com.cityscape.geoszabaduloszobabackend.repository.StationRepository;
-import com.cityscape.geoszabaduloszobabackend.repository.UserRepository;
+import com.cityscape.geoszabaduloszobabackend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -26,6 +23,7 @@ public class AdventureService{
     private final UserService userService;
     private final StationService stationService;
     private final AbandonedAdventureRepository abandonedRepository;
+    private final ReviewRepository reviewRepository;
 
     public List<AbandonedAdventureDTO> getAllAbandonedByUser(String sub) {
         return abandonedRepository.findAllByUserKeycloakSub(sub).stream()
@@ -110,7 +108,18 @@ public class AdventureService{
         dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
         dto.setCreatorName(adv.getCreator() != null ? adv.getCreator().getUsername() : "Ismeretlen");
         dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);
-        dto.setRatingDistribution(List.of(5, 10, 45, 30, 10));
+
+        List<ReviewDTO> reviews = reviewRepository.findByAdventureId(id).stream()
+                .map(r -> new ReviewDTO(
+                        r.getId(),
+                        r.getAdventure().getId(),
+                        r.getAdventure().getTitle(),
+                        r.getRating(),
+                        r.getReviewText(),
+                        r.getReviewedAt()
+                )).toList();
+
+        dto.setReviews(reviews);
 
         dto.setStations(stationDTOs);
 
@@ -159,19 +168,27 @@ public class AdventureService{
 
 
     private String formatTime(Integer totalSeconds) {
+        if (totalSeconds == null || totalSeconds == 0) return "0 s";
 
-        if (totalSeconds == null || totalSeconds == 0) return "0 m";
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
 
-        long totalMinutes = totalSeconds / 60;
-        long hours = totalMinutes / 60;
-        long minutes = totalMinutes % 60;
+        StringBuilder sb = new StringBuilder();
 
         if (hours > 0) {
-            return hours + " h " + minutes + " m";
-        } else {
-            return minutes + " m";
+            sb.append(hours).append(" h ");
         }
 
+        if (minutes > 0 || hours > 0) {
+            sb.append(minutes).append(" m ");
+        }
+
+        if (seconds > 0 || (hours == 0 && minutes == 0)) {
+            sb.append(seconds).append(" s");
+        }
+
+        return sb.toString().trim();
     }
 
 

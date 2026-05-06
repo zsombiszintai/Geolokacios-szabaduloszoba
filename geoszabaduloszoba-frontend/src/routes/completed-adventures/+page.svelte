@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/auth.svelte';
-	import { replaceState } from '$app/navigation';
+	import { StarSolid, RefreshOutline } from 'flowbite-svelte-icons';
 
 	interface CompletedAdventure {
 		id: number;
@@ -43,7 +43,7 @@
 	}
 
 	async function postReview(e: SubmitEvent) {
-		e.preventDefault(); // Ez helyettesíti a régi |preventDefault módosítót
+		e.preventDefault();
 		if (!selectedAdv) return;
 
 		const res = await fetch('http://localhost:8080/api/reviews', {
@@ -64,114 +64,149 @@
 			selectedAdv = null;
 		}
 	}
+
+	function formatDistance(meters: number) {
+		return meters.toFixed(2);
+	}
+
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] p-4 font-sans">
-	<section class="relative mb-6">
-		<label for="adventure-search" class="sr-only">Kaland keresése</label>
+<main class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-12">
+
+	<section class="relative mb-10 max-w-md mx-auto">
+    <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="3">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+      </svg>
+    </span>
 		<input
 			id="adventure-search"
 			bind:value={searchTerm}
 			type="search"
-			placeholder="Keress a lejátszott kalandjaid között..."
-			class="w-full rounded-lg bg-[#775D4D] p-3 pl-10 text-[#F5F2EA] placeholder-[#F5F2EA]/60 shadow-inner outline-none"
+			placeholder="Keress a kalandjaid között..."
+			class="w-full h-12 pl-12 pr-4 bg-white/80 rounded-2xl border-b-4 border-[#2F5D50]/20 outline-none focus:border-[#2F5D50] transition-all text-[#2F5D50] font-bold shadow-sm"
 		/>
-		<span class="absolute left-3 top-3 opacity-60" aria-hidden="true">🔍</span>
 	</section>
 
-	<h2 class="mb-4 text-lg font-bold text-black uppercase tracking-tight">Lejátszott kalandjaid</h2>
+	<header class="mb-6">
+		<h1 class="text-3xl font-black text-[#2F5D50] uppercase tracking-tight leading-none mb-2">
+			Lejátszott<br/>Kalandok
+		</h1>
+		<div class="w-12 h-1.5 bg-[#8D7462] rounded-full"></div>
+	</header>
 
-	<header class="mb-2 grid grid-cols-3 px-4 text-xs font-bold text-black opacity-80 uppercase">
+	<header class="grid grid-cols-[2fr_1fr_1fr] px-4 mb-3 text-[10px] font-black text-[#2F5D50] opacity-40 uppercase tracking-[0.2em]">
 		<span>Kaland neve</span>
-		<span class="text-center">Befejezve</span>
+		<span class="text-center">Dátum</span>
 		<span class="text-right">Értékelés</span>
 	</header>
 
-	<section class="space-y-3" aria-label="Befejezett kalandok listája">
+	<section class="space-y-4">
 		{#each filteredAdventures as adv (adv.id)}
 			<button
 				onclick={() => { selectedAdv = adv; rating = adv.rating || 0; }}
-				class="grid w-full grid-cols-3 items-center rounded-xl bg-[#775D4D] p-5 text-[#F5F2EA] shadow-xl transition-all hover:brightness-105 active:scale-95"
+				class="grid grid-cols-[2fr_1fr_1fr] w-full items-center bg-[#8D7462]/90 p-5 rounded-3xl shadow-xl transition-all active:scale-[0.98] text-left border border-white/10"
 			>
-				<article class="text-left">
-					<h3 class="font-bold text-xl tracking-tight leading-tight">{adv.adventureTitle}</h3>
-				</article>
-
-				<div class="text-center">
-					<time datetime={adv.completedAt} class="text-sm opacity-90 font-medium">{adv.completedAt}</time>
+				<div class="overflow-hidden">
+					<div class="flex items-center gap-2">
+						<h3 class="font-black text-white text-lg leading-tight truncate">{adv.adventureTitle}</h3>
+					</div>
 				</div>
 
-				<figure class="flex items-center justify-end m-0">
+				<div class="text-center">
+					<time datetime={adv.completedAt} class="text-xs font-bold text-[#F5F2EA]/80">
+						{new Date(adv.completedAt).toLocaleDateString('hu-HU')}
+					</time>
+				</div>
+
+				<div class="flex justify-end items-center gap-1">
 					{#if adv.rating}
-						{@html refreshIcon}
-						<span class="text-3xl text-white" aria-label="{adv.rating} csillagos értékelés">★</span>
-					{:else}
-						<span class="text-3xl opacity-30" aria-label="Még nincs értékelve">★</span>
+						<RefreshOutline class="w-6 h-6 text-city-cream"/>
 					{/if}
-				</figure>
+					<div class="bg-[#8D7462]/90 px-2 py-1 rounded-lg flex items-center gap-1 shadow-inner border border-white/10">
+						<StarSolid class="w-6 h-6 text-yellow-400" />
+					</div>
+				</div>
 			</button>
 		{/each}
 	</section>
 
 	{#if selectedAdv}
-		<dialog open class="fixed inset-0 z-50 flex h-full w-full items-center justify-center bg-black/60 p-4 backdrop-blur-sm border-none">
-			<article class="w-full max-w-md overflow-hidden rounded-2xl bg-[#F5F2EA] shadow-2xl border-t-8 border-[#3A5A40]">
+		<dialog open class="fixed inset-0 z-[2000] flex h-full w-full items-center justify-center bg-black/60 p-6 backdrop-blur-sm border-none">
+			<article class="w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-[#F5F2EA] shadow-2xl border-2 border-[#8D7462]">
 
-				<header class="border-b border-gray-200 bg-white/50 p-4">
-					<div class="flex items-start justify-between">
-						<h3 class="text-xl font-bold text-[#775D4D]">{selectedAdv.adventureTitle}</h3>
-						<button onclick={() => (selectedAdv = null)} class="text-2xl" aria-label="Bezárás">&times;</button>
+				<header class="p-8 pb-4">
+					<div class="flex items-start justify-between mb-6">
+						<div>
+							<h3 class="text-2xl font-black text-[#2F5D50] leading-tight">{selectedAdv.adventureTitle}</h3>
+							{#if selectedAdv.rating}
+								<div class="flex items-center gap-1 mt-1 text-[#8D7462]">
+									<RefreshOutline class="w-4 h-4 text-city-brown"/>
+									<span class="text-[10px] font-black uppercase tracking-widest">Értékeld újra</span>
+								</div>
+							{/if}
+						</div>
+						<button onclick={() => (selectedAdv = null)} class="p-2 bg-white rounded-xl shadow-sm text-[#8D7462]" aria-label="Bezárás">
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+						</button>
 					</div>
 
-					<dl class="mt-4 grid grid-cols-3 text-center text-[10px] font-bold text-gray-500 uppercase">
-						<div>
-							<dt>Befejezve</dt>
-							<dd class="text-sm text-[#775D4D] m-0">{selectedAdv.completedAt}</dd>
+					<div class="flex flex-wrap gap-2 justify-center py-4">
+							<div class="bg-white/60 px-4 py-2 rounded-full border border-[#2F5D50]/10 flex flex-col items-center min-w-[80px]">
+								<p class="label-city !opacity-60 !tracking-tighter">Távolság</p>
+								<p class="text-sm font-black text-[#2F5D50]">{formatDistance(selectedAdv.distanceTravelled)} m</p>
+							</div>
+						<div class="bg-white/60 px-4 py-2 rounded-full border border-[#2F5D50]/10 flex flex-col items-center min-w-[80px]">
+							<p class="label-city !opacity-60 !tracking-tighter">Időtartam</p>
+							<p class="text-sm font-black text-[#2F5D50]">{formatDuration(selectedAdv.durationSec)}</p>
 						</div>
-						<div>
-							<dt>Megtett út</dt>
-							<dd class="text-sm text-[#775D4D] m-0">{selectedAdv.distanceTravelled} m</dd>
+						<div class="bg-white/60 px-4 py-2 rounded-full border border-[#2F5D50]/10 flex flex-col items-center min-w-[80px]">
+							<p class="label-city !opacity-60 !tracking-tighter">Dátum</p>
+							<p class="text-[10px] font-black text-[#2F5D50]">{selectedAdv.completedAt}</p>
 						</div>
-						<div>
-							<dt>Idő</dt>
-							<dd class="text-sm text-[#775D4D] m-0">{formatDuration(selectedAdv.durationSec)}</dd>
-						</div>
-					</dl>
+					</div>
 				</header>
 
-				<form method="dialog" class="p-6" onsubmit={postReview}>
-					<fieldset class="border-none p-0 m-0">
-						<legend class="mb-2 font-bold text-[#775D4D]">Értékelés</legend>
-						<nav class="flex justify-center space-x-2 text-4xl mb-6" aria-label="Csillagos értékelés választó">
+				<form method="dialog" class="p-8 pt-4" onsubmit={postReview}>
+					<div class="mb-6 text-center">
+						<p class="label-city mb-4">Milyen volt a kaland?</p>
+						<div class="flex justify-center gap-2">
 							{#each [1, 2, 3, 4, 5] as star}
 								<button
 									type="button"
 									onclick={() => (rating = star)}
-									class={star <= rating ? 'text-yellow-500' : 'text-gray-300'}
-									aria-label="{star} csillag"
+									class="text-4xl transition-all {star <= rating ? 'text-yellow-400 scale-110' : 'text-gray-300 opacity-40'}"
 								>
 									★
 								</button>
 							{/each}
-						</nav>
+						</div>
+					</div>
 
-						<label for="review-text" class="block mb-2 font-bold text-[#775D4D]">Vélemény</label>
+					<div class="space-y-2">
+						<label for="review-text" class="label-city ml-1">Véleményed</label>
 						<textarea
 							id="review-text"
 							bind:value={reviewText}
-							placeholder="Írd le a véleményed a kalandról..."
-							class="h-32 w-full rounded-xl bg-[#775D4D] p-3 text-white placeholder-white/50 outline-none"
+							placeholder="Meséld el a tapasztalataidat..."
+							class="w-full h-32 rounded-2xl bg-white p-4 text-[#2F5D50] font-medium placeholder-[#2F5D50]/30 outline-none border border-[#2F5D50]/5 focus:border-[#2F5D50] transition-all resize-none shadow-inner"
 						></textarea>
-					</fieldset>
+					</div>
 
 					<button
 						type="submit"
-						class="mt-6 w-full rounded-xl bg-[#3A5A40] py-4 text-lg font-bold text-white shadow-lg active:bg-[#2d4431]"
+						class="mt-8 w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
 					>
-						{selectedAdv.rating ? 'Módosítás' : 'Poszt'}
+						{selectedAdv.rating ? 'Értékelés frissítése' : 'Értékelés küldése'}
 					</button>
 				</form>
 			</article>
 		</dialog>
 	{/if}
 </main>
+
+<style>
+    .label-city {
+        @apply text-[10px] font-black uppercase tracking-[0.2em] text-[#2F5D50] opacity-40;
+    }
+</style>

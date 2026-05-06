@@ -26,15 +26,23 @@ public class AdventureService{
     private final ReviewRepository reviewRepository;
 
     public List<AbandonedAdventureDTO> getAllAbandonedByUser(String sub) {
+
         return abandonedRepository.findAllByUserKeycloakSub(sub).stream()
                 .filter(entity -> !entity.isCompleted())
-                .map(entity -> new AbandonedAdventureDTO(
-                        entity.getAdventure().getId(),
-                        entity.getAdventure().getTitle(),
-                        entity.getLastStationId(),
-                        entity.getElapsedSec(),
-                        entity.getDistanceTravelled()
-                ))
+                .map(entity -> {
+                    Integer seqNum = stationRepository.findById(entity.getLastStationId())
+                            .map(StationEntity::getSeqNumber)
+                            .orElse(1);
+
+                    return new AbandonedAdventureDTO(
+                            entity.getAdventure().getId(),
+                            entity.getAdventure().getTitle(),
+                            entity.getLastStationId(),
+                            seqNum,
+                            entity.getElapsedSec(),
+                            entity.getDistanceTravelled()
+                    );
+                })
                 .toList();
     }
 

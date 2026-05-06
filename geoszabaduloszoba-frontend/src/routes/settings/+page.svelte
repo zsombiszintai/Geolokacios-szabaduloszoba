@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { auth } from '$lib/auth.svelte.js';
 	import { onMount } from 'svelte';
+	import { fly } from 'svelte/transition';
+	import { CameraPhotoOutline } from 'flowbite-svelte-icons';
 
 	let profile = $state<any>(null);
 	let uploadLoading = $state(false);
@@ -52,62 +54,103 @@
 		} finally {
 			uploadLoading = false;
 			input.value = "";
+			setTimeout(() => message = { text: "", type: "" }, 3000);
 		}
 	}
 
 	onMount(fetchCurrentSettings);
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] p-6 font-sans">
-	<div class="max-w-md mx-auto space-y-8">
-		<h1 class="text-3xl font-bold text-[#2F5D50]">Beállítások</h1>
+<main class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
+	<button
+		type="button"
+		class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8"
+		onclick={() => window.history.back()}
+	>
+		<div class="p-2 rounded-xl bg-white shadow-sm group-hover:shadow-md transition-all">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+				<path d="m15 18-6-6 6-6"/>
+			</svg>
+		</div>
+		<span class="text-[11px] font-black uppercase tracking-widest">Vissza a profilra</span>
+	</button>
 
-		<section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center gap-4">
+	<header class="mb-8">
+		<h2 class="text-3xl font-black text-[#2F5D50] leading-none uppercase tracking-tighter">
+			Beállítások
+		</h2>
+		<div class="w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></div>
+	</header>
+
+	<div class="max-w-md mx-auto space-y-6">
+
+		<section class="bg-white p-8 rounded-[40px] shadow-sm border border-[#2F5D50]/5 flex flex-col items-center">
 			<div class="relative group">
-				<div class="w-32 h-32 rounded-full overflow-hidden border-4 border-[#2F5D50]/20 shadow-inner">
+				<div class="w-32 h-32 rounded-full overflow-hidden border-4 border-[#F5F2EA] shadow-lg rotate-3 group-hover:rotate-0 transition-transform duration-500">
 					{#if profile}
 						<img
 							src={profile.profilePictureUrl?.startsWith('http')
-                   ? profile.profilePictureUrl
-                   : `http://localhost:8080${profile.profilePictureUrl}`}
+                         ? profile.profilePictureUrl
+                         : `http://localhost:8080${profile.profilePictureUrl}`}
 							alt="Avatar"
 							class="w-full h-full object-cover"
 						/>
 					{:else}
-						<div class="w-full h-full bg-gray-200 animate-pulse"></div>
+						<div class="w-full h-full bg-[#8D7462]/10 animate-pulse"></div>
 					{/if}
 				</div>
 
+				<label class="absolute -bottom-2 -right-2 bg-[#2F5D50] text-white p-3 rounded-3xl shadow-xl cursor-pointer hover:scale-110 active:scale-90 transition-all border-4 border-white">
+					<CameraPhotoOutline class="w-5 h-5" />
+					<input type="file" accept="image/*" class="hidden" onchange={handleAvatarUpload} disabled={uploadLoading} />
+				</label>
+
 				{#if uploadLoading}
-					<div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
-						<div class="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+					<div class="absolute inset-0 bg-white/60 rounded-[32px] flex items-center justify-center backdrop-blur-[2px]">
+						<div class="w-8 h-8 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></div>
 					</div>
 				{/if}
 			</div>
 
-			<label class="cursor-pointer bg-[#2F5D50] text-white px-4 py-2 rounded-full font-bold hover:bg-[#23463c] transition-colors active:scale-95">
-				{uploadLoading ? 'Feltöltés...' : 'Új fotó választása'}
-				<input type="file" accept="image/*" class="hidden" onchange={handleAvatarUpload} disabled={uploadLoading} />
-			</label>
+			<p class="mt-6 text-[10px] font-black text-[#8D7462] uppercase tracking-[0.2em]">Profilkép módosítása</p>
 		</section>
 
-		<section class="space-y-4">
-			<label class="block text-sm font-bold text-gray-700 ml-2">Bemutatkozás</label>
-			<textarea
-				bind:value={description}
-				class="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-[#2F5D50] outline-none min-h-[100px] resize-none"
-				placeholder="Mesélj magadról..."
-			></textarea>
+		<section class="bg-white p-6 rounded-[40px] shadow-sm border border-[#2F5D50]/5 space-y-5">
+			<div>
+				<label class="block text-[11px] font-black text-[#8D7462] uppercase tracking-widest mb-3 ml-2">Bemutatkozás</label>
+				<textarea
+					bind:value={description}
+					rows="4"
+					class="w-full p-5 rounded-[24px] bg-[#F5F2EA]/50 border-2 border-transparent focus:border-[#2F5D50]/20 focus:bg-white outline-none transition-all resize-none text-[#2F5D50] font-medium"
+					placeholder="Írj magadról néhány szót..."
+				></textarea>
+			</div>
 
-			<button class="w-full bg-[#2F5D50] text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
-				Mentés
+			<button
+				class="w-full bg-[#2F5D50] text-[#F5F2EA] py-4 rounded-[20px] font-black uppercase tracking-widest shadow-lg shadow-[#2F5D50]/20 hover:bg-[#1e3d34] active:scale-[0.97] transition-all flex items-center justify-center gap-2"
+			>
+				Változtatások mentése
 			</button>
 		</section>
-
-		{#if message.text}
-			<div class="text-center p-3 rounded-lg font-medium {message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">
+	</div>
+	{#if message.text}
+		<div
+			transition:fly={{ y: 20, duration: 500 }}
+			class="fixed bottom-20 left-6 right-6 flex justify-center z-50"
+		>
+			<div class="px-6 py-3 rounded-2xl shadow-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3
+          {message.type === 'success' ? 'bg-[#2F5D50] text-white' : 'bg-[#8D7462] text-white'}">
+				{#if message.type === 'info'}
+					<div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+				{/if}
 				{message.text}
 			</div>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </main>
+
+<style>
+    :global(body) {
+        background-color: #F5F2EA;
+    }
+</style>

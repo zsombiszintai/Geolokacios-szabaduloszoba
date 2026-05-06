@@ -74,7 +74,7 @@
 				<div class="flex justify-between items-center bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
 					<div>
 						<h2 class="label-city mb-1">Nehézség</h2>
-						<p class="font-black text-red-700 uppercase tracking-tighter">{adventure.difficulty}</p>
+						<p class="font-black text-yellow-600 uppercase tracking-tighter">{adventure.difficulty}</p>
 					</div>
 					<div class="text-right">
 						<h2 class="label-city mb-1">Készítő</h2>

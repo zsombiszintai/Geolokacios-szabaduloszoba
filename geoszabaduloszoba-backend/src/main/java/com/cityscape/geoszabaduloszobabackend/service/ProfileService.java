@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureListDTO;
+import com.cityscape.geoszabaduloszobabackend.model.dto.ReviewDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.UserListDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.ReviewEntity;
@@ -46,6 +47,7 @@ public class ProfileService {
 
     public List<?> getListByType(String sub, String type) {
         return switch (type) {
+
             case "completed-adventure" -> completedRepository.findAllByUserKeycloakSub(sub).stream()
                     .map(entity -> mapToDTO(entity.getAdventure()))
                     .toList();
@@ -53,20 +55,24 @@ public class ProfileService {
             case "abandoned-adventure" -> abandonedRepository.findAllByUserKeycloakSub(sub).stream()
                     .map(entity -> mapToDTO(entity.getAdventure()))
                     .toList();
+
             case "created" -> adventureRepository.findAllByCreatorKeycloakSub(sub).stream()
                     .map(this::mapToDTO)
                     .toList();
+
             case "rated" -> reviewRepository.findAllByUserKeycloakSubAndRatingIsNotNull(sub).stream()
-                    .map(review -> mapToDTO(review.getAdventure()))
-                    .toList();
-            case "reviewed" -> reviewRepository.findAllByUserKeycloakSub(sub).stream()
-                    .map(this::mapReviewToDTO).toList();
-            case "followers" -> followRepository.findAllByFollowerKeycloakSub(sub).stream()
-                    .map(follow -> mapUserToDTO(follow.getFollowed()))
+                    .map(this::mapToRatedDTO)
                     .toList();
 
-            case "following" -> followRepository.findAllByFollowedKeycloakSub(sub).stream()
+            case "reviewed" -> reviewRepository.findAllByUserKeycloakSub(sub).stream()
+                    .map(this::mapReviewToDTO).toList();
+
+            case "followers" -> followRepository.findAllByFollowedKeycloakSub(sub).stream()
                     .map(follow -> mapUserToDTO(follow.getFollower()))
+                    .toList();
+
+            case "following" -> followRepository.findAllByFollowerKeycloakSub(sub).stream()
+                    .map(follow -> mapUserToDTO(follow.getFollowed()))
                     .toList();
             default -> Collections.emptyList();
         };
@@ -81,6 +87,17 @@ public class ProfileService {
                 adventure.getTitle(),
                 adventure.getDescription(),
                 adventure.getDifficulty()
+        );
+    }
+
+    private ReviewDTO mapToRatedDTO(ReviewEntity review) {
+        return new ReviewDTO(
+                review.getId(),
+                review.getAdventure().getId(),
+                review.getAdventure().getTitle(),
+                review.getRating(),
+                review.getReviewText(),
+                review.getReviewedAt()
         );
     }
 

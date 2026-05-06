@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/auth.svelte';
 	import { goto } from '$app/navigation';
+	import { TrashBinOutline, PenOutline } from 'flowbite-svelte-icons';
 
 	interface Adventure {
 		id: number;
@@ -101,7 +102,7 @@
 
 	<div class="flex bg-white/50 rounded-2xl p-1 mb-8 shadow-inner border border-[#2F5D50]/10">
 		<button
-			class="flex-1 py-3 rounded-xl font-bold transition-all {activeTab === 'adventures' ? 'bg-[#2F5D50] text-white shadow-md' : 'text-[#2F5D50]'}"
+			class="flex-1 py-3 rounded-xl font-bold transition-all {activeTab === 'adventures' ? 'bg-city-brown text-white shadow-md' : 'text-city-brown'}"
 			onclick={() => activeTab = 'adventures'}>
 			Kalandjaim
 		</button>
@@ -159,14 +160,14 @@
 					<p class="text-center py-10 italic opacity-50">Nincs talált kaland.</p>
 				{:else}
 					{#each filteredAdventures as adventure}
-						<article class="bg-white p-4 rounded-2xl shadow-sm border border-[#2F5D50]/5 grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] items-center">
-							<span class="font-bold truncate text-[#2F5D50]">{adventure.title}</span>
+						<article class="bg-city-brown/90 p-4 rounded-2xl shadow-sm border border-[#2F5D50]/5 grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] items-center">
+							<span class="font-bold truncate text-city-cream">{adventure.title}</span>
 							<div class="flex justify-center">
 								<div class="w-3 h-3 rounded-full {statusColors[adventure.status] || 'bg-gray-400'}" title={adventure.status}></div>
 							</div>
-							<span class="text-[10px] text-center text-gray-500">{new Date(adventure.createdAt).toLocaleDateString('hu-HU')}</span>
-							<button class="flex justify-end text-gray-400 hover:text-[#2F5D50]"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
-							<button onclick={() => confirmDelete(adventure.id, 'adventure')} class="flex justify-end text-red-400 hover:text-red-600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+							<span class="text-[10px] text-center text-city-cream">{new Date(adventure.createdAt).toLocaleDateString('hu-HU')}</span>
+							<button class="flex justify-end text-city-cream hover:text-[#2F5D50]"><PenOutline class=" w-6 h-6"/></button>
+							<button onclick={() => confirmDelete(adventure.id, 'adventure')} class="flex justify-end text-red-400 hover:text-red-600"><TrashBinOutline class=" w-6 h-6 "/></button>
 						</article>
 					{/each}
 				{/if}
@@ -195,22 +196,31 @@
 					<p class="text-center py-10 italic opacity-50">Nincs létrehozott listád.</p>
 				{:else}
 					{#each filteredLists as list}
-						<article class="bg-white p-5 rounded-2xl shadow-sm border border-[#2F5D50]/10 flex justify-between items-start">
-							<div class="flex-1">
-								<h3 class="font-bold text-[#2F5D50] text-lg">{list.title}</h3>
-								<p class="text-xs text-gray-500 mb-3 line-clamp-2">{list.description || 'Nincs leírás'}</p>
-								<div class="flex gap-2">
-                  <span class="text-[10px] font-bold bg-[#F5F2EA] text-[#8D7462] px-2 py-1 rounded-lg uppercase">
-                    {list.adventures?.length || 0} KALAND
-                  </span>
+						<article class="bg-city-green p-5 rounded-2xl shadow-sm border border-[#2F5D50]/10 flex items-center justify-between gap-4">
+							<div class="flex-1 min-w-0">
+								<h3 class="font-bold text-city-cream text-lg truncate">{list.title}</h3>
+								<div class="flex gap-1 mt-1">
+      <span class="text-[10px] font-bold bg-[#2F5D50]/80 text-city-cream px-1 py-1 rounded-lg uppercase">
+        {list.adventures?.length || 0} KALAND
+      </span>
 								</div>
 							</div>
-							<button
-								onclick={() => confirmDelete(list.id, 'list')}
-								class="text-red-400 p-2 hover:bg-red-50 rounded-full transition-colors"
-							>
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-							</button>
+							<div class="flex items-center gap-2 shrink-0">
+								<button
+									class="p-2 text-city-cream hover:bg-white/10 rounded-xl transition-all active:scale-90"
+									aria-label="Szerkesztés"
+								>
+									<PenOutline class="w-6 h-6"/>
+								</button>
+
+								<button
+									onclick={() => confirmDelete(list.id, 'list')}
+									class="p-2 text-red-400 hover:bg-red-50/10 rounded-xl transition-all active:scale-90"
+									aria-label="Törlés"
+								>
+									<TrashBinOutline class="w-6 h-6"/>
+								</button>
+							</div>
 						</article>
 					{/each}
 				{/if}

@@ -70,7 +70,7 @@
 				</div>
 			{:else}
 				{#each filteredAdventures as item}
-					<article class="bg-[#775D4D] p-6 rounded-xl border-2 border-[#F5F2EA] shadow-[8px_8px_0px_0px_rgba(47,93,80,0.1)] flex flex-col items-start transition-transform active:scale-[0.98]">
+					<article class="bg-city-brown/90 p-6 rounded-xl border-2 border-[#F5F2EA] shadow-[8px_8px_0px_0px_rgba(47,93,80,0.1)] flex flex-col items-start transition-transform active:scale-[0.98]">
 
         <span class="text-[10px] font-black bg-[#8D7462] text-[#F5F2EA] px-2 py-1 rounded mb-4 uppercase tracking-wider border border-[#F5F2EA]/20">
           Mentett állás
@@ -81,7 +81,7 @@
 						</h3>
 
 						<p class="text-sm text-[#F5F2EA] opacity-80 mb-6 font-medium text-left">
-							{item.lastStationId}. állomásnál tartasz
+							{item.lastStationSeq}. állomásnál tartasz
 						</p>
 
 						<button

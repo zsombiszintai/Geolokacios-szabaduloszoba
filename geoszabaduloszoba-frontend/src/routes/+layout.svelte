@@ -8,12 +8,20 @@
         StarOutline,
         PlayOutline,
         UserCircleOutline,
-        UserSettingsOutline
+        UserSettingsOutline,
+        ArrowRightToBracketOutline
     } from "flowbite-svelte-icons";
     import { page } from '$app/stores';
     import { onMount } from "svelte";
     import { goto } from '$app/navigation';
     import { auth } from "$lib/auth.svelte";
+
+
+    let { children } = $props();
+
+    const activePath = $derived($page.url.pathname);
+    const hideNavbarPaths = ['/login', '/register', '/'];
+    const showNavbar = $derived(!hideNavbarPaths.includes(activePath));
 
     onMount(async () => {
         await auth.init();
@@ -22,11 +30,10 @@
         }
     });
 
-    let { children } = $props();
-
-    const activePath = $derived($page.url.pathname);
-    const hideNavbarPaths = ['/login', '/register', '/'];
-    const showNavbar = $derived(!hideNavbarPaths.includes(activePath));
+    async function handleLogout() {
+        await auth.logout();
+        goto('/');
+    }
 </script>
 
 <svelte:head>
@@ -55,9 +62,15 @@
                 <UserSettingsOutline class="w-7 h-7 cursor-pointer" />
             </a>
             <h1 class="text-2xl font-bold tracking-[0.2em] font-josefin">CityScape</h1>
-            <span class="text-sm font-josefin opacity-80 truncate max-w-[7rem] text-right">
-                {auth.username ?? ''}
-            </span>
+            <div class="flex items-center gap-3">
+                 <button
+                   onclick={handleLogout}
+                   class="flex items-center justify-center hover:text-red-400 transition-colors"
+                   title="Kijelentkezés"
+                 >
+                     <ArrowRightToBracketOutline class="w-7 h-7" />
+                 </button>
+            </div>
         </header>
     {/if}
 

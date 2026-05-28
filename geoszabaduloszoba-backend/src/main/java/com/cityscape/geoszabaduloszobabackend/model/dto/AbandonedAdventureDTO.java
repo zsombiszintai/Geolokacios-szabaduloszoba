@@ -6,5 +6,6 @@ public record AbandonedAdventureDTO(
         Long lastStationId,
         Integer lastStationSeq,
         Integer elapsedSec,
-        Double distanceTravelled
+        Double distanceTravelled,
+        Integer points
 ) {}

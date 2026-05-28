@@ -28,5 +28,7 @@ public class CompletedAdventureEntity {
 
     private Integer durationSec;
 
+    private Integer points;
+
 }
 

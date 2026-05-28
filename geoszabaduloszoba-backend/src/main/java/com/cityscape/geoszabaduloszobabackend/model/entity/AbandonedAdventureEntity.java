@@ -28,6 +28,8 @@ public class AbandonedAdventureEntity {
     private Double distanceTravelled = 0.0;
     private Integer elapsedSec = 0;
 
+    private Integer points;
+
     private boolean isCompleted = false;
 }
 

@@ -52,7 +52,7 @@ public class ReviewService {
 
         @Override
         @Mapping(target = "adventureId", source = "adventure.id")
-        @Mapping(target = "adventureTitle", source = "adventure.title")
+        @Mapping(target = "title", source = "adventure.title")
         ReviewDTO mapDTO(ReviewEntity entity);
 
         @Mapping(target = "id", ignore = true)

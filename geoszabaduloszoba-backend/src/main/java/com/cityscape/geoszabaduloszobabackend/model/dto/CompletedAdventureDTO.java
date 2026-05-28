@@ -9,5 +9,6 @@ public record CompletedAdventureDTO(
         LocalDate completedAt,
         Double distanceTravelled,
         Integer durationSec,
-        Integer rating
+        Integer rating,
+        Integer points
 ) {}

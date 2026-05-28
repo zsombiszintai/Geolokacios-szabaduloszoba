@@ -4,6 +4,6 @@ public record StationDTO(
         Long id,
         Double latitude,
         Double longitude,
-        String riddleText,
+        StationContent content,
         Integer seqNumber
 ) {}

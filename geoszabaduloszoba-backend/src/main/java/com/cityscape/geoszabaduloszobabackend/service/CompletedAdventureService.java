@@ -55,6 +55,7 @@ public class CompletedAdventureService {
         @Mapping(target = "distanceTravelled", source = "completed.distanceTravelled")
         @Mapping(target = "durationSec", source = "completed.durationSec")
         @Mapping(target = "rating", source = "review.rating")
+        @Mapping(target = "points", source = "completed.points")
         CompletedAdventureDTO toCompletedDTO(CompletedAdventureEntity completed, ReviewEntity review);
     }
 }

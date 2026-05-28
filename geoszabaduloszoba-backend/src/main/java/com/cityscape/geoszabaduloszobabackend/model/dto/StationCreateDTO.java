@@ -6,5 +6,5 @@ import lombok.Data;
 public class StationCreateDTO {
     private Double latitude;
     private Double longitude;
-    private String riddleText;
+    private StationContent content;
 }

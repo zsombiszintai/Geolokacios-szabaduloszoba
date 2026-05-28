@@ -75,6 +75,7 @@ public class GameService {
                 @Mapping(target = "startedAt", expression = "java(LocalDateTime.now())"),
                 @Mapping(target = "distanceTravelled", constant = "0.0"),
                 @Mapping(target = "elapsedSec", constant = "0"),
+                @Mapping(target = "points", constant = "0"),
                 @Mapping(target = "completed", constant = "false")
         })
         AbandonedAdventureEntity buildAbandoned(UserEntity user, AdventureEntity adventure, Long firstStationId);
@@ -87,6 +88,7 @@ public class GameService {
                 @Mapping(target = "adventure", ignore = true),
                 @Mapping(target = "startedAt", ignore = true),
                 @Mapping(target = "distanceTravelled", source = "distanceInMeters"),
+                @Mapping(target = "points", source = "points"),
                 @Mapping(target = "completed", ignore = true)
         })
         void mergeUpdate(@MappingTarget AbandonedAdventureEntity target, ActiveGameDTO src);
@@ -94,6 +96,7 @@ public class GameService {
         @Mappings({
                 @Mapping(target = "id", ignore = true),
                 @Mapping(target = "durationSec", source = "elapsedSec"),
+                @Mapping(target = "points", source = "points"),
                 @Mapping(target = "completedAt", expression = "java(LocalDate.now())")
         })
         CompletedAdventureEntity toCompleted(AbandonedAdventureEntity abandoned);

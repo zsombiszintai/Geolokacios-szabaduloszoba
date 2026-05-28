@@ -11,7 +11,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -40,7 +42,8 @@ public class AdventureService{
                             entity.getLastStationId(),
                             seqNum,
                             entity.getElapsedSec(),
-                            entity.getDistanceTravelled()
+                            entity.getDistanceTravelled(),
+                            entity.getPoints()
                     );
                 })
                 .toList();
@@ -72,6 +75,8 @@ public class AdventureService{
                 .map(adv -> {
                     Optional<StationEntity> startStation = stationRepository.findByAdventureIdAndSeqNumber(adv.getId(), 1);
 
+                    if (startStation.isEmpty()) return null;
+
                     Double advLat = startStation.map(StationEntity::getLatitude).orElse(0.0);
                     Double advLon = startStation.map(StationEntity::getLongitude).orElse(0.0);
 
@@ -86,6 +91,7 @@ public class AdventureService{
 
                     );
                 })
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -98,13 +104,7 @@ public class AdventureService{
         List<StationEntity> stationEntities = stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id);
 
         List<StationDTO> stationDTOs = stationEntities.stream()
-                .map(s -> new StationDTO(
-                        s.getId(),
-                        s.getLatitude(),
-                        s.getLongitude(),
-                        s.getRiddleText(),
-                        s.getSeqNumber()
-                ))
+                .map(stationService::convertToDTO)
                 .toList();
 
         AdventureProfileDTO dto = new AdventureProfileDTO();
@@ -139,6 +139,33 @@ public class AdventureService{
 
         UserEntity user = userService.getOrCreateCurrentUser();
         adventure.setCreator(user);
+
+        double totalDistance = 0.0;
+        if (stations != null && stations.size() > 1) {
+
+            for (int i = 0; i < stations.size(); i++) {
+                stations.get(i).setSeqNumber(i + 1);
+            }
+
+            List<StationEntity> sortedStations = stations.stream()
+                    .sorted(Comparator.comparingInt(StationEntity::getSeqNumber))
+                    .toList();
+
+            for (int i = 0; i < sortedStations.size() - 1; i++) {
+                StationEntity current = sortedStations.get(i);
+                StationEntity next = sortedStations.get(i + 1);
+
+                if (current.getLatitude() != null && current.getLongitude() != null &&
+                        next.getLatitude() != null && next.getLongitude() != null) {
+
+                    totalDistance += calculateDistance(
+                            current.getLatitude(), current.getLongitude(),
+                            next.getLatitude(), next.getLongitude()
+                    );
+                }
+            }
+        }
+        adventure.setTotalDistance(totalDistance);
 
         AdventureEntity savedAdventure = adventureRepository.save(adventure);
         stationService.saveStations(stations, savedAdventure);

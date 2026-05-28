@@ -134,7 +134,7 @@
 		<div class="fixed bottom-0 left-0 right-0 p-16 bg-gradient-to-t from-[#F5F2EA] via-[#F5F2EA] to-transparent">
 			<button
 				class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black text-xl shadow-xl active:scale-[0.97] transition-all uppercase tracking-widest"
-				onclick={() => goto(`/game?id=${adventure.id}`)}
+				onclick={() => goto(`/game/navigation?id=${adventure.id}`)}
 			>
 				Kaland Indítása
 			</button>

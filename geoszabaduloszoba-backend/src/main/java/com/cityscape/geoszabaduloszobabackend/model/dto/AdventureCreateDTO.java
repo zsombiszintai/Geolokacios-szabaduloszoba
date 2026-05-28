@@ -7,6 +7,6 @@ import java.util.List;
 public class AdventureCreateDTO {
     private String title;
     private String description;
-    private Integer difficulty;
+    private String difficulty;
     private List<StationCreateDTO> stations;
 }

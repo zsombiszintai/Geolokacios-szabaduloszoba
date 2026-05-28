@@ -6,6 +6,5 @@ public record ActiveGameDTO(
         String title,
         Integer elapsedSec,
         Double distanceInMeters,
-        Double currentLat,
-        Double currentLon
+        Integer points
 ) {}

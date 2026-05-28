@@ -6,6 +6,9 @@ import lombok.*;
 @Entity
 @Table(name = "station")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class StationEntity {
 
     @Id
@@ -23,8 +26,13 @@ public class StationEntity {
 
     private Double longitude;
 
-    @Column(length = 100)
-    private String riddleText;
+    /**
+     * - riddle
+     * - explanation
+     * - hints
+     */
+    @Column(columnDefinition = "TEXT")
+    private String content;
 
     private boolean isLastStation;
 }

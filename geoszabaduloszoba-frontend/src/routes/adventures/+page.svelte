@@ -15,7 +15,7 @@
 		id: number;
 		title: string;
 		description: string;
-		adventures: any[];
+		adventureIds: number[];
 	}
 
 	let activeTab = $state<'adventures' | 'lists'>('adventures');
@@ -201,12 +201,13 @@
 								<h3 class="font-bold text-city-cream text-lg truncate">{list.title}</h3>
 								<div class="flex gap-1 mt-1">
       <span class="text-[10px] font-bold bg-[#2F5D50]/80 text-city-cream px-1 py-1 rounded-lg uppercase">
-        {list.adventures?.length || 0} KALAND
+        {list.adventureIds?.length || 0} KALAND
       </span>
 								</div>
 							</div>
 							<div class="flex items-center gap-2 shrink-0">
 								<button
+									onclick={() => goto(`/adventures/lists/edit/${list.id}`)}
 									class="p-2 text-city-cream hover:bg-white/10 rounded-xl transition-all active:scale-90"
 									aria-label="Szerkesztés"
 								>

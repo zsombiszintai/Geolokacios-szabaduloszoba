@@ -46,3 +46,5 @@ development/postgres_data_2
 **/*.tmp
 
 .mc/
+
+geoszabaduloszoba-backend/src/main/resources/application-local.yml

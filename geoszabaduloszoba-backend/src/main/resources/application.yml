@@ -2,10 +2,12 @@ spring:
   application:
     name: geoszabaduloszoba-backend
 
+  profiles:
+    active: local
+
   datasource:
     url: jdbc:postgresql://localhost:5432/cityscape_db
     username: postgres
-    password: geolokaciosadmin
 
   jpa:
     show-sql: true
@@ -25,9 +27,13 @@ spring:
         jwt:
           issuer-uri: http://localhost:8090/realms/cityscape-realm
 
+  ai:
+    google:
+      genai:
+        chat:
+          options:
+            model: gemini-1.5-flash
 
 minio:
   url: http://localhost:9000
-  accessKey: minioadmin
-  secretKey: minioadmin
   bucketName: cityscape-avatars

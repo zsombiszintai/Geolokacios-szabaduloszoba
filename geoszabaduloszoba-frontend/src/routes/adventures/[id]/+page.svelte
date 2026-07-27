@@ -4,12 +4,77 @@
 	import {
 		ChevronLeftOutline,
 		UserCircleSolid,
-		StarSolid
+		StarSolid,
+		DotsHorizontalOutline,
+		SearchOutline,
+		PlusOutline,
+		CheckOutline
 	} from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
 
 	let adventure = $state<any>(null);
+
+	let menuOpen = $state<boolean>(false);
+	let listSelectorOpen = $state<boolean>(false);
+	let myLists = $state<any[]>([]);
+	let searchQuery = $state<string>("");
+	let errorMessage = $state<string>("");
+
+	let filteredLists = $derived(
+		searchQuery.trim() === ""
+			? myLists
+			: myLists.filter(l => l.title?.toLowerCase().includes(searchQuery.toLowerCase()))
+	);
+
 	const userPos = { lat: 46.0754, lon: 18.2205 };
+
+
+	async function toggleAdventureInList(listId: number) {
+		const targetList = myLists.find(l => l.id === listId);
+		if (!targetList) return;
+
+		const isAlreadyInList = targetList.adventureIds?.includes(adventure.id);
+
+		if (isAlreadyInList) {
+			try {
+				const res = await fetch(`http://localhost:8080/lists/${listId}/adventures/${adventure.id}`, {
+					method: 'DELETE',
+					headers: { 'Authorization': `Bearer ${auth.token}` }
+				});
+
+				if (res.ok) {
+					targetList.adventureIds = targetList.adventureIds.filter((id: number) => id !== adventure.id);
+
+					errorMessage = "";
+				} else {
+					errorMessage = "Hiba történt az eltávolítás során.";
+				}
+			} catch (e) {
+				console.error(e);
+				errorMessage = "Hálózati hiba az eltávolításkor.";
+			}
+
+		} else {
+			try {
+				const res = await fetch(`http://localhost:8080/lists/${listId}/adventures/${adventure.id}`, {
+					method: 'POST',
+					headers: { 'Authorization': `Bearer ${auth.token}` }
+				});
+
+				if (res.ok) {
+					if (!targetList.adventureIds) targetList.adventureIds = [];
+					targetList.adventureIds.push(adventure.id);
+
+					errorMessage = "";
+				} else {
+					errorMessage = "Hiba történt a hozzáadás során.";
+				}
+			} catch (e) {
+				console.error(e);
+				errorMessage = "Hálózati hiba a mentéskor.";
+			}
+		}
+	}
 
 	async function fetchAdventureDetails() {
 		if (!auth.token) return;
@@ -25,11 +90,55 @@
 			if (res.ok) {
 				adventure = await res.json();
 			} else {
-				const errorText = await res.text();
-				console.log("Szerver hiba- ", "status:",  res.status, "message:" , errorText);
+				errorMessage = "Nem sikerült betölteni a kaland részleteit.";
 			}
-		} catch (e: any) {
-			console.log("Hálózati hiba", "message:", e.message);
+		} catch (e) {
+			console.error(e);
+			errorMessage = "Hálózati hiba a kaland részleteinek lekérésekor.";
+		}
+	}
+
+	function toggleMenu() {
+		menuOpen = !menuOpen;
+		if (!menuOpen) {
+			listSelectorOpen = false;
+			errorMessage = "";
+		}
+	}
+
+	function shareAdventure() {
+		if (navigator.share) {
+			navigator.share({
+				title: adventure?.title,
+				text: 'Nézd meg ezt a geolokációs szabadulószobát!',
+				url: window.location.href
+			}).catch(console.error);
+		} else {
+			errorMessage = "A megosztás funkció ezen a böngészőn nem támogatott.";
+		}
+		menuOpen = false;
+	}
+
+	async function openListSelector() {
+		errorMessage = "";
+		await fetchMyLists();
+		listSelectorOpen = true;
+	}
+
+	async function fetchMyLists() {
+		if (!auth.token) return;
+		try {
+			const res = await fetch('http://localhost:8080/lists', {
+				headers: { 'Authorization': `Bearer ${auth.token}` }
+			});
+			if (res.ok) {
+				myLists = await res.json();
+			} else {
+				errorMessage = "Nem sikerült betölteni a listáidat.";
+			}
+		} catch (e) {
+			console.error(e);
+			errorMessage = "Hálózati hiba a listák lekérésekor.";
 		}
 	}
 
@@ -50,6 +159,86 @@
 			<ChevronLeftOutline class="w-5 h-5 transition-transform group-hover:-translate-x-1" />
 			<span class="font-bold">Vissza</span>
 		</button>
+
+		<div class="absolute right-0">
+			<button
+				class="p-2 text-[#8D7462] hover:text-[#2F5D50] hover:bg-[#2F5D50]/5 rounded-xl transition-all"
+				aria-label="További opciók"
+				aria-expanded={menuOpen}
+				onclick={toggleMenu}
+			>
+				<DotsHorizontalOutline class="w-6 h-6" />
+			</button>
+
+			{#if menuOpen}
+				<div class="absolute right-0 top-11 flex items-start gap-2 z-50">
+
+					{#if listSelectorOpen}
+						<section class="bg-city-cream text-city-green rounded-2xl shadow-2xl p-3 w-64 border border-[#2F5D50]/10 flex flex-col max-h-80">
+
+							{#if errorMessage}
+								<div class="text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg mb-2 border border-red-200">
+									{errorMessage}
+								</div>
+							{/if}
+
+							<div class="relative mb-2">
+								<SearchOutline class="w-4 h-4 text-gray-400 absolute left-2.5 top-2.5" />
+								<input
+									type="text"
+									placeholder="Lista keresése..."
+									bind:value={searchQuery}
+									class="w-full bg-white text-sm text-city-green pl-9 pr-3 py-1.5 rounded-lg border-none focus:ring-1 focus:ring-emerald-500 placeholder-gray-500"
+								/>
+							</div>
+
+							<button class="flex items-center gap-2 w-full text-left px-2 py-2 text-xs font-bold text-city-green hover:bg-[#2F5D50]/5 rounded-lg transition-colors mb-1">
+								<PlusOutline class="w-4 h-4" />
+								<span>Új lista létrehozása</span>
+							</button>
+
+							<hr class="border-[#2F5D50]/10 my-1" />
+
+							<div class="overflow-y-auto flex-1 space-y-0.5 pr-1">
+								{#each filteredLists as list}
+									<button
+										class="w-full text-left px-2 py-2 text-sm font-semibold rounded-lg hover:bg-[#2F5D50]/5 transition-colors text-city-green flex justify-between items-center gap-2"
+										onclick={() => toggleAdventureInList(list.id)}
+									>
+										<span class="truncate flex-1">{list.title}</span>
+										{#if list.adventureIds?.includes(adventure.id)}
+											<CheckOutline class="w-4 h-4 text-emerald-600 shrink-0" />
+										{/if}
+									</button>
+								{:else}
+									<p class="text-xs text-gray-500 italic p-2 text-center">Nincs találat</p>
+								{/each}
+							</div>
+						</section>
+					{/if}
+
+					<nav class="bg-city-cream text-white rounded-2xl shadow-2xl py-2 w-52 border border-[#2F5D50]/10">
+						<button
+							class="w-full text-left px-4 py-2.5 text-sm font-bold text-city-green hover:bg-[#2F5D50]/5 transition-colors flex justify-between items-center"
+							onclick={openListSelector}
+						>
+							<ChevronLeftOutline class="w-4 h-4" />
+							<span>Mentés listára</span>
+						</button>
+						<button
+							class="w-full text-left px-4 py-2.5 text-sm font-bold text-city-green hover:bg-[#2F5D50]/5 transition-colors"
+							onclick={shareAdventure}
+						>
+							Kaland megosztása
+						</button>
+					</nav>
+				</div>
+			{/if}
+		</div>
+
+		{#if errorMessage && !listSelectorOpen}
+			<div class="alert-error-city mb-4">{errorMessage}</div>
+		{/if}
 
 		<div class="space-y-8">
 

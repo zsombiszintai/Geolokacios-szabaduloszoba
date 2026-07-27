@@ -26,20 +26,32 @@ public class ProfileService {
     private final ReviewRepository reviewRepository;
     private final FollowRepository followRepository;
     private final AvatarStorageService avatarStorageService;
+    private final UserService userService;
+    private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public UserAdventureStatistics getMyStats(String keycloakSub) {
-        UserAdventureStatistics stats = statsRepository.findByKeycloakSub(keycloakSub)
-                .orElseThrow(() -> new RuntimeException("User not found:" + keycloakSub));
+
+        UserEntity currentUser = userService.getOrCreateCurrentUser();
+
+        UserAdventureStatistics stats = statsRepository.findByKeycloakSub(currentUser.getKeycloakSub())
+                .orElseThrow(() -> new RuntimeException("User not found: " + currentUser.getKeycloakSub()));
 
         stats.setProfilePictureUrl(formatAvatarUrl(stats.getProfilePictureUrl()));
         return stats;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public UserAdventureStatistics getUserStats(String username) {
+
+        userService.getOrCreateCurrentUser();
+
         UserAdventureStatistics stats = statsRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found:" + username));
+                .orElseGet(() -> {
+                    UserEntity targetUser = userRepository.findByUsername(username)
+                            .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                    return createEmptyStats(targetUser);
+                });
 
         stats.setProfilePictureUrl(formatAvatarUrl(stats.getProfilePictureUrl()));
         return stats;
@@ -134,6 +146,16 @@ public class ProfileService {
             return urlOrKey;
         }
         return avatarStorageService.publicUrl(urlOrKey);
+    }
+
+    private UserAdventureStatistics createEmptyStats(UserEntity user) {
+        UserAdventureStatistics emptyStats = new UserAdventureStatistics();
+        emptyStats.setKeycloakSub(user.getKeycloakSub());
+        emptyStats.setUsername(user.getUsername());
+        emptyStats.setProfilePictureUrl(user.getProfilePictureUrl());
+        emptyStats.setProfileDescription(user.getProfileDescription());
+
+        return emptyStats;
     }
 
 }

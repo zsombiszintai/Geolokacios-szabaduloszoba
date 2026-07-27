@@ -4,6 +4,7 @@ import com.cityscape.geoszabaduloszobabackend.model.dto.AbandonedAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.service.AdventureService;
+import com.cityscape.geoszabaduloszobabackend.service.ListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

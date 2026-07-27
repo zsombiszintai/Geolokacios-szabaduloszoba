@@ -46,6 +46,16 @@ public class GameService {
         var completed = gameServiceMapper.toCompleted(abandoned);
         completedRepository.save(completed);
 
+        var user = abandoned.getUser();
+        if (user != null) {
+
+            int currentPoints = user.getPoints() != null ? user.getPoints() : 0;
+            int earnedPoints = abandoned.getPoints() != null ? abandoned.getPoints() : 0;
+
+            user.setPoints(currentPoints + earnedPoints);
+            userRepository.save(user);
+        }
+
         abandoned.setCompleted(true);
         abandonedRepository.save(abandoned);
     }

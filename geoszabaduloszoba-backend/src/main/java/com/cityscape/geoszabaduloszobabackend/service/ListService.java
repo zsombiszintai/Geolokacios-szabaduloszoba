@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
 
+import com.cityscape.geoszabaduloszobabackend.api.ListAPI;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.ListEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +38,72 @@ public class ListService {
         return listRepository.save(list);
     }
 
-    public List<ListEntity> getMyLists(String sub) {
-        return listRepository.findAllByCreatorKeycloakSub(sub);
+    @Transactional
+    public void addAdventureToList(Long listId, Long adventureId, String keycloakSub) {
+        ListEntity list = listRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("A lista nem található"));
+
+        if (!list.getCreator().getKeycloakSub().equals(keycloakSub)) {
+            throw new RuntimeException("Nincs jogosultságod módosítani ezt a listát");
+        }
+
+        AdventureEntity adventure = adventureRepository.findById(adventureId)
+                .orElseThrow(() -> new RuntimeException("A kaland nem található"));
+
+        if (!list.getAdventures().contains(adventure)) {
+            list.getAdventures().add(adventure);
+            listRepository.save(list);
+        }
+    }
+
+    @Transactional
+    public List<ListAPI.ListDTO> getMyLists(String sub) {
+        return listRepository.findAllByCreatorKeycloakSub(sub).stream()
+                .map(list -> new ListAPI.ListDTO(
+                        list.getId(),
+                        list.getTitle(),
+                        list.getDescription(),
+                        list.getAdventures().stream()
+                                .map(AdventureEntity::getId)
+                                .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void removeAdventureFromList(Long listId, Long adventureId, String keycloakSub) {
+        ListEntity list = listRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("A lista nem található"));
+
+        if (!list.getCreator().getKeycloakSub().equals(keycloakSub)) {
+            throw new RuntimeException("Nincs jogosultságod módosítani ezt a listát");
+        }
+
+        AdventureEntity adventure = adventureRepository.findById(adventureId)
+                .orElseThrow(() -> new RuntimeException("A kaland nem található"));
+
+        if (list.getAdventures().contains(adventure)) {
+            list.getAdventures().remove(adventure);
+            listRepository.save(list);
+        }
+    }
+
+    @Transactional
+    public ListAPI.ListDTO getListForEditing(Long listId, String keycloakSub) {
+        ListEntity list = listRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("A lista nem található"));
+
+        if (!list.getCreator().getKeycloakSub().equals(keycloakSub)) {
+            throw new RuntimeException("Nincs jogosultságod a lista szerkesztéséhez!");
+        }
+
+        return new ListAPI.ListDTO(
+                list.getId(),
+                list.getTitle(),
+                list.getDescription(),
+                list.getAdventures().stream()
+                        .map(AdventureEntity::getId)
+                        .collect(Collectors.toList())
+        );
     }
 }

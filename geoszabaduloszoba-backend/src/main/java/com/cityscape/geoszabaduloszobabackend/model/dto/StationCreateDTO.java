@@ -2,9 +2,10 @@ package com.cityscape.geoszabaduloszobabackend.model.dto;
 
 import lombok.Data;
 
-@Data
-public class StationCreateDTO {
-    private Double latitude;
-    private Double longitude;
-    private StationContent content;
-}
+public record StationCreateDTO(
+        Integer seqNumber,
+        StationContent content,
+        Double latitude,
+        Double longitude,
+        Boolean isLastStation
+) {}

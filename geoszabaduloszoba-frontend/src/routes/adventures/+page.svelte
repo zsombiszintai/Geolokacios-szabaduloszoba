@@ -94,7 +94,8 @@
 	const statusColors = {
 		'PUBLIC': 'bg-green-500',
 		'DRAFT': 'bg-gray-400',
-		'PENDING': 'bg-yellow-500'
+		'PENDING': 'bg-yellow-500',
+		'REJECTED': 'bg-red-500'
 	};
 </script>
 

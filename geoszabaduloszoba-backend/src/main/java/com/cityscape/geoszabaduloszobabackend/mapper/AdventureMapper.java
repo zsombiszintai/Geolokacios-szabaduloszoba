@@ -31,9 +31,15 @@ public abstract class AdventureMapper {
     public abstract List<StationEntity> toStationEntities(List<StationCreateDTO> dtos);
 
     @Named("contentToJson")
-    protected String contentToJson(StationContent content) {
+    protected String contentToJson(Object content) {
+        if (content == null) {
+            return null;
+        }
+        if (content instanceof String str) {
+            return str;
+        }
         try {
-            return content != null ? objectMapper.writeValueAsString(content) : null;
+            return objectMapper.writeValueAsString(content);
         } catch (JsonProcessingException e) {
             return null;
         }

@@ -18,4 +18,6 @@ public interface AdventureRepository extends JpaRepository<AdventureEntity, Long
     List<AdventureEntity> findAllByCreatorKeycloakSub(String sub);
 
     List<AdventureEntity> findByStatus(String status);
+
+    List<AdventureEntity> findTop3ByStatusOrderByIdAsc(String pending);
 }

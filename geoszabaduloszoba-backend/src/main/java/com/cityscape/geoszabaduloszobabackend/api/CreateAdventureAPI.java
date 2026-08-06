@@ -27,8 +27,14 @@ public class CreateAdventureAPI {
     public Long create(@RequestBody AdventureCreateDTO dto) {
 
         AdventureEntity adventure = adventureMapper.toEntity(dto);
-        List<StationEntity> stations = adventureMapper.toStationEntities(dto.getStations());
 
+        if (dto.getStatus() != null) {
+            adventure.setStatus(dto.getStatus());
+        } else {
+            adventure.setStatus("DRAFT");
+        }
+
+        List<StationEntity> stations = adventureMapper.toStationEntities(dto.getStations());
         return adventureService.createAdventureWithStations(adventure, stations).getId();
     }
 

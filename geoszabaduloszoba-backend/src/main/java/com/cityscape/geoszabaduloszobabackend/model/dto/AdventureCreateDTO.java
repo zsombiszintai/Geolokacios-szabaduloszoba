@@ -8,5 +8,6 @@ public class AdventureCreateDTO {
     private String title;
     private String description;
     private String difficulty;
+    private String status;
     private List<StationCreateDTO> stations;
 }

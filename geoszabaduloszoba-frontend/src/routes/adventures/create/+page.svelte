@@ -9,8 +9,10 @@
 	const difficultyLabels = ["Könnyű", "Közepes", "Nehéz"];
 
 	let showMapModal = $state(false);
+	let showLeaveModal = $state(false);
 	let activeStationIndex = $state<number | null>(null);
 	let errorMessage = $state("");
+	let skipLeaveCheck = $state(false);
 
 	let L: any;
 	let map: any;
@@ -29,6 +31,7 @@
 		content: StationContent;
 	}
 
+
 	let stations = $state<Station[]>([
 		{
 			id: crypto.randomUUID(),
@@ -37,6 +40,67 @@
 			content: { riddle: "", explanation: "", hints: ["", "", ""] }
 		}
 	]);
+
+	let hasContent = $derived(
+		title.trim() !== "" ||
+		description.trim() !== "" ||
+		stations.some(s =>
+			s.latitude !== 0 ||
+			s.content.riddle.trim() !== "" ||
+			s.content.explanation.trim() !== "" ||
+			s.content.hints.some(h => h.trim() !== "")
+		)
+	);
+
+	function handleExit() {
+		if (!hasContent) {
+			skipLeaveCheck = true;
+			goto('/adventures');
+		} else {
+			showLeaveModal = true;
+		}
+	}
+
+	async function saveDraft() {
+		if (!auth.token) return;
+
+		const difficultyEnum = ["EASY", "MEDIUM", "HARD"][difficulty];
+
+		const adventureData = {
+			title: title.trim() || "Cím nélküli piszkozat",
+			description,
+			difficulty: difficultyEnum,
+			status: "DRAFT",
+			stations: stations.map((s, index) => ({
+				latitude: s.latitude,
+				longitude: s.longitude,
+				seqNumber: index + 1,
+				content: s.content
+			}))
+		};
+
+		try {
+			const response = await fetch('http://localhost:8080/api/create-adventure', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${auth.token}`
+				},
+				body: JSON.stringify(adventureData)
+			});
+
+			if (response.ok) {
+				skipLeaveCheck = true;
+				showLeaveModal = false;
+				goto('/adventures');
+			} else {
+				alert("Nem sikerült elmenteni a piszkozatot.");
+			}
+		} catch (err) {
+			console.error(err);
+			alert("Hálózati hiba a piszkozat mentésekor.");
+		}
+	}
 
 	async function openMap(index: number) {
 		activeStationIndex = index;
@@ -135,6 +199,7 @@
 		const adventureData = {
 			title,
 			description,
+			status: "PENDING",
 			difficulty: difficultyEnum,
 			stations: stations.map((s, index) => ({
 				latitude: s.latitude,
@@ -170,12 +235,18 @@
 			errorMessage = "Hálózati hiba történt!";
 		}
 	}
+
+	function discardAndLeave() {
+		skipLeaveCheck = true;
+		showLeaveModal = false;
+		goto('/adventures');
+	}
 </script>
 
 <main class="min-h-screen bg-[#F5F2EA] px-6 pt-16 pb-32">
 	<nav class="fixed top-16 left-0 w-full z-[100] p-4">
 		<button
-			onclick={() => goto('/adventures')}
+			onclick={handleExit}
 			class="p-3 bg-white rounded-2xl shadow-sm text-[#8D7462] border-b-4 border-[#8D7462]/10 active:scale-95 transition-all"
 		>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -309,6 +380,38 @@
 			<div class="p-6 bg-white">
 				<button class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black uppercase tracking-widest" onclick={saveAndClose}>
 					Mentés
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showLeaveModal}
+	<div class="fixed inset-0 z-[3000] bg-black/60 backdrop-blur-md p-6 flex items-center justify-center">
+		<div class="bg-[#F5F2EA] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border-2 border-[#8D7462] flex flex-col gap-4 text-center">
+			<h3 class="text-xl font-black text-[#2F5D50] uppercase tracking-tight">Félkész kaland</h3>
+			<p class="text-xs font-bold text-[#8D7462]">Szeretnéd elmenteni a kalandot piszkozatként (Draft), mielőtt kilépsz?</p>
+
+			<div class="flex flex-col gap-2 mt-2">
+				<button
+					onclick={saveDraft}
+					class="w-full bg-[#2F5D50] text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md active:scale-95 transition-all"
+				>
+					Mentés piszkozatként
+				</button>
+
+				<button
+					onclick={discardAndLeave}
+					class="w-full bg-red-500/10 text-red-600 py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider hover:bg-red-500/20 active:scale-95 transition-all"
+				>
+					Kilépés mentés nélkül
+				</button>
+
+				<button
+					onclick={() => showLeaveModal = false}
+					class="w-full py-2.5 font-bold text-xs text-gray-500 hover:text-gray-700"
+				>
+					Mégse
 				</button>
 			</div>
 		</div>

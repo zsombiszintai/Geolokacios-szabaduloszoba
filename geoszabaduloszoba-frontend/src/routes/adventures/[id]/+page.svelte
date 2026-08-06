@@ -28,6 +28,23 @@
 
 	const userPos = { lat: 46.0754, lon: 18.2205 };
 
+	function getDifficultyColor(difficulty: string): string {
+		if (!difficulty) return 'bg-gray-400';
+
+		const normalized = difficulty.toUpperCase().trim();
+
+		if (normalized.includes('KÖNNYÜ') || normalized.includes('KÖNNYŰ') || normalized.includes('EASY')) {
+			return 'text-green-700';
+		}
+		if (normalized.includes('KÖZEPES') || normalized.includes('MEDIUM')) {
+			return 'text-yellow-700';
+		}
+		if (normalized.includes('NEHÉZ') || normalized.includes('HARD')) {
+			return 'text-red-700';
+		}
+
+		return 'text-gray-400';
+	}
 
 	async function toggleAdventureInList(listId: number) {
 		const targetList = myLists.find(l => l.id === listId);
@@ -263,12 +280,17 @@
 				<div class="flex justify-between items-center bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
 					<div>
 						<h2 class="label-city mb-1">Nehézség</h2>
-						<p class="font-black text-yellow-600 uppercase tracking-tighter">{adventure.difficulty}</p>
+						<p class="font-black {getDifficultyColor(adventure.difficulty)} uppercase tracking-tighter">{adventure.difficulty}</p>
 					</div>
 					<div class="text-right">
 						<h2 class="label-city mb-1">Készítő</h2>
 						<div class="flex items-center gap-2 justify-end">
-							<span class="font-bold text-[#8D7462]">{adventure.creatorName}</span>
+							<a
+								href="/profile/user/{adventure.creatorName}"
+								class="font-bold text-[#8D7462] hover:underline"
+							>
+								{adventure.creatorName}
+							</a>
 							<UserCircleSolid class="w-6 h-6 text-[#8D7462]/40" />
 						</div>
 					</div>

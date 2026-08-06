@@ -29,7 +29,7 @@ public class AdventureModerationScheduler {
 
     private static final double MAX_STATION_DISTANCE_KM = 5.0;
 
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelay = 50000)
     @Transactional
     public void processPendingAdventures() {
         List<AdventureEntity> pendingList = adventureRepository.findTop3ByStatusOrderByIdAsc("PENDING");

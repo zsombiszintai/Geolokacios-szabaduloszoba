@@ -142,7 +142,9 @@
 				{ label: 'Követés', key: 'following', count: stats.followingCount, color: 'bg-city-brown/90' }
 			] as item}
 				<a
-					href="/profile/list/{item.key}"
+					href={isOwnProfile
+    			 		? `/profile/list/${item.key}`
+     					: `/profile/list/${item.key}?username=${encodeURIComponent(stats.username)}`}
 					class="flex items-center justify-between p-5 rounded-2xl border border-[#2F5D50]/5 shadow-sm transition-all active:scale-[0.98] {item.color === 'bg-white' ? 'bg-white/80' : item.color + ' text-white'}"
 				>
 					<span class="font-bold uppercase tracking-wider text-sm {item.color === 'bg-white' ? 'text-[#2F5D50]' : 'text-[#F5F2EA]'}">{item.label}</span>

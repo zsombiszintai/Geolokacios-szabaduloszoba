@@ -25,6 +25,30 @@
       }
   }
 
+  function formatTime(totalSeconds: number | null | undefined): string {
+      if (!totalSeconds || totalSeconds === 0) return "0 s";
+
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      const parts: string[] = [];
+
+      if (hours > 0) {
+          parts.push(`${hours} h`);
+      }
+
+      if (minutes > 0 || hours > 0) {
+          parts.push(`${minutes} m`);
+      }
+
+      if (seconds > 0 || (hours === 0 && minutes === 0)) {
+          parts.push(`${seconds} s`);
+      }
+
+      return parts.join(' ');
+  }
+
   $effect(() => {
       if (browser && mapElement && !map) {
           import('leaflet').then((L) => {
@@ -108,7 +132,9 @@
                         <span class="font-black text-white text-lg leading-tight truncate block">{adventure.title}</span>
                     </div>
 
-                    <span class="text-center text-s font-bold text-[#F5F2EA]">{adventure.averageTime} p</span>
+                    <span class="text-center text-s font-bold text-[#F5F2EA]">
+                        {adventure.averageTime ? `${formatTime(adventure.averageTime)}` : '-'}
+                    </span>
 
                     <div class="text-right">
                         <span class="text-s font-black text-white px-2 py-1 rounded-lg shadow-inner">

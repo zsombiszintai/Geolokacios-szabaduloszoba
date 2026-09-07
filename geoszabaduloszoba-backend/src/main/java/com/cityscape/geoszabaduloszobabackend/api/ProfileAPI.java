@@ -28,7 +28,7 @@ public class ProfileAPI {
     }
 
     @GetMapping("/list/{type}")
-    public List<?> getList(@PathVariable String type, @AuthenticationPrincipal Jwt jwt) {
-        return profileService.getListByType(jwt.getSubject(), type);
+    public List<?> getList(@PathVariable String type, @RequestParam(required = false) String username, @AuthenticationPrincipal Jwt jwt) {
+        return profileService.getListByType(jwt.getSubject(), username, type);
     }
 }

@@ -48,4 +48,21 @@ public class CreateAdventureAPI {
     public void delete(@PathVariable Long id) {
         adventureService.deleteAdventure(id);
     }
+
+    @GetMapping("/{id}")
+    public AdventureCreateDTO getForEdit(@PathVariable Long id) {
+        return adventureService.getAdventureForEdit(id);
+    }
+
+    @PutMapping("/{id}")
+    public void update(@PathVariable Long id, @RequestBody AdventureCreateDTO dto) {
+        AdventureEntity updatedAdventure = adventureMapper.toEntity(dto);
+
+        if (dto.getStatus() != null) {
+            updatedAdventure.setStatus(dto.getStatus());
+        }
+
+        List<StationEntity> stations = adventureMapper.toStationEntities(dto.getStations());
+        adventureService.updateAdventureWithStations(id, updatedAdventure, stations);
+    }
 }

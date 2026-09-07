@@ -67,6 +67,12 @@ public class UserService {
         return user;
     }
 
+    public void updateDescription(String description) {
+        UserEntity user = getOrCreateCurrentUser();
+        user.setProfileDescription(description);
+        userRepository.save(user);
+    }
+
     public void updateAvatarKey(String keycloakSub, String objectKey) {
         UserEntity user = userRepository.findByKeycloakSub(keycloakSub)
                 .orElseThrow(() -> new RuntimeException("User not found with sub: " + keycloakSub));

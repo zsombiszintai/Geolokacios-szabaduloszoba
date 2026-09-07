@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/auth.svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { TrashBinOutline, PenOutline } from 'flowbite-svelte-icons';
 
 	interface Adventure {
@@ -23,6 +24,7 @@
 	let lists = $state<AdventureList[]>([]);
 	let searchTerm = $state("");
 	let loading = $state(true);
+	let errorMessage = $state("");
 
 	let showDeleteModal = $state(false);
 	let itemToDelete = $state<{id: number, type: 'adventure' | 'list'} | null>(null);
@@ -48,7 +50,14 @@
 		}
 	}
 
-	onMount(loadData);
+	onMount(() => {
+		const errorParam = page.url.searchParams.get('error');
+		if (errorParam === 'unauthorized') {
+			errorMessage = "Nincs jogosultságod a kaland szerkesztéséhez!";
+		}
+
+		loadData();
+	});
 
 	function confirmDelete(id: number, type: 'adventure' | 'list') {
 		itemToDelete = { id, type };
@@ -99,9 +108,16 @@
 	};
 </script>
 
-<main class="flex flex-col p-6 pt-24 pb-20 min-h-screen bg-[#F5F2EA]">
+<main class="flex flex-col p-6 pt-12 pb-6 min-h-screen bg-[#F5F2EA]">
 
-	<div class="flex bg-white/50 rounded-2xl p-1 mb-8 shadow-inner border border-[#2F5D50]/10">
+	{#if errorMessage}
+		<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-xl mb-6 font-bold text-xs flex justify-between items-center shadow-sm">
+			<span>{errorMessage}</span>
+			<button onclick={() => errorMessage = ""} class="text-red-700 hover:text-red-900 font-black ml-2 text-sm">✕</button>
+		</div>
+	{/if}
+
+	<div class="flex bg-white/50 rounded-2xl p-1 mb-4 shadow-inner border border-[#2F5D50]/10">
 		<button
 			class="flex-1 py-3 rounded-xl font-bold transition-all {activeTab === 'adventures' ? 'bg-city-brown text-white shadow-md' : 'text-city-brown'}"
 			onclick={() => activeTab = 'adventures'}>
@@ -167,7 +183,7 @@
 								<div class="w-3 h-3 rounded-full {statusColors[adventure.status] || 'bg-gray-400'}" title={adventure.status}></div>
 							</div>
 							<span class="text-[10px] text-center text-city-cream">{new Date(adventure.createdAt).toLocaleDateString('hu-HU')}</span>
-							<button class="flex justify-end text-city-cream hover:text-[#2F5D50]"><PenOutline class=" w-6 h-6"/></button>
+							<button onclick={() => goto(`/adventures/edit/${adventure.id}`)} class="flex justify-end text-city-cream hover:text-[#2F5D50]"><PenOutline class=" w-6 h-6"/></button>
 							<button onclick={() => confirmDelete(adventure.id, 'adventure')} class="flex justify-end text-red-400 hover:text-red-600"><TrashBinOutline class=" w-6 h-6 "/></button>
 						</article>
 					{/each}

@@ -6,10 +6,13 @@ import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Comparator;
 import java.util.List;
@@ -26,6 +29,7 @@ public class AdventureService{
     private final StationService stationService;
     private final AbandonedAdventureRepository abandonedRepository;
     private final ReviewRepository reviewRepository;
+    private final ObjectMapper objectMapper;
 
     public List<AbandonedAdventureDTO> getAllAbandonedByUser(String sub) {
 
@@ -182,6 +186,102 @@ public class AdventureService{
         stationRepository.deleteByAdventureId(id);
 
         adventureRepository.deleteById(id);
+    }
+
+    public AdventureCreateDTO getAdventureForEdit(Long id) {
+
+        UserEntity currentUser = userService.getOrCreateCurrentUser();
+
+        AdventureEntity adv = adventureRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Kaland nem található"));
+
+        if (!adv.getCreator().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nincs jogosultságod a kaland szerkesztéséhez!");
+        }
+
+        List<StationEntity> stations = stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id);
+
+        AdventureCreateDTO dto = new AdventureCreateDTO();
+        dto.setTitle(adv.getTitle());
+        dto.setDescription(adv.getDescription());
+        dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().name() : "EASY");
+        dto.setStatus(adv.getStatus());
+
+        int totalStations = stations.size();
+
+        List<StationCreateDTO> stationDTOs = stations.stream().map(s -> {
+            StationContent content = null;
+            if (s.getContent() != null && !s.getContent().isBlank()) {
+                try {
+                    content = objectMapper.readValue(s.getContent(), StationContent.class);
+                } catch (Exception e) {
+                    throw new RuntimeException("Hiba a StationContent JSON-nal");
+                }
+            }
+
+            boolean isLast = s.getSeqNumber() != null && s.getSeqNumber() == totalStations;
+
+            return new StationCreateDTO(
+                    s.getSeqNumber(),
+                    content,
+                    s.getLatitude(),
+                    s.getLongitude(),
+                    isLast
+            );
+        }).toList();
+
+        dto.setStations(stationDTOs);
+        return dto;
+    }
+
+    @Transactional
+    public AdventureEntity updateAdventureWithStations(Long id, AdventureEntity updatedAdventure, List<StationEntity> newStations) {
+
+        UserEntity currentUser = userService.getOrCreateCurrentUser();
+
+        AdventureEntity existing = adventureRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Kaland nem található id: " + id));
+
+        if (!existing.getCreator().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nincs jogosultságod a kaland módosításához!");
+        }
+
+        existing.setTitle(updatedAdventure.getTitle());
+        existing.setDescription(updatedAdventure.getDescription());
+        existing.setDifficulty(updatedAdventure.getDifficulty());
+        if (updatedAdventure.getStatus() != null) {
+            existing.setStatus(updatedAdventure.getStatus());
+        }
+
+        stationRepository.deleteByAdventureId(id);
+
+        double totalDistance = 0.0;
+        if (newStations != null && !newStations.isEmpty()) {
+            for (int i = 0; i < newStations.size(); i++) {
+                newStations.get(i).setSeqNumber(i + 1);
+                newStations.get(i).setAdventure(existing);
+            }
+
+            for (int i = 0; i < newStations.size() - 1; i++) {
+                StationEntity current = newStations.get(i);
+                StationEntity next = newStations.get(i + 1);
+                if (current.getLatitude() != null && current.getLongitude() != null &&
+                        next.getLatitude() != null && next.getLongitude() != null) {
+                    totalDistance += calculateDistance(
+                            current.getLatitude(), current.getLongitude(),
+                            next.getLatitude(), next.getLongitude()
+                    );
+                }
+            }
+        }
+        existing.setTotalDistance(totalDistance);
+
+        AdventureEntity savedAdventure = adventureRepository.save(existing);
+        if (newStations != null && !newStations.isEmpty()) {
+            stationService.saveStations(newStations, savedAdventure);
+        }
+
+        return savedAdventure;
     }
 
     /// SEGÉD METÓDUSOK

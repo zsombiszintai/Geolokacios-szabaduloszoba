@@ -4,6 +4,7 @@ import com.cityscape.geoszabaduloszobabackend.service.AvatarStorageService;
 import com.cityscape.geoszabaduloszobabackend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -40,5 +41,10 @@ public class SettingsAPI {
                 "objectKey", key,
                 "avatarUrl", storageService.publicUrl(key)
         );
+    }
+
+    @PostMapping("/description")
+    public void updateDescription(@RequestBody Map<String, String> body) {
+        userService.updateDescription(body.get("description"));
     }
 }

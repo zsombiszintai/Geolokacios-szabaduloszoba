@@ -9,12 +9,14 @@ import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.model.view.UserAdventureStatistics;
 import com.cityscape.geoszabaduloszobabackend.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProfileService {
@@ -57,33 +59,44 @@ public class ProfileService {
         return stats;
     }
 
-    public List<?> getListByType(String sub, String type) {
+    public List<?> getListByType(String currentSub, String username, String type) {
+
+        String targetSub = currentSub;
+
+        log.info("Username:" + username);
+
+        if (username != null && !username.isBlank()) {
+            UserEntity targetUser = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + username));
+            targetSub = targetUser.getKeycloakSub();
+        }
+
         return switch (type) {
 
-            case "completed-adventure" -> completedRepository.findAllByUserKeycloakSub(sub).stream()
+            case "completed-adventure" -> completedRepository.findAllByUserKeycloakSub(targetSub).stream()
                     .map(entity -> mapToDTO(entity.getAdventure()))
                     .toList();
 
-            case "abandoned-adventure" -> abandonedRepository.findAllByUserKeycloakSub(sub).stream()
+            case "abandoned-adventure" -> abandonedRepository.findAllByUserKeycloakSub(targetSub).stream()
                     .map(entity -> mapToDTO(entity.getAdventure()))
                     .toList();
 
-            case "created" -> adventureRepository.findAllByCreatorKeycloakSub(sub).stream()
+            case "created" -> adventureRepository.findAllByCreatorKeycloakSub(targetSub).stream()
                     .map(this::mapToDTO)
                     .toList();
 
-            case "rated" -> reviewRepository.findAllByUserKeycloakSubAndRatingIsNotNull(sub).stream()
+            case "rated" -> reviewRepository.findAllByUserKeycloakSubAndRatingIsNotNull(targetSub).stream()
                     .map(this::mapToRatedDTO)
                     .toList();
 
-            case "reviewed" -> reviewRepository.findAllByUserKeycloakSub(sub).stream()
+            case "reviewed" -> reviewRepository.findAllByUserKeycloakSub(targetSub).stream()
                     .map(this::mapReviewToDTO).toList();
 
-            case "followers" -> followRepository.findAllByFollowedKeycloakSub(sub).stream()
+            case "followers" -> followRepository.findAllByFollowedKeycloakSub(targetSub).stream()
                     .map(follow -> mapUserToDTO(follow.getFollower()))
                     .toList();
 
-            case "following" -> followRepository.findAllByFollowerKeycloakSub(sub).stream()
+            case "following" -> followRepository.findAllByFollowerKeycloakSub(targetSub).stream()
                     .map(follow -> mapUserToDTO(follow.getFollowed()))
                     .toList();
             default -> Collections.emptyList();

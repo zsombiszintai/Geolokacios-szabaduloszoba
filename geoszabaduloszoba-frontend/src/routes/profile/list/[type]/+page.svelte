@@ -23,8 +23,15 @@
 	async function fetchListData() {
 		if (!auth.token) return;
 		loading = true;
+
+		const usernameParam = page.url.searchParams.get('username');
+
+		const queryUrl = usernameParam
+			? `http://localhost:8080/profile/list/${type}?username=${encodeURIComponent(usernameParam)}`
+			: `http://localhost:8080/profile/list/${type}`;
+
 		try {
-			const res = await fetch(`http://localhost:8080/profile/list/${type}`, {
+			const res = await fetch(queryUrl, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 			if (res.ok) {

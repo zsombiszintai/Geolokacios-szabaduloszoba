@@ -24,6 +24,32 @@
 		}
 	}
 
+	async function handleSaveDescription() {
+		if (!auth.token) return;
+
+		try {
+			const res = await fetch('http://localhost:8080/settings/description', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${auth.token}`
+				},
+				body: JSON.stringify({ description })
+			});
+
+			if (res.ok) {
+				if (profile) profile.profileDescription = description;
+				message = { text: "Leírás sikeresen frissítve!", type: "success" };
+			} else {
+				message = { text: "Hiba történt a mentés során.", type: "error" };
+			}
+		} catch (err) {
+			message = { text: "Hálózati hiba történt.", type: "error" };
+		} finally {
+			setTimeout(() => message = { text: "", type: "" }, 3000);
+		}
+	}
+
 	async function handleAvatarUpload(event: Event) {
 		const input = event.target as HTMLInputElement;
 		if (!input.files || input.files.length === 0) return;
@@ -128,6 +154,7 @@
 
 			<button
 				class="w-full bg-[#2F5D50] text-[#F5F2EA] py-4 rounded-[20px] font-black uppercase tracking-widest shadow-lg shadow-[#2F5D50]/20 hover:bg-[#1e3d34] active:scale-[0.97] transition-all flex items-center justify-center gap-2"
+				onclick={handleSaveDescription}
 			>
 				Változtatások mentése
 			</button>
@@ -139,7 +166,7 @@
 			class="fixed bottom-20 left-6 right-6 flex justify-center z-50"
 		>
 			<div class="px-6 py-3 rounded-2xl shadow-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3
-          {message.type === 'success' ? 'bg-[#2F5D50] text-white' : 'bg-[#8D7462] text-white'}">
+          {message.type === 'success' ? 'bg-[#2F5D50]/90 text-white' : 'bg-[#8D7462] text-white'}">
 				{#if message.type === 'info'}
 					<div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
 				{/if}

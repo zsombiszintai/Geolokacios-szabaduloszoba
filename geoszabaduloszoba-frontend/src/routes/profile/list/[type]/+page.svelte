@@ -27,8 +27,8 @@
 		const usernameParam = page.url.searchParams.get('username');
 
 		const queryUrl = usernameParam
-			? `http://localhost:8080/profile/list/${type}?username=${encodeURIComponent(usernameParam)}`
-			: `http://localhost:8080/profile/list/${type}`;
+			? `/profile/list/${type}?username=${encodeURIComponent(usernameParam)}`
+			: `/profile/list/${type}`;
 
 		try {
 			const res = await fetch(queryUrl, {
@@ -87,7 +87,7 @@
 						>
 							<div class="w-14 h-14 bg-[#8D7462]/10 rounded-full flex items-center justify-center overflow-hidden border-2 border-[#F5F2EA]">
 								<img
-									src={item.profilePictureUrl || 'http://localhost:8080/images/default-avatar.png'}
+									src={item.profilePictureUrl || '/images/default-avatar.png'}
 									alt="avatar"
 									class="w-full h-full object-cover"
 								/>

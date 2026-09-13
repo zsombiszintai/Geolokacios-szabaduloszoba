@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   frontend-service:
     build:
@@ -9,17 +11,17 @@ services:
       - shared_network
 
   backend-service:
-      build:
-        context: ../geoszabaduloszoba-backend
-        dockerfile: Dockerfile
-      ports:
-        - "8080:8080"
-      depends_on:
-        - minio
-        - keycloak
-        - pg-db
-      networks:
-        - shared_network
+    build:
+      context: ../geoszabaduloszoba-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - minio
+      - keycloak
+      - pg-db
+    networks:
+      - shared_network
 
   ###   MINIO STORAGE   ####
   minio:
@@ -37,11 +39,11 @@ services:
     command: server /data --console-address ":9001"
     networks:
       - shared_network
-      
+
   ###   KEYCLOAK   ####
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
-    command: start-dev
+    command: start
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
@@ -50,8 +52,9 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME: ${KC_HOSTNAME}
       KC_HOSTNAME_STRICT: "false"
-      KEYCLOAK_ADMIN: ${ADMIN_USERNAME}
-      KEYCLOAK_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      KC_PROXY_HEADERS: xforwarded
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     restart: always
     ports:
       - "8090:8080"
@@ -64,7 +67,7 @@ services:
   keycloak-db:
     image: postgres:${POSTGRES_VERSION:-16-alpine}
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ./keycloak_postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: ${POSTGRES_USER}
@@ -76,9 +79,9 @@ services:
       - shared_network
 
 
- ###   POSTGRES   ####
+  ###   POSTGRES   ####
   pg-db:
-    image: postgres:${POSTGRES_VERSION}
+    image: postgres:${POSTGRES_VERSION:-16-alpine}
     volumes:
       - ./postgres_data_2:/var/lib/postgresql/data
     environment:
@@ -86,13 +89,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: geolokacios_jelszo
     restart: always
-    ports:
       - "5432:5432"
     networks:
       - shared_network
-      
-      
+
 networks:
   shared_network:
-  
-

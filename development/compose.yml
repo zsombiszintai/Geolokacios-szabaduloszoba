@@ -4,10 +4,10 @@ services:
     ports:
       - "3000:3000"
 
-    backend-service:
-      build: ../geoszabaduloszoba-backend
-      ports:
-        - "8080:8080"
+  backend-service:
+    build: ../geoszabaduloszoba-backend
+    ports:
+      - "8080:8080"
     
   ###   MINIO STORAGE   ####
   minio:

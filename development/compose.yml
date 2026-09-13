@@ -60,7 +60,7 @@ services:
     networks:
       - shared_network
 
-  ###   POSTGRES   ####
+  ###   KEYCLOAK_DB   ####
   keycloak-db:
     image: postgres:${POSTGRES_VERSION:-16-alpine}
     volumes:

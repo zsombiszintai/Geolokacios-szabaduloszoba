@@ -6,8 +6,11 @@ const keycloak = {
 			if (!realKeycloak) {
 				const KeycloakModule = await import('keycloak-js');
 				const Keycloak = KeycloakModule.default || KeycloakModule;
+
+				const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8090';
+
 				realKeycloak = new Keycloak({
-					url: 'http://localhost:8090',
+					url: keycloakUrl,
 					realm: 'cityscape-realm',
 					clientId: 'cityscape-frontend-client'
 				});

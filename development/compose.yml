@@ -37,16 +37,16 @@ services:
   ###   KEYCLOAK   ####
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
-    command: start
+    command: start-dev
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${POSTGRES_DB}
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_PROXY_HEADERS: xforwarded
-      KC_HOSTNAME: ${HOST}
-      KC_HOSTNAME_ADMIN_URL: https://zsomborszintai.com
       KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_URL: https://zsomborszintai.com
+      KC_HOSTNAME_ADMIN_URL: https://zsomborszintai.com
+      KC_HOSTNAME_STRICT: "false"
       KEYCLOAK_ADMIN: ${ADMIN_USERNAME}
       KEYCLOAK_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     restart: always

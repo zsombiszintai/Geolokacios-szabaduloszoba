@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class DashboardAPI {
 
     private final DashboardService dashboardService;

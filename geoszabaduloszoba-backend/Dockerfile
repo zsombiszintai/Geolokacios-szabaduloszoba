@@ -5,6 +5,7 @@ WORKDIR /app
 # Másoljuk a maven/gradle fájlokat a függőségek letöltéséhez
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
+RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline
 
 # Másoljuk a forráskódot és lefordítjuk

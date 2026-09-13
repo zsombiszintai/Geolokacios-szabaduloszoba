@@ -1,5 +1,5 @@
 import keycloak from '../config/keycloak.config';
-import { pushState, replaceState } from '$app/navigation';
+import { replaceState } from '$app/navigation';
 
 let authenticated = $state(false);
 let loading = $state(true);

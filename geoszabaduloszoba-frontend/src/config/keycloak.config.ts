@@ -7,12 +7,12 @@ const keycloak = {
 				const KeycloakModule = await import('keycloak-js');
 				const Keycloak = KeycloakModule.default || KeycloakModule;
 
-				const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8090';
+				const keycloakUrl = 'https://auth.zsomborszintai.com';
 
 				realKeycloak = new Keycloak({
 					url: keycloakUrl,
 					realm: 'cityscape-realm',
-					clientId: 'cityscape-frontend-client'
+					clientId: 'cityscape-frontend'
 				});
 			}
 			return await realKeycloak.init(options);

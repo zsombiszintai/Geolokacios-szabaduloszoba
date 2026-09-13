@@ -61,7 +61,7 @@ services:
   keycloak-db:
     image: postgres:${POSTGRES_VERSION:-16-alpine}
     volumes:
-      - ./postgres_data:/var/lib/postgresql/16/docker
+      - ./postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -77,7 +77,7 @@ services:
   pg-db:
     image: postgres:${POSTGRES_VERSION}
     volumes:
-      - ./postgres_data_2:/var/lib/postgresql/16/docker
+      - ./postgres_data_2:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: cityscape_db
       POSTGRES_USER: postgres

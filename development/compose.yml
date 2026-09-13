@@ -48,8 +48,7 @@ services:
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
       KC_HTTP_ENABLED: "true"
-      KC_HOSTNAME_URL: https://zsomborszintai.com
-      KC_HOSTNAME_ADMIN_URL: https://zsomborszintai.com
+      KC_HOSTNAME: ${KC_HOSTNAME}
       KC_HOSTNAME_STRICT: "false"
       KEYCLOAK_ADMIN: ${ADMIN_USERNAME}
       KEYCLOAK_ADMIN_PASSWORD: ${ADMIN_PASSWORD}

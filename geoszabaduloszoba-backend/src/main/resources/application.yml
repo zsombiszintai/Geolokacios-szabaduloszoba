@@ -30,8 +30,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://keycloak:8080/realms/cityscape-realm
-          jwk-set-uri: http://keycloak:8080/realms/cityscape-realm/protocol/openid-connect/certs
+          issuer-uri: https://auth.zsomborszintai.com/realms/cityscape-realm
+          jwk-set-uri: https://auth.zsomborszintai.com/realms/cityscape-realm/protocol/openid-connect/certs
 
   ai:
     openai:

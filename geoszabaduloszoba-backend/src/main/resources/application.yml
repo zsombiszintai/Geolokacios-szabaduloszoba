@@ -29,8 +29,10 @@ spring:
   security:
     oauth2:
       resourceserver:
+      jes:
         jwt:
           issuer-uri: http://keycloak:8080/realms/cityscape-realm
+          jwk-set-uri: http://keycloak:8080/realms/cityscape-realm/protocol/openid-connect/certs
 
   ai:
     openai:

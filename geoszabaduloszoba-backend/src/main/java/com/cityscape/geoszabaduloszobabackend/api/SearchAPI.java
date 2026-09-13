@@ -11,7 +11,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/search")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class SearchAPI {
 
     private final SearchService searchService;

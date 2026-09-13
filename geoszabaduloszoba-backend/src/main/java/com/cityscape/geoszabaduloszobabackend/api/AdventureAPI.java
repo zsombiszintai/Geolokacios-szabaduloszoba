@@ -18,7 +18,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/adventures")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class AdventureAPI {
 
     private final AdventureService adventureService;

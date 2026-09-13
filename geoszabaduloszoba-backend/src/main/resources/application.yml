@@ -10,9 +10,9 @@ spring:
       FAIL_ON_UNKNOWN_PROPERTIES: false
 
   datasource:
-    url: jdbc:postgresql://pg-db:5432/${POSTGRES_DB:cityscape_db}
-    username: ${POSTGRES_USER:postgres}
-    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://pg-db:5432/cityscape_db
+    username: postgres
+    password: geolokacios_jelszo
 
   jpa:
     show-sql: true

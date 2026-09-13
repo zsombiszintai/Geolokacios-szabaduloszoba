@@ -8,7 +8,10 @@ if (typeof window !== 'undefined') {
 		let urlString = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
 		if (urlString.includes('http://localhost:8080')) {
-			const baseUrl = PUBLIC_API_URL || 'http://localhost:8080';
+			const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+			const fallbackApi = isProduction ? 'https://zsomborszintai.com' : 'http://localhost:8080';
+
+			const baseUrl = PUBLIC_API_URL || fallbackApi;
 			urlString = urlString.replace('http://localhost:8080', baseUrl);
 		}
 

@@ -43,4 +43,6 @@ spring:
 
 minio:
   url: http://minio:9000
+  accessKey: ${MINIO_ACCESS_KEY:minioadmin}
+  secretKey: ${MINIO_SECRET_KEY:minioadmin}
   bucketName: cityscape-avatars

@@ -14,9 +14,9 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 
-# Átmásoljuk a package fájlokat és a production függőségeket
+# Átmásoljuk a package fájlokat és a production függőségeket (legacy-peer-deps-szel)
 COPY package*.json ./
-RUN npm ci --production
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Átmásoljuk a buildelt mappát (SvelteKit node adapter alapértelmezetten a 'build' mappába dolgozik)
 COPY --from=build /app/build ./build

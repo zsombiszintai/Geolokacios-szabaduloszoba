@@ -8,6 +8,11 @@ RUN npm install --legacy-peer-deps
 
 # Forráskód másolása és buildelés
 COPY . .
+
+# Itt kapja meg a Docker a SvelteKit számára élesítéshez szükséges változót
+ARG PUBLIC_API_URL
+ENV PUBLIC_API_URL=$PUBLIC_API_URL
+
 RUN npm run build
 
 # --- Futtatási fázis ---

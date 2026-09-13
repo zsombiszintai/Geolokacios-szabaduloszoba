@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Függőségek telepítése
 COPY package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Forráskód másolása és buildelés
 COPY . .

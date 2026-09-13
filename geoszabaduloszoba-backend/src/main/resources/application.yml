@@ -10,7 +10,7 @@ spring:
       FAIL_ON_UNKNOWN_PROPERTIES: false
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/cityscape_db
+    url: jdbc:postgresql://postgres:5432/cityscape_db
     username: postgres
 
   jpa:
@@ -29,7 +29,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8090/realms/cityscape-realm
+          issuer-uri: http://keycloak:8090/realms/cityscape-realm
 
   ai:
     openai:
@@ -40,5 +40,5 @@ spring:
           temperature: 0.2
 
 minio:
-  url: http://localhost:9000
+  url: http://minio:9000
   bucketName: cityscape-avatars

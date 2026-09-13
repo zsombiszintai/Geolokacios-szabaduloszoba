@@ -81,7 +81,7 @@ services:
     environment:
       POSTGRES_DB: cityscape_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: geolokacios_jelszo
     restart: always
     ports:
       - "5432:5432"

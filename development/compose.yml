@@ -89,6 +89,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: geolokacios_jelszo
     restart: always
+    ports:
       - "5432:5432"
     networks:
       - shared_network

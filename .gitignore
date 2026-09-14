@@ -36,7 +36,7 @@ development/postgres_data_2
 
 # MinIO
 
-**/minio_data/
+development/minio_data/
 
 .minio.sys/
 **/*.xl.meta

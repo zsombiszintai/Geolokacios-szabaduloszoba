@@ -16,6 +16,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY}
     depends_on:
       - minio
       - keycloak
@@ -43,7 +45,6 @@ services:
   ###   KEYCLOAK   ####
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
-    command: start-dev
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak

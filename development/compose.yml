@@ -18,10 +18,16 @@ services:
       - "8080:8080"
     environment:
       GROQ_API_KEY: ${GROQ_API_KEY}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pg-db:5432/cityscape_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${CITYSCAPE_DB_PASSWORD}
     depends_on:
-      - minio
-      - keycloak
-      - pg-db
+      minio:
+        condition: service_started
+      keycloak:
+        condition: service_started
+      pg-db:
+        condition: service_healthy
     networks:
       - shared_network
 
@@ -36,7 +42,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - ./minio_data:/data
+      - /srv/cityscape/minio_data:/data
     restart: always
     command: server /data --console-address ":9001"
     networks:
@@ -45,6 +51,7 @@ services:
   ###   KEYCLOAK   ####
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    command: start-dev
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
@@ -66,9 +73,9 @@ services:
 
   ###   KEYCLOAK_DB   ####
   keycloak-db:
-    image: postgres:${POSTGRES_VERSION:-16-alpine}
+    image: postgres:16-alpine
     volumes:
-      - ./keycloak_postgres_data:/var/lib/postgresql/data
+      - /srv/cityscape/keycloak_postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: ${POSTGRES_USER}
@@ -82,18 +89,25 @@ services:
 
   ###   POSTGRES   ####
   pg-db:
-    image: postgres:${POSTGRES_VERSION:-16-alpine}
+    image: postgres:18-alpine
     volumes:
-      - ./postgres_data_2:/var/lib/postgresql/data
+      - cityscape_pg18_data:/var/lib/postgresql
     environment:
       POSTGRES_DB: cityscape_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: geolokacios_jelszo
+      POSTGRES_PASSWORD: ${CITYSCAPE_DB_PASSWORD}
     restart: always
-    ports:
-      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d cityscape_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     networks:
       - shared_network
 
 networks:
   shared_network:
+
+volumes:
+  cityscape_pg18_data:
+    external: true

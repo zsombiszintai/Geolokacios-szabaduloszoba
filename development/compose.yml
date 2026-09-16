@@ -50,7 +50,11 @@ services:
 
   ###   KEYCLOAK   ####
   keycloak:
-    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    build:
+      context: ../cityscape-keycloak-theme
+      dockerfile: Dockerfile
+      args:
+        KEYCLOAK_VERSION: ${KEYCLOAK_VERSION:-26.5.3}
     command: start-dev
     environment:
       KC_DB: postgres

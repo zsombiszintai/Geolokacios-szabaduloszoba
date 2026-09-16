@@ -148,7 +148,7 @@
 	async function syncGameProgress() {
 		if (!sessionId || !lastStationId || !auth.token) return;
 		try {
-			await fetch('http://localhost:8080/api/game/update', {
+			await fetch('https://api.zsomborszintai.com/api/game/update', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.token}` },
 				body: JSON.stringify({
@@ -177,7 +177,7 @@
 			const startLat = userPos?.lat || 46.073504717136054;
 			const startLon = userPos?.lon || 18.22113854980469;
 
-			const res = await fetch(`http://localhost:8080/api/adventures/${adventureId}?lat=${startLat}&lon=${startLon}`, {
+			const res = await fetch(`https://api.zsomborszintai.com/api/adventures/${adventureId}?lat=${startLat}&lon=${startLon}`, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 			if (res.ok) {

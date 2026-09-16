@@ -19,7 +19,7 @@
 		isSearching = true;
 		try {
 			const res = await fetch(
-				`http://localhost:8080/search?q=${searchQuery}&type=adventure&lat=0&lon=0`,
+				`https://api.zsomborszintai.com/search?q=${searchQuery}&type=adventure&lat=0&lon=0`,
 				{ headers: { 'Authorization': `Bearer ${auth.token}` } }
 			);
 			if (res.ok) {
@@ -55,7 +55,7 @@
 		}
 
 		try {
-			const response = await fetch('http://localhost:8080/lists', {
+			const response = await fetch('https://api.zsomborszintai.com/lists', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

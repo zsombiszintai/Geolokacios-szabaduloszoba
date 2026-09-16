@@ -40,7 +40,7 @@
 		isSearching = true;
 		try {
 			const res = await fetch(
-				`http://localhost:8080/search?q=${searchQuery}&type=${searchType}&lat=${userPos.lat}&lon=${userPos.lon}`,
+				`https://api.zsomborszintai.com/search?q=${searchQuery}&type=${searchType}&lat=${userPos.lat}&lon=${userPos.lon}`,
 				{ headers: { 'Authorization': `Bearer ${auth.token}` } }
 			);
 			if (res.ok) {
@@ -112,7 +112,7 @@
 		}
 
 		try {
-			const res = await fetch(`http://localhost:8080/api/adventures/map?lat=${userPos.lat}&lon=${userPos.lon}`, {
+			const res = await fetch(`https://api.zsomborszintai.com/api/adventures/map?lat=${userPos.lat}&lon=${userPos.lon}`, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 			if (res.ok) {

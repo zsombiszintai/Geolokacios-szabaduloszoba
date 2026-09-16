@@ -12,7 +12,7 @@
 	async function fetchCurrentSettings() {
 		if (!auth.token) return;
 		try {
-			const res = await fetch('http://localhost:8080/profile/me', {
+			const res = await fetch('https://api.zsomborszintai.com/profile/me', {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 			if (res.ok) {
@@ -28,7 +28,7 @@
 		if (!auth.token) return;
 
 		try {
-			const res = await fetch('http://localhost:8080/settings/description', {
+			const res = await fetch('https://api.zsomborszintai.com/settings/description', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -62,7 +62,7 @@
 		message = { text: "Feltöltés...", type: "info" };
 
 		try {
-			const res = await fetch('http://localhost:8080/settings/avatar', {
+			const res = await fetch('https://api.zsomborszintai.com/settings/avatar', {
 				method: 'POST',
 				headers: { 'Authorization': `Bearer ${auth.token}` },
 				body: formData

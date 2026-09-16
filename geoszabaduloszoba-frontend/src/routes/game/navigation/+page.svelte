@@ -93,7 +93,7 @@
 
 	async function fetchAdventureDetails(lat: number, lon: number) {
 		try {
-			const res = await fetch(`http://localhost:8080/api/adventures/${adventureId}?lat=${lat}&lon=${lon}`, {
+			const res = await fetch(`https://api.zsomborszintai.com/api/adventures/${adventureId}?lat=${lat}&lon=${lon}`, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 
@@ -113,7 +113,7 @@
 
 	async function triggerGameStart() {
 		try {
-			const startRes = await fetch(`http://localhost:8080/api/game/start/${adventureId}`, {
+			const startRes = await fetch(`https://api.zsomborszintai.com/api/game/start/${adventureId}`, {
 				method: 'POST',
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});

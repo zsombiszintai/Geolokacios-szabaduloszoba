@@ -80,7 +80,7 @@
 		};
 
 		try {
-			const response = await fetch('http://localhost:8080/api/create-adventure', {
+			const response = await fetch('https://api.zsomborszintai.com/api/create-adventure', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -213,7 +213,7 @@
 			console.log("Küldés indítása...");
 			console.log("Token állapota:", auth.token ? "Van token" : "Nincs token");
 			console.log("Küldött adatok:", adventureData);
-			const response = await fetch('http://localhost:8080/api/create-adventure', {
+			const response = await fetch('https://api.zsomborszintai.com/api/create-adventure', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

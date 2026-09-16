@@ -33,10 +33,10 @@
 		loading = true;
 		try {
 			const [advRes, listRes] = await Promise.all([
-				fetch('http://localhost:8080/api/create-adventure/created-adventures', {
+				fetch('https://api.zsomborszintai.com/api/create-adventure/created-adventures', {
 					headers: { 'Authorization': `Bearer ${auth.token}` }
 				}),
-				fetch('http://localhost:8080/lists', {
+				fetch('https://api.zsomborszintai.com/lists', {
 					headers: { 'Authorization': `Bearer ${auth.token}` }
 				})
 			]);
@@ -68,8 +68,8 @@
 		if (!itemToDelete) return;
 
 		const url = itemToDelete.type === 'adventure'
-			? `http://localhost:8080/api/create-adventure/${itemToDelete.id}`
-			: `http://localhost:8080/lists/${itemToDelete.id}`;
+			? `https://api.zsomborszintai.com/api/create-adventure/${itemToDelete.id}`
+			: `https://api.zsomborszintai.com/lists/${itemToDelete.id}`;
 
 		try {
 			const response = await fetch(url, {

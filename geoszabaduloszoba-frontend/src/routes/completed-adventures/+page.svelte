@@ -30,7 +30,7 @@
 	);
 
 	onMount(async () => {
-		const res = await fetch('http://localhost:8080/api/completed-adventures', {
+		const res = await fetch('https://api.zsomborszintai.com/api/completed-adventures', {
 			headers: { Authorization: `Bearer ${auth.token}` }
 		});
 		if (res.ok) adventures = await res.json();
@@ -46,7 +46,7 @@
 		e.preventDefault();
 		if (!selectedAdv) return;
 
-		const res = await fetch('http://localhost:8080/api/reviews', {
+		const res = await fetch('https://api.zsomborszintai.com/api/reviews', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',

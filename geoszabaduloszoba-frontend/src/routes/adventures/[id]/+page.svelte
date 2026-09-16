@@ -54,7 +54,7 @@
 
 		if (isAlreadyInList) {
 			try {
-				const res = await fetch(`http://localhost:8080/lists/${listId}/adventures/${adventure.id}`, {
+				const res = await fetch(`https://api.zsomborszintai.com/lists/${listId}/adventures/${adventure.id}`, {
 					method: 'DELETE',
 					headers: { 'Authorization': `Bearer ${auth.token}` }
 				});
@@ -73,7 +73,7 @@
 
 		} else {
 			try {
-				const res = await fetch(`http://localhost:8080/lists/${listId}/adventures/${adventure.id}`, {
+				const res = await fetch(`https://api.zsomborszintai.com/lists/${listId}/adventures/${adventure.id}`, {
 					method: 'POST',
 					headers: { 'Authorization': `Bearer ${auth.token}` }
 				});
@@ -98,7 +98,7 @@
 
 		try {
 			const id = page.params.id;
-			const url = `http://localhost:8080/api/adventures/${id}?lat=${userPos.lat}&lon=${userPos.lon}`;
+			const url = `https://api.zsomborszintai.com/api/adventures/${id}?lat=${userPos.lat}&lon=${userPos.lon}`;
 
 			const res = await fetch(url, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
@@ -145,7 +145,7 @@
 	async function fetchMyLists() {
 		if (!auth.token) return;
 		try {
-			const res = await fetch('http://localhost:8080/lists', {
+			const res = await fetch('https://api.zsomborszintai.com/lists', {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 			if (res.ok) {

@@ -44,7 +44,7 @@
 		}
 
 		try {
-			const res = await fetch(`http://localhost:8080/api/create-adventure/${adventureId}`, {
+			const res = await fetch(`https://api.zsomborszintai.com/api/create-adventure/${adventureId}`, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 
@@ -106,7 +106,7 @@
 		};
 
 		try {
-			const response = await fetch(`http://localhost:8080/api/create-adventure/${adventureId}`, {
+			const response = await fetch(`https://api.zsomborszintai.com/api/create-adventure/${adventureId}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
@@ -235,7 +235,7 @@
 		};
 
 		try {
-			const response = await fetch(`http://localhost:8080/api/create-adventure/${adventureId}`, {
+			const response = await fetch(`https://api.zsomborszintai.com/api/create-adventure/${adventureId}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',

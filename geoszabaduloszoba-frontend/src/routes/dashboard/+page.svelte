@@ -14,7 +14,7 @@
 
   async function fetchNearbyAdventures() {
       try {
-          const res = await fetch(`http://localhost:8080/api/dashboard?lat=${userPos.lat}&lon=${userPos.lon}`, {
+          const res = await fetch(`https://api.zsomborszintai.com/api/dashboard?lat=${userPos.lat}&lon=${userPos.lon}`, {
               headers: { 'Authorization': `Bearer ${auth.token}` }
           });
           if (res.ok) {

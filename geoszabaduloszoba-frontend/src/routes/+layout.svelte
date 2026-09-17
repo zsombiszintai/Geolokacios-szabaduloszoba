@@ -15,7 +15,6 @@
     import { onMount } from "svelte";
     import { goto } from '$app/navigation';
     import { auth } from "$lib/auth.svelte";
-    import '$lib/fetchInterceptor';
 
 
     let { children } = $props();

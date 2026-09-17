@@ -19,7 +19,7 @@
 	async function checkFollowStatus() {
 		if (isOwnProfile || !stats?.id) return;
 		try {
-			const res = await fetch(`http://localhost:8080/follows/is-following/${stats.id}`, {
+			const res = await fetch(`https://api.zsomborszintai.com/follows/is-following/${stats.id}`, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 			if (res.ok) isFollowing = await res.json();
@@ -32,7 +32,7 @@
 		if (!auth.token) return;
 
 		loading = true;
-		const baseUrl = 'http://localhost:8080/profile';
+		const baseUrl = 'https://api.zsomborszintai.com/profile';
 		const url = usernameParam
 			? `${baseUrl}/user/${usernameParam}`
 			: `${baseUrl}/me`;
@@ -70,7 +70,7 @@
 
 		const method = isFollowing ? 'DELETE' : 'POST';
 		try {
-			const res = await fetch(`http://localhost:8080/follows/${stats.id}`, {
+			const res = await fetch(`https://api.zsomborszintai.com/follows/${stats.id}`, {
 				method,
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});

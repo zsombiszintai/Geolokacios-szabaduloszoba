@@ -9,6 +9,9 @@
 	let isFollowing = $state(false);
 	let followLoading = $state(false);
 
+	let profileError = $state('');
+	let profileRequestId = 0;
+
 	const usernameParam = $derived(page?.params?.username || null);
 	const isOwnProfile = $derived(
 		!usernameParam ||
@@ -29,33 +32,71 @@
 	}
 
 	async function fetchProfile() {
-		if (!auth.token) return;
+		const requestId = ++profileRequestId;
+		const token = auth.token;
+		const username = usernameParam;
+
+		stats = null;
+		profileError = '';
+		isFollowing = false;
+
+		if (!token) {
+			loading = false;
+			profileError = 'A profil megtekintéséhez jelentkezz be.';
+			return;
+		}
 
 		loading = true;
+
 		const baseUrl = 'https://api.zsomborszintai.com/profile';
-		const url = usernameParam
-			? `${baseUrl}/user/${usernameParam}`
-			: `${baseUrl}/me`;
+		const url = !username || username === 'me'
+			? `${baseUrl}/me`
+			: `${baseUrl}/user/${encodeURIComponent(username)}`;
 
 		try {
 			const res = await fetch(url, {
-				headers: { 'Authorization': `Bearer ${auth.token}` }
+				headers: { Authorization: `Bearer ${token}` }
 			});
-			if (res.ok) {
-				stats = await res.json();
+
+			if (!res.ok) {
+				throw new Error(
+					res.status === 404
+						? 'A felhasználó nem található.'
+						: `A profil betöltése sikertelen (HTTP ${res.status}).`
+				);
 			}
-		} catch (err) {
-			console.error("Hiba a profil betöltésekor:", err);
+
+			const data = await res.json();
+
+			if (requestId !== profileRequestId) return;
+
+			if (!data) {
+				throw new Error('A szerver nem adott vissza profiladatokat.');
+			}
+
+			stats = data;
+		} catch (error) {
+			if (requestId !== profileRequestId) return;
+
+			profileError = error instanceof Error
+				? error.message
+				: 'A profil betöltése sikertelen.';
+
+			console.error('Profilbetöltési hiba:', error);
 		} finally {
-			loading = false;
+			if (requestId === profileRequestId) {
+				loading = false;
+			}
 		}
 	}
 
 	$effect(() => {
-		if (auth.token) {
-			usernameParam;
-			fetchProfile();
-		}
+		auth.token;
+		usernameParam;
+
+		untrack(() => {
+			void fetchProfile();
+		});
 	});
 
 	$effect(() => {
@@ -85,7 +126,25 @@
 </script>
 
 <main class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-12">
-	{#if stats}
+	{#if loading}
+		<div class="flex flex-col justify-center items-center h-[60vh] gap-4">
+			<div class="w-12 h-12 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></div>
+			<p class="font-bold text-[#2F5D50]">Profil betöltése...</p>
+		</div>
+	{:else if profileError}
+		<div class="flex flex-col justify-center items-center h-[60vh] gap-4 text-center">
+			<p class="font-bold text-[#2F5D50]" role="alert">
+				{profileError}
+			</p>
+
+			<button
+				onclick={() => fetchProfile()}
+				class="bg-[#2F5D50] text-white px-6 py-3 rounded-xl font-bold"
+			>
+				Újrapróbálás
+			</button>
+		</div>
+	{:else if stats}
 		<section class="flex flex-col items-center text-center mb-8">
 			<div class="relative mb-4">
 				<div class="w-28 h-28 bg-white rounded-full border-4 border-[#2F5D50]/10 shadow-xl flex items-center justify-center overflow-hidden">
@@ -155,11 +214,6 @@
 				</a>
 			{/each}
 		</nav>
-	{:else}
-		<div class="flex flex-col justify-center items-center h-[60vh] gap-4">
-			<div class="w-12 h-12 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></div>
-			<p class="font-bold text-[#2F5D50] animate-pulse uppercase tracking-widest text-xs">Profil betöltése...</p>
-		</div>
 	{/if}
 </main>
 

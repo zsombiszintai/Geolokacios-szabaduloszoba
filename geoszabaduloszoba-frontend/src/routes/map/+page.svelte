@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
 	import { auth } from '$lib/auth.svelte';
 	import 'leaflet/dist/leaflet.css';
 	import { goto } from '$app/navigation';
-	import {MapPinSolid} from 'flowbite-svelte-icons';
+	import type { Map as LeafletMap } from 'leaflet';
+	import { onMount } from 'svelte';
 
 	let mapElement: HTMLElement | undefined = $state(undefined);
-	let map: L.Map | undefined = undefined;
-	let userPos = { lat: 46.0754, lon: 18.2205 };
+	let map: LeafletMap | undefined;
+	let userPos = $state<{ lat: number; lon: number } | null>(null);
+	let locationLoading = $state(true);
+	let locationError = $state('');
 
 	let searchQuery = $state("");
 	let searchType = $state("adventure");
@@ -33,18 +34,21 @@
 	}
 
 	async function performSearch() {
-		if (searchQuery.length < 2) {
+		if (!userPos || !auth.token || searchQuery.trim().length < 2) {
 			searchResults = [];
 			return;
 		}
 		isSearching = true;
 		try {
 			const res = await fetch(
-				`https://api.zsomborszintai.com/search?q=${searchQuery}&type=${searchType}&lat=${userPos.lat}&lon=${userPos.lon}`,
+				`https://api.zsomborszintai.com/search?q=${encodeURIComponent(searchQuery.trim())}&type=${searchType}&lat=${userPos.lat}&lon=${userPos.lon}`,
 				{ headers: { 'Authorization': `Bearer ${auth.token}` } }
 			);
 			if (res.ok) {
 				searchResults = await res.json();
+			}
+			if (!res.ok) {
+				throw new Error(`A kalandok betöltése sikertelen: HTTP ${res.status}`);
 			}
 		} catch (err) {
 			console.error("Keresési hiba:", err);
@@ -66,7 +70,7 @@
 		}
 	}
 
-	function createAdventureIcon() {
+	function createAdventureIcon(L: typeof import('leaflet')) {
 		return L.divIcon({
 			className: 'custom-div-icon',
 			html: `<div class="text-red-600 drop-shadow-lg scale-125">
@@ -79,7 +83,7 @@
 		});
 	}
 
-	function createUserIcon() {
+	function createUserIcon(L: typeof import('leaflet')) {
 		return L.divIcon({
 			className: 'custom-div-icon',
 			html: `<div class="relative flex items-center justify-center">
@@ -91,35 +95,41 @@
 		});
 	}
 
-	async function loadMapData(L: any) {
-		if (!mapElement) return;
-		map = L.map(mapElement, { zoomControl: false }).setView([userPos.lat, userPos.lon], 15);
+	async function loadMapData(L: typeof import('leaflet')) {
+		if (!mapElement || !userPos || map) return;
+
+		const position = userPos;
+
+		map = L.map(mapElement, { zoomControl: false })
+			.setView([position.lat, position.lon], 15);
 
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '&copy; OpenStreetMap'
+			attribution:
+				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 		}).addTo(map);
 
-		if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition((pos) => {
-				userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-				if (map) {
-					map.setView([userPos.lat, userPos.lon], 15);
-					L.marker([userPos.lat, userPos.lon], { icon: createUserIcon() }).addTo(map).bindPopup("Itt vagy");
-				}
-			}, () => {
-				L.marker([userPos.lat, userPos.lon], { icon: createUserIcon() }).addTo(map!);
-			});
-		}
+		L.marker([position.lat, position.lon], {
+			icon: createUserIcon(L)
+		}).addTo(map).bindPopup('Itt vagy');
+
+		const currentMap = map;
 
 		try {
 			const res = await fetch(`https://api.zsomborszintai.com/api/adventures/map?lat=${userPos.lat}&lon=${userPos.lon}`, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
+			if (map !== currentMap) return;
+
+			if (!res.ok) {
+				throw new Error(`A kalandok betöltése sikertelen: HTTP ${res.status}`);
+			}
 			if (res.ok) {
 				const adventures = await res.json();
+				if (map !== currentMap) return;
 				adventures.forEach((adv: any) => {
-					if (adv.advLat && adv.advLon) {
-						const marker = L.marker([adv.advLat, adv.advLon], { icon: createAdventureIcon() }).addTo(map!);
+					if (Number.isFinite(adv.advLat) && Number.isFinite(adv.advLon)) {
+						const marker = L.marker([adv.advLat, adv.advLon], { icon: createAdventureIcon(L) })
+							.addTo(currentMap);
 
 						marker.bindPopup(`
               <div class="city-popup font-josefin">
@@ -139,22 +149,97 @@
 					}
 				});
 			}
-		} catch (e) { console.error(e); }
+		} catch (error) {
+			if (map !== currentMap) return;
+
+			console.error('Kalandbetöltési hiba:', error);
+			locationError = 'A kalandok betöltése sikertelen. Próbáld újra.';
+		}
 	}
 
-	$effect(() => {
-		if (browser && mapElement && !map) {
-			import('leaflet').then((L) => loadMapData(L));
+	onMount(() => {
+		let disposed = false;
+
+		if (!navigator.geolocation) {
+			locationError = 'Ez a böngésző nem támogatja a helymeghatározást.';
+			locationLoading = false;
+			return;
 		}
+
+		navigator.geolocation.getCurrentPosition(
+			(position) => {
+				if (disposed) return;
+
+				userPos = {
+					lat: position.coords.latitude,
+					lon: position.coords.longitude
+				};
+
+				locationLoading = false;
+			},
+			(error) => {
+				if (disposed) return;
+
+				locationError =
+					error.code === 1
+						? 'A helyhozzáférés le van tiltva. Engedélyezd a böngésző webhelybeállításaiban, majd töltsd újra az oldalt.'
+						: error.code === 2
+							? 'A helyzeted nem állapítható meg. Ellenőrizd, hogy a telefon helymeghatározása be van-e kapcsolva.'
+							: 'A helymeghatározás túllépte az időkorlátot. Töltsd újra az oldalt, és próbáld meg ismét.';
+
+				locationLoading = false;
+			},
+			{
+				enableHighAccuracy: true,
+				timeout: 20000,
+				maximumAge: 0
+			}
+		);
+
+		return () => {
+			disposed = true;
+		};
 	});
 
 	$effect(() => {
-		if (searchQuery.length >= 2) {
-			const timer = setTimeout(performSearch, 300);
-			return () => clearTimeout(timer);
-		} else {
+		if (!mapElement || !userPos || !auth.token) return;
+
+		let cancelled = false;
+
+		void import('leaflet')
+			.then((L) => {
+				if (!cancelled) return loadMapData(L);
+			})
+			.catch((error) => {
+				if (!cancelled) {
+					console.error('Térkép inicializálási hiba:', error);
+					locationError = 'A térkép betöltése sikertelen.';
+				}
+			});
+
+		return () => {
+			cancelled = true;
+			map?.remove();
+			map = undefined;
+		};
+	});
+
+	$effect(() => {
+		const query = searchQuery;
+		const type = searchType;
+		const position = userPos;
+		const token = auth.token;
+
+		if (!position || !token || query.trim().length < 2) {
 			searchResults = [];
+			return;
 		}
+
+		const timer = setTimeout(() => {
+			void performSearch();
+		}, 300);
+
+		return () => clearTimeout(timer);
 	});
 </script>
 
@@ -194,7 +279,7 @@
 					{#each ['adventure', 'user', 'list'] as type}
 						<button
 							type="button"
-							onclick={() => { searchType = type; performSearch(); }}
+							onclick={() => { searchType = type; }}
 							class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all
                 {searchType === type ? 'bg-[#2F5D50] text-white' : 'bg-[#2F5D50]/10 text-[#2F5D50]'}"
 						>
@@ -235,6 +320,30 @@
 	</section>
 
 	<main bind:this={mapElement} class="flex-1 w-full z-0 saturate-[1.2] contrast-[1.05]"></main>
+
+	{#if locationLoading || locationError}
+		<div
+			class="absolute inset-0 z-[1200] flex items-center justify-center bg-[#F5F2EA]/95 px-6"
+			role="status"
+			aria-live="polite"
+		>
+			<div class="max-w-sm text-center text-[#2F5D50]">
+				<p class="font-bold">
+					{locationError || 'Helyzeted meghatározása…'}
+				</p>
+
+				{#if locationError}
+					<button
+						type="button"
+						onclick={() => window.location.reload()}
+						class="mt-5 rounded-xl bg-[#2F5D50] px-6 py-3 font-bold text-white"
+					>
+						Újrapróbálás
+					</button>
+				{/if}
+			</div>
+		</div>
+	{/if}
 </div>
 <style>
     :global(.cityscape-popup .leaflet-popup-content-wrapper) {

@@ -2,10 +2,9 @@
 	import { auth } from '$lib/auth.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
-	import L from 'leaflet';
+	import type { Map as LeafletMap, Marker } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
 	import { goto } from '$app/navigation';
-	import 'leaflet-routing-machine';
 	import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 
 	const adventureId = $derived(page.url.searchParams.get('id'));
@@ -14,11 +13,26 @@
 	let userPos = $state<{ lat: number; lon: number } | null>(null);
 	let firstStation = $state<any>(null);
 
-	let map: L.Map;
-	let playerMarker: L.Marker;
-	let targetMarker: L.Marker | null = $state(null);
+	let L: typeof import('leaflet');
+	let map: LeafletMap | undefined;
+	let playerMarker: Marker | undefined;
+	let targetMarker: Marker | null = null;
 	let routingControl: any = null;
-	let watchId: number;
+	let watchId: number | undefined;
+
+	let locationError = $state('');
+	let dataError = $state('');
+	let startError = $state('');
+	let isStarting = $state(false);
+
+	let accuracy = Infinity;
+	let lastFixAt = 0;
+	let disposed = false;
+	let detailsRequested = false;
+	let startRequested = false;
+	let lastRouteUpdate = 0;
+
+	const controller = new AbortController();
 
 	function calculateDistance(p1: {lat: number, lon: number}, p2: {lat: number, lon: number}) {
 		return L.latLng(p1.lat, p1.lon).distanceTo(L.latLng(p2.lat, p2.lon));
@@ -47,31 +61,53 @@
 		}).addTo(map);
 	}
 
-	async function updateLocation(newLat: number, newLon: number) {
-		const isFirstFix = userPos === null;
+	function updateLocation(newLat: number, newLon: number) {
+		if (disposed) return;
+
 		userPos = { lat: newLat, lon: newLon };
 
-		if (isFirstFix) {
+		if (!map) {
 			initMap(newLat, newLon);
-			await fetchAdventureDetails(newLat, newLon);
 		} else {
-			if (playerMarker) {
-				playerMarker.setLatLng([newLat, newLon]);
-				map.panTo([newLat, newLon]);
-			}
+			playerMarker?.setLatLng([newLat, newLon]);
+			map.panTo([newLat, newLon]);
+		}
 
-			if (firstStation) {
-				const distToTarget = calculateDistance(userPos, { lat: firstStation.latitude, lon: firstStation.longitude });
+		if (
+			firstStation &&
+			routingControl &&
+			Date.now() - lastRouteUpdate >= 10000
+		) {
+			lastRouteUpdate = Date.now();
 
-				if (routingControl) {
-					routingControl.setWaypoints([L.latLng(newLat, newLon), L.latLng(firstStation.latitude, firstStation.longitude)]);
-				}
+			routingControl.setWaypoints([
+				L.latLng(newLat, newLon),
+				L.latLng(firstStation.latitude, firstStation.longitude)
+			]);
+		}
 
-				if (distToTarget < 15) {
-					navigator.geolocation.clearWatch(watchId);
-					await triggerGameStart();
-				}
-			}
+		checkArrival();
+	}
+
+	function checkArrival() {
+		if (
+			!userPos ||
+			!firstStation ||
+			!auth.token ||
+			locationError ||
+			accuracy > 20 ||
+			Date.now() - lastFixAt > 15000 ||
+			startRequested ||
+			startError
+		) return;
+
+		const distance = calculateDistance(userPos, {
+			lat: firstStation.latitude,
+			lon: firstStation.longitude
+		});
+
+		if (distance < 15) {
+			void triggerGameStart();
 		}
 	}
 
@@ -93,60 +129,193 @@
 
 	async function fetchAdventureDetails(lat: number, lon: number) {
 		try {
-			const res = await fetch(`https://api.zsomborszintai.com/api/adventures/${adventureId}?lat=${lat}&lon=${lon}`, {
-				headers: { 'Authorization': `Bearer ${auth.token}` }
-			});
-
-			if (res.ok) {
-				const data = await res.json();
-				adventureTitle = data.title;
-				if (data.stations && data.stations.length > 0) {
-					firstStation = data.stations.sort((a: any, b: any) => a.seqNumber - b.seqNumber)[0];
-					setupPathfinder({ lat, lon }, { lat: firstStation.latitude, lon: firstStation.longitude });
+			const response = await fetch(
+				`https://api.zsomborszintai.com/api/adventures/${encodeURIComponent(adventureId!)}?lat=${lat}&lon=${lon}`,
+				{
+					headers: { Authorization: `Bearer ${auth.token}` },
+					signal: controller.signal
 				}
+			);
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
 			}
-		} catch (err) {
-			console.error("Adatbetöltési hiba:", err);
-			adventureTitle = "Hiba az adatok betöltésekor";
+
+			const data = await response.json();
+			if (disposed) return;
+
+			if (!Array.isArray(data.stations) || data.stations.length === 0) {
+				throw new Error('Nincs elérhető állomás.');
+			}
+
+			const station = [...data.stations].sort(
+				(a, b) => a.seqNumber - b.seqNumber
+			)[0];
+
+			if (
+				!Number.isFinite(station.latitude) ||
+				!Number.isFinite(station.longitude)
+			) {
+				throw new Error('Az első állomás koordinátái hibásak.');
+			}
+
+			adventureTitle = data.title;
+			firstStation = station;
+
+			await setupPathfinder(
+				userPos ?? { lat, lon },
+				{ lat: station.latitude, lon: station.longitude }
+			);
+
+			lastRouteUpdate = Date.now();
+
+			checkArrival();
+		} catch (error) {
+			if (disposed) return;
+
+			console.error('Adatbetöltési hiba:', error);
+			dataError = 'A kaland betöltése sikertelen. Töltsd újra az oldalt.';
 		}
 	}
 
-	async function triggerGameStart() {
-		try {
-			const startRes = await fetch(`https://api.zsomborszintai.com/api/game/start/${adventureId}`, {
-				method: 'POST',
-				headers: { 'Authorization': `Bearer ${auth.token}` }
-			});
+	$effect(() => {
+		const position = userPos;
+		const token = auth.token;
+		const id = adventureId;
 
-			if (startRes.ok) {
-				const sessionId = await startRes.json();
-				goto(`/game?sessionId=${sessionId}&adventureId=${adventureId}`);
+		if (!position || !token || detailsRequested) return;
+
+		if (!id) {
+			dataError = 'Hiányzik a kaland azonosítója.';
+			return;
+		}
+
+		detailsRequested = true;
+		void fetchAdventureDetails(position.lat, position.lon);
+	});
+
+	async function triggerGameStart() {
+		if (
+			disposed ||
+			startRequested ||
+			!auth.token ||
+			!adventureId ||
+			!userPos ||
+			!firstStation ||
+			locationError ||
+			accuracy > 20 ||
+			Date.now() - lastFixAt > 15000
+		) return;
+
+		const distance = calculateDistance(userPos, {
+			lat: firstStation.latitude,
+			lon: firstStation.longitude
+		});
+
+		if (distance >= 15) return;
+
+		startRequested = true;
+		isStarting = true;
+		startError = '';
+
+		try {
+			const response = await fetch(
+				`https://api.zsomborszintai.com/api/game/start/${encodeURIComponent(adventureId)}`,
+				{
+					method: 'POST',
+					headers: { Authorization: `Bearer ${auth.token}` },
+					signal: controller.signal
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
 			}
-		} catch (err) {
-			console.error("Hiba a játék indításakor:", err);
+
+			const sessionId = await response.json();
+			if (disposed) return;
+
+			await goto(
+				`/game?sessionId=${encodeURIComponent(String(sessionId))}&adventureId=${encodeURIComponent(adventureId)}`
+			);
+		} catch (error) {
+			if (disposed) return;
+
+			console.error('Játékindítási hiba:', error);
+			startRequested = false;
+			startError = 'A játék indítása sikertelen. Próbáld újra.';
+		} finally {
+			if (!disposed) isStarting = false;
 		}
 	}
 
 	onMount(() => {
-		if (navigator.geolocation) {
-			watchId = navigator.geolocation.watchPosition(
-				(p) => updateLocation(p.coords.latitude, p.coords.longitude),
-				(e) => {
-					console.error("GPS hiba, fallback a Sensors koordinátákra:", e);
-					if (userPos === null) {
-						updateLocation(46.073504717136054, 18.22113854980469);
+		async function initialize() {
+			if (!navigator.geolocation) {
+				locationError = 'A böngésző nem támogatja a helymeghatározást.';
+				return;
+			}
+
+			try {
+				const leaflet = await import('leaflet');
+				L = leaflet.default ?? leaflet;
+
+				await import('leaflet-routing-machine');
+				if (disposed) return;
+
+				watchId = navigator.geolocation.watchPosition(
+					(position) => {
+						if (disposed) return;
+
+						locationError = '';
+						accuracy = position.coords.accuracy;
+						lastFixAt = position.timestamp;
+
+						updateLocation(
+							position.coords.latitude,
+							position.coords.longitude
+						);
+					},
+					(error) => {
+						if (disposed) return;
+
+						locationError =
+							error.code === 1
+								? 'Engedélyezd a helyhozzáférést a webhelybeállításokban, majd töltsd újra az oldalt.'
+								: error.code === 2
+									? 'Nem sikerült meghatározni a helyzeted. Ellenőrizd a telefon helymeghatározását.'
+									: 'A helymeghatározás túl sokáig tartott. Új helyzetre várunk…';
+					},
+					{
+						enableHighAccuracy: true,
+						timeout: 20000,
+						maximumAge: 0
 					}
-				},
-				{ enableHighAccuracy: true }
-			);
-		} else {
-			adventureTitle = "A böngésző nem támogatja a GPS-t";
+				);
+			} catch (error) {
+				if (disposed) return;
+
+				console.error('Térképbetöltési hiba:', error);
+				dataError = 'A térkép betöltése sikertelen.';
+			}
 		}
+
+		void initialize();
 	});
 
 	onDestroy(() => {
-		if (map) map.remove();
-		if (navigator.geolocation) navigator.geolocation.clearWatch(watchId);
+		disposed = true;
+		controller.abort();
+
+		if (
+			typeof navigator !== 'undefined' &&
+			navigator.geolocation &&
+			watchId !== undefined
+		) {
+			navigator.geolocation.clearWatch(watchId);
+		}
+
+		map?.remove();
 	});
 </script>
 
@@ -164,17 +333,46 @@
 		<button onclick={() => goto('/dashboard')} class="absolute top-4 left-4 z-[400] bg-[#775D4D] p-2 px-4 rounded-xl text-white text-[10px] font-black uppercase shadow-lg">
 			Kilépés
 		</button>
-		<div class="absolute bottom-6 right-6 z-[400] flex flex-col items-end gap-1">
-     <span class="text-[9px] font-black text-[#2F5D50] bg-white/80 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-       PC Teszt Mód
-     </span>
-			<button
-				onclick={triggerGameStart}
-				class="bg-[#2F5D50] hover:bg-[#244a3f] text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl border border-white/20 active:scale-95 transition-all flex items-center gap-2"
+		{#if locationError || dataError || startError || !userPos || !firstStation || isStarting}
+			<div
+				class="absolute bottom-6 left-4 right-4 z-[450] rounded-2xl bg-[#F5F2EA]/95 p-4 text-center shadow-lg"
+				role="status"
+				aria-live="polite"
 			>
-				Játék kényszerített indítása
-			</button>
-		</div>
+				<p class="text-sm font-bold text-[#2F5D50]">
+					{locationError || dataError || startError || (
+						!userPos
+							? 'Helyzeted meghatározása…'
+							: !auth.token
+								? 'Bejelentkezésre várunk…'
+								: isStarting
+									? 'Játék indítása…'
+									: 'Első állomás betöltése…'
+					)}
+				</p>
+
+				{#if startError && !locationError && !dataError}
+					<button
+						onclick={() => {
+          startError = '';
+          checkArrival();
+        }}
+						class="mt-3 rounded-xl bg-[#2F5D50] px-5 py-2 font-bold text-white"
+					>
+						Indítás újrapróbálása
+					</button>
+				{/if}
+
+				{#if locationError || dataError}
+					<button
+						onclick={() => window.location.reload()}
+						class="mt-3 rounded-xl bg-[#2F5D50] px-5 py-2 font-bold text-white"
+					>
+						Oldal újratöltése
+					</button>
+				{/if}
+			</div>
+		{/if}
 	</section>
 </main>
 

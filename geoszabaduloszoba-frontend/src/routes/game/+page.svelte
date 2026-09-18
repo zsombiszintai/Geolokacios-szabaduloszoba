@@ -2,7 +2,7 @@
 	import { auth } from '$lib/auth.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
-	import L from 'leaflet';
+	import type { Map as LeafletMap, Marker } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
 	import { goto } from '$app/navigation';
 	import { QuestionCircleOutline, ArrowUpOutline, CheckCircleSolid, LightbulbOutline, ChevronLeftOutline, ChevronRightOutline} from 'flowbite-svelte-icons';
@@ -29,10 +29,21 @@
 	let compassUsedAtCurrentStation = $state(false);
 
 	let compassRotation = $state(34);
-	let map: L.Map;
-	let playerMarker: L.Marker;
-	let watchId: number;
-	let timerInterval: any;
+
+	let L: typeof import('leaflet');
+	let map: LeafletMap | undefined;
+	let playerMarker: Marker | undefined;
+	let watchId: number | undefined;
+	let timerInterval: ReturnType<typeof setInterval> | undefined;
+
+	let locationError = $state('');
+	let gameError = $state('');
+	let gameLoading = $state(true);
+	let locationAccuracy = $state<number | null>(null);
+
+	let disposed = false;
+	let gameLoadStarted = false;
+	const gameController = new AbortController();
 
 	function calculateDistance(p1: {lat: number, lon: number}, p2: {lat: number, lon: number}) {
 		return L.latLng(p1.lat, p1.lon).distanceTo(L.latLng(p2.lat, p2.lon));
@@ -111,7 +122,13 @@
 
 			distanceInMeters = calculateDistance(userPos, { lat: target.latitude, lon: target.longitude });
 
-			if (distanceInMeters < 15 && !isExplanationOpen) {
+			if (
+				distanceInMeters < 15 &&
+				locationAccuracy !== null &&
+				locationAccuracy <= 20 &&
+				!locationError &&
+				!isExplanationOpen
+			) {
 				isExplanationOpen = true;
 				isRiddleOpen = false;
 				isHintModalOpen = false;
@@ -159,52 +176,154 @@
 		} catch (e) { console.warn("Auto-sync hiba", e); }
 	}
 
-	onMount(async () => {
-		startTracking();
+	onMount(() => {
+		async function initializeLocation() {
+			if (!navigator.geolocation) {
+				locationError = 'Ez a böngésző nem támogatja a helymeghatározást.';
+				return;
+			}
 
-		if (navigator.geolocation) {
-			watchId = navigator.geolocation.watchPosition(
-				p => updateLocation(p.coords.latitude, p.coords.longitude),
-				e => {
-					console.error("GPS hiba a játék közben:", e);
-					if (userPos === null) updateLocation(46.073504717136054, 18.22113854980469);
-				},
-				{ enableHighAccuracy: true }
-			);
+			try {
+				L = await import('leaflet');
+				if (disposed) return;
+
+				watchId = navigator.geolocation.watchPosition(
+					(position) => {
+						if (disposed) return;
+
+						locationError = '';
+						locationAccuracy = position.coords.accuracy;
+
+						updateLocation(
+							position.coords.latitude,
+							position.coords.longitude
+						);
+					},
+					(error) => {
+						if (disposed) return;
+
+						locationError =
+							error.code === 1
+								? 'A játékhoz helyhozzáférés szükséges. Engedélyezd a webhelybeállításokban, majd próbáld újra.'
+								: error.code === 2
+									? 'A helyzeted jelenleg nem állapítható meg. Ellenőrizd a telefon helymeghatározását.'
+									: 'A helymeghatározás túllépte az időkorlátot. Új helyzetre várunk…';
+					},
+					{
+						enableHighAccuracy: true,
+						timeout: 20000,
+						maximumAge: 0
+					}
+				);
+			} catch (error) {
+				if (disposed) return;
+
+				console.error('Térkép inicializálási hiba:', error);
+				gameError = 'Nem sikerült betölteni a térképet.';
+			}
 		}
 
-		try {
-			const startLat = userPos?.lat || 46.073504717136054;
-			const startLon = userPos?.lon || 18.22113854980469;
+		void initializeLocation();
+	});
 
-			const res = await fetch(`https://api.zsomborszintai.com/api/adventures/${adventureId}?lat=${startLat}&lon=${startLon}`, {
-				headers: { 'Authorization': `Bearer ${auth.token}` }
-			});
-			if (res.ok) {
-				const data = await res.json();
-				adventureTitle = data.title;
-				allStations = data.stations || [];
-				lastStationId = allStations[0]?.id || null;
-				isRiddleOpen = true;
+	$effect(() => {
+		const position = userPos;
+		const token = auth.token;
+		const id = adventureId;
+		const activeSessionId = sessionId;
 
-				if (userPos) {
-					distanceInMeters = calculateDistance(userPos, { lat: allStations[0].latitude, lon: allStations[0].longitude });
+		if (!position || !token || gameLoadStarted) return;
+
+		if (
+			!id ||
+			!Number.isInteger(activeSessionId) ||
+			activeSessionId <= 0
+		) {
+			gameError = 'Hiányzó vagy hibás játékazonosító.';
+			gameLoading = false;
+			return;
+		}
+
+		gameLoadStarted = true;
+
+		async function loadAdventure() {
+			try {
+				const response = await fetch(
+					`https://api.zsomborszintai.com/api/adventures/${encodeURIComponent(id!)}?lat=${position!.lat}&lon=${position!.lon}`,
+					{
+						headers: { Authorization: `Bearer ${token}` },
+						signal: gameController.signal
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`);
 				}
+
+				const data = await response.json();
+				if (disposed) return;
+
+				if (!Array.isArray(data.stations) || data.stations.length === 0) {
+					throw new Error('A kalandnak nincs betölthető állomása.');
+				}
+
+				adventureTitle = data.title;
+				allStations = data.stations;
+				lastStationId = allStations[0].id;
+				isRiddleOpen = true;
+				gameLoading = false;
+
+				if (userPos && !locationError) {
+					updateLocation(userPos.lat, userPos.lon);
+				}
+
+				startTracking();
+			} catch (error) {
+				if (disposed) return;
+
+				console.error('Játékbetöltési hiba:', error);
+				gameError = 'A kaland betöltése sikertelen. Próbáld újra.';
+				gameLoading = false;
 			}
-		} catch (e) { console.error(e); }
+		}
+
+		void loadAdventure();
 	});
 
 	async function exitGame() {
-
 		await syncGameProgress();
-		goto(`/adventures/${adventureId}?lat=${userPos.lat}&lon=${userPos.lon}`);
+
+		if (!adventureId) {
+			await goto('/dashboard');
+			return;
+		}
+
+		const coordinates = userPos
+			? `?lat=${userPos.lat}&lon=${userPos.lon}`
+			: '';
+
+		await goto(
+			`/adventures/${encodeURIComponent(adventureId)}${coordinates}`
+		);
 	}
 
 	onDestroy(() => {
-		if (map) map.remove();
+		disposed = true;
+		gameController.abort();
+
 		clearInterval(timerInterval);
-		if (navigator.geolocation) navigator.geolocation.clearWatch(watchId);
-		syncGameProgress();
+
+		if (
+			typeof navigator !== 'undefined' &&
+			navigator.geolocation &&
+			watchId !== undefined
+		) {
+			navigator.geolocation.clearWatch(watchId);
+		}
+
+		map?.remove();
+		map = undefined;
+		playerMarker = undefined;
 	});
 </script>
 
@@ -228,14 +347,41 @@
 			Kilépés
 		</button>
 
-		<div id="map-container" class="w-full h-full z-0">
-			{#if userPos === null}
-				<div class="absolute inset-0 flex flex-col items-center justify-center bg-[#F5F2EA] z-[500] gap-3">
-					<div class="w-10 h-10 border-4 border-[#775D4D] border-t-transparent rounded-full animate-spin"></div>
-					<p class="text-sm font-bold text-[#775D4D]">GPS koordináták betöltése...</p>
-				</div>
-			{/if}
-		</div>
+		<div id="map-container" class="w-full h-full z-0"></div>
+
+		{#if !userPos || gameLoading || locationError || gameError}
+			<div
+				class="absolute inset-0 flex flex-col items-center justify-center bg-[#F5F2EA] z-[800] gap-4 p-6 text-center"
+				role="status"
+				aria-live="polite"
+			>
+				<p class="text-sm font-bold text-[#775D4D]">
+					{locationError || gameError || (
+						!userPos
+							? 'Helyzeted meghatározása…'
+							: !auth.token
+								? 'Bejelentkezésre várunk…'
+								: 'Kaland betöltése…'
+					)}
+				</p>
+
+				{#if locationError || gameError}
+					<button
+						onclick={() => window.location.reload()}
+						class="bg-[#775D4D] text-white px-6 py-3 rounded-xl font-bold"
+					>
+						Újrapróbálás
+					</button>
+				{/if}
+
+				<button
+					onclick={exitGame}
+					class="text-[#775D4D] underline font-bold"
+				>
+					Kilépés
+				</button>
+			</div>
+		{/if}
 
 		<div class="absolute bottom-6 left-0 right-0 px-6 flex justify-between items-center z-[450]">
 			<button onclick={() => isRiddleOpen = true} class="bg-city-brown w-14 h-14 rounded-full shadow-xl flex items-center justify-center border-2 border-city-cream">

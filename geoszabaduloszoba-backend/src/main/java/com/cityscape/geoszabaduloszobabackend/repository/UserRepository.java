@@ -12,10 +12,6 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     Optional<UserEntity> findByKeycloakSub(String keycloakSub);
 
-    Optional<UserEntity> findByEmail(String email);
-
-    List<UserEntity> findByUsernameContainingIgnoreCase(String username);
-
-    Optional<UserEntity> findByUsername(String username);
+    List<UserEntity> findByKeycloakSubIn(List<String> keycloakSubs);
 }
 

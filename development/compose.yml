@@ -21,6 +21,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://pg-db:5432/cityscape_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${CITYSCAPE_DB_PASSWORD}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
     depends_on:
       minio:
         condition: service_started
@@ -65,8 +68,6 @@ services:
       KC_HOSTNAME: ${KC_HOSTNAME}
       KC_HOSTNAME_STRICT: "false"
       KC_PROXY_HEADERS: xforwarded
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${ADMIN_USERNAME}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     restart: always
     ports:
       - "8090:8080"

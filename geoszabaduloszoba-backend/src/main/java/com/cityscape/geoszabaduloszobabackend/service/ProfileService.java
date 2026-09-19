@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.BeanUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,45 +33,62 @@ public class ProfileService {
     private final AvatarStorageService avatarStorageService;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final KeycloakAdminService keycloakAdminService;
 
     @Transactional
     public UserAdventureStatistics getMyStats(String keycloakSub) {
-
         UserEntity currentUser = userService.getOrCreateCurrentUser();
 
-        UserAdventureStatistics stats = statsRepository.findByKeycloakSub(currentUser.getKeycloakSub())
-                .orElseThrow(() -> new RuntimeException("User not found: " + currentUser.getKeycloakSub()));
-
-        stats.setProfilePictureUrl(formatAvatarUrl(stats.getProfilePictureUrl()));
-        return stats;
+        return buildProfile(
+                currentUser.getKeycloakSub(),
+                userService.getCurrentUsername()
+        );
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public UserAdventureStatistics getUserStats(String username) {
+        var keycloakUser = keycloakAdminService.getByUsername(username);
 
-        userService.getOrCreateCurrentUser();
-
-        UserAdventureStatistics stats = statsRepository.findByUsername(username)
-                .orElseGet(() -> {
-                    UserEntity targetUser = userRepository.findByUsername(username)
-                            .orElseThrow(() -> new RuntimeException("User not found: " + username));
-                    return createEmptyStats(targetUser);
-                });
-
-        stats.setProfilePictureUrl(formatAvatarUrl(stats.getProfilePictureUrl()));
-        return stats;
+        return buildProfile(
+                keycloakUser.getId(),
+                keycloakUser.getUsername()
+        );
     }
 
-    public List<?> getListByType(String currentSub, String username, String type) {
+    private UserAdventureStatistics buildProfile(
+            String keycloakSub,
+            String username
+    ) {
+        UserAdventureStatistics storedStats =
+                statsRepository.findByKeycloakSub(keycloakSub)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Ehhez a felhasználóhoz nincs helyi profilstatisztika."
+                        ));
 
+        UserAdventureStatistics response = new UserAdventureStatistics();
+        BeanUtils.copyProperties(storedStats, response);
+
+        response.setUsername(username);
+        response.setProfilePictureUrl(
+                formatAvatarUrl(storedStats.getProfilePictureUrl())
+        );
+
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<?> getListByType(
+            String currentSub,
+            String username,
+            String type
+    ) {
         String targetSub = currentSub;
 
-        log.info("Username:" + username);
-
         if (username != null && !username.isBlank()) {
-            UserEntity targetUser = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("User not found: " + username));
-            targetSub = targetUser.getKeycloakSub();
+            targetSub = keycloakAdminService
+                    .getByUsername(username)
+                    .getId();
         }
 
         return switch (type) {
@@ -137,17 +157,11 @@ public class ProfileService {
     }
 
     private UserListDTO mapUserToDTO(UserEntity user) {
-        String finalUrl = user.getProfilePictureUrl();
-
-        if (finalUrl != null && !finalUrl.startsWith("http")) {
-            finalUrl = avatarStorageService.publicUrl(finalUrl);
-        }
-
         return new UserListDTO(
                 user.getId(),
-                user.getUsername(),
+                keycloakAdminService.getUsername(user.getKeycloakSub()),
                 user.getProfileDescription(),
-                finalUrl
+                formatAvatarUrl(user.getProfilePictureUrl())
         );
     }
 
@@ -159,16 +173,6 @@ public class ProfileService {
             return urlOrKey;
         }
         return avatarStorageService.publicUrl(urlOrKey);
-    }
-
-    private UserAdventureStatistics createEmptyStats(UserEntity user) {
-        UserAdventureStatistics emptyStats = new UserAdventureStatistics();
-        emptyStats.setKeycloakSub(user.getKeycloakSub());
-        emptyStats.setUsername(user.getUsername());
-        emptyStats.setProfilePictureUrl(user.getProfilePictureUrl());
-        emptyStats.setProfileDescription(user.getProfileDescription());
-
-        return emptyStats;
     }
 
 }

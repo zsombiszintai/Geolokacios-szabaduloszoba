@@ -30,6 +30,7 @@ public class AdventureService{
     private final AbandonedAdventureRepository abandonedRepository;
     private final ReviewRepository reviewRepository;
     private final ObjectMapper objectMapper;
+    private final KeycloakAdminService keycloakAdminService;
 
     public List<AbandonedAdventureDTO> getAllAbandonedByUser(String sub) {
 
@@ -118,7 +119,7 @@ public class AdventureService{
         dto.setAverageTime(formatTime(adv.getAverageTimeInSeconds()));
         dto.setDistanceInMeters(adv.getTotalDistance());
         dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
-        dto.setCreatorName(adv.getCreator() != null ? adv.getCreator().getUsername() : "Ismeretlen");
+        dto.setCreatorName( adv.getCreator() != null? keycloakAdminService.getUsername(adv.getCreator().getKeycloakSub()): "Ismeretlen");
         dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);
 
         List<ReviewDTO> reviews = reviewRepository.findByAdventureId(id).stream()

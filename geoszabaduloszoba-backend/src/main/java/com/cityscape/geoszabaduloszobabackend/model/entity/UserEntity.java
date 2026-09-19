@@ -15,20 +15,10 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false, updatable = false)
     private String keycloakSub;
 
-    @Column(length = 20, unique = true, nullable = false)
-    private String username;
-
-    @Column(length = 50, unique = true, nullable = false)
-    private String email;
-
-    private String password;
-
     private LocalDate registrationDate = LocalDate.now();
-
-    private String userRole = "USER";
 
     @Column(length = 100)
     private String profileDescription;
@@ -36,7 +26,6 @@ public class UserEntity {
     @Column(length = 400)
     private String profilePictureUrl;
 
-    @Column
     private Integer points = 0;
 
     @Transient

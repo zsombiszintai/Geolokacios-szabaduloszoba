@@ -7,6 +7,7 @@
 
 	let items = $state<any[]>([]);
 	let loading = $state(true);
+	let listError = $state('');
 
 	const type = $derived(page.params.type);
 
@@ -21,24 +22,57 @@
 	};
 
 	async function fetchListData() {
-		if (!auth.token) return;
+		if (!auth.token) {
+			loading = false;
+			listError = 'A lista megtekintéséhez jelentkezz be.';
+			return;
+		}
+
 		loading = true;
+		listError = '';
+		items = [];
 
 		const usernameParam = page.url.searchParams.get('username');
+		const url = new URL(
+			`/profile/list/${encodeURIComponent(type)}`,
+			'https://api.zsomborszintai.com'
+		);
 
-		const queryUrl = usernameParam
-			? `/profile/list/${type}?username=${encodeURIComponent(usernameParam)}`
-			: `/profile/list/${type}`;
+		if (usernameParam) {
+			url.searchParams.set('username', usernameParam);
+		}
 
 		try {
-			const res = await fetch(queryUrl, {
-				headers: { 'Authorization': `Bearer ${auth.token}` }
+			const res = await fetch(url, {
+				headers: {
+					Authorization: `Bearer ${auth.token}`,
+					Accept: 'application/json'
+				}
 			});
-			if (res.ok) {
-				items = await res.json();
+
+			if (!res.ok) {
+				throw new Error(`A lista betöltése sikertelen (HTTP ${res.status}).`);
 			}
-		} catch (err) {
-			console.error("Hiba a lista betöltésekor:", err);
+
+			const contentType = res.headers.get('content-type') || '';
+
+			if (!contentType.includes('application/json')) {
+				throw new Error('A szerver JSON helyett más formátumú választ adott.');
+			}
+
+			const data = await res.json();
+
+			if (!Array.isArray(data)) {
+				throw new Error('A szerver nem listát adott vissza.');
+			}
+
+			items = data;
+		} catch (error) {
+			listError = error instanceof Error
+				? error.message
+				: 'A lista betöltése sikertelen.';
+
+			console.error('Hiba a lista betöltésekor:', error);
 		} finally {
 			loading = false;
 		}
@@ -72,6 +106,18 @@
 		{#if loading}
 			<div class="text-center py-20">
 				<p class="text-[#2F5D50] opacity-40 font-bold animate-pulse uppercase tracking-widest text-xs">Adatok gyűjtése...</p>
+			</div>
+		{:else if listError}
+			<div class="bg-white/60 rounded-3xl p-6 text-center">
+				<p class="font-bold text-[#2F5D50]" role="alert">
+					{listError}
+				</p>
+				<button
+					onclick={() => fetchListData()}
+					class="mt-4 bg-[#2F5D50] text-white px-5 py-3 rounded-xl"
+				>
+					Újrapróbálás
+				</button>
 			</div>
 		{:else if items.length === 0}
 			<div class="bg-white/40 border-2 border-dashed border-[#2F5D50]/10 rounded-3xl p-12 text-center">

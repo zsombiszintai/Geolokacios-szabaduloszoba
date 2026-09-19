@@ -18,7 +18,7 @@
 		if (!auth.token) return;
 
 		try {
-			const res = await fetch('http://localhost:8080/api/adventures/abandoned-all', {
+			const res = await fetch('https://api.zsomborszintai.com/api/adventures/abandoned-all', {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
 			});
 

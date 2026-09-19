@@ -43,7 +43,7 @@ spring:
           temperature: 0.2
 
 minio:
-  url: http://minio:9000
+  url: https://storage.zsomborszintai.com
   accessKey: ${MINIO_ACCESS_KEY:minioadmin}
   secretKey: ${MINIO_SECRET_KEY:minioadmin}
   bucketName: cityscape-avatars

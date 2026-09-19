@@ -18,6 +18,13 @@
 		usernameParam === 'me' ||
 		(stats && auth.username && stats.username === auth.username)
 	);
+	const defaultAvatar = '/images/default-avatar.png';
+	
+	function getAvatarSrc(value: unknown): string {
+		if (typeof value !== 'string') return defaultAvatar;
+
+		return value.startsWith('https://') ? value : defaultAvatar;
+	}
 
 	async function checkFollowStatus() {
 		if (isOwnProfile || !stats?.id) return;
@@ -149,21 +156,17 @@
 			<div class="relative mb-4">
 				<div class="w-28 h-28 bg-white rounded-full border-4 border-[#2F5D50]/10 shadow-xl flex items-center justify-center overflow-hidden">
 					<img
-						src={stats.profilePictureUrl ? (
-						stats.profilePictureUrl.startsWith('http')
-							? stats.profilePictureUrl
-							: `http://localhost:8080/images/${stats.profilePictureUrl}`
-							) : 'http://localhost:8080/images/default-avatar.png'}
-								alt="Avatar"
-								class="w-full h-full object-cover"
-								onerror={(e) => {
-									const target = e.currentTarget;
-									const defaultSrc = 'http://localhost:8080/images/default-avatar.png';
-									if (target.src !== defaultSrc) {
-											target.src = defaultSrc;
+						src={getAvatarSrc(stats.profilePictureUrl)}
+						alt="Profilkép"
+						class="w-full h-full object-cover"
+						onerror={(event) => {
+							const image = event.currentTarget;
+							const fallbackUrl = new URL(defaultAvatar, window.location.origin).href;
 
-									}
-     						}}
+							if (image.src !== fallbackUrl) {
+							image.src = fallbackUrl;
+							}
+						}}
 					/>
 				</div>
 			</div>

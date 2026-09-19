@@ -166,7 +166,10 @@ public class ProfileService {
     }
 
     private String formatAvatarUrl(String urlOrKey) {
-        if (urlOrKey == null || urlOrKey.isBlank()) {
+        if (urlOrKey == null
+                || urlOrKey.isBlank()
+                || "/images/default-avatar.png".equals(urlOrKey)
+                || "images/default-avatar.png".equals(urlOrKey)) {
             return null;
         }
         if (urlOrKey.startsWith("http")) {

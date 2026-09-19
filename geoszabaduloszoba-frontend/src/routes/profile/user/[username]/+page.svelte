@@ -19,7 +19,7 @@
 		(stats && auth.username && stats.username === auth.username)
 	);
 	const defaultAvatar = '/images/default-avatar.png';
-	
+
 	function getAvatarSrc(value: unknown): string {
 		if (typeof value !== 'string') return defaultAvatar;
 

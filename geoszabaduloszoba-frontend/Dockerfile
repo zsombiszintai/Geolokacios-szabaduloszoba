@@ -25,6 +25,7 @@ RUN npm install --omit=dev --legacy-peer-deps
 
 # Átmásoljuk a buildelt mappát (SvelteKit node adapter alapértelmezetten a 'build' mappába dolgozik)
 COPY --from=build /app/build ./build
+COPY --from=build /app/static ./static
 COPY --from=build /app/package.json ./package.json
 
 EXPOSE 3000

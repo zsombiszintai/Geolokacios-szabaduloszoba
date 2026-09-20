@@ -17,10 +17,10 @@ public class SearchAPI {
 
     @GetMapping
     public List<SearchDTO> search(
-            @RequestParam String q,
-            @RequestParam String type,
-            @RequestParam Double lat,
-            @RequestParam Double lon) {
+            @RequestParam("q") String q,
+            @RequestParam("type") String type,
+            @RequestParam(value = "lat", required = false) Double lat,
+            @RequestParam(value = "lon", required = false) Double lon) {
         return searchService.searchEverything(q, type, lat, lon);
     }
 }

@@ -450,7 +450,6 @@
 			onpointerup={endDrag}
 			onpointercancel={endDrag}
 			onlostpointercapture={endDrag}
-			onkeydown={moveWithKeyboard}
 		>
 			<canvas
 				bind:this={cropCanvas}

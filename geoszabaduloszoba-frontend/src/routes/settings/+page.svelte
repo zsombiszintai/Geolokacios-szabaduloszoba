@@ -260,17 +260,7 @@
 			element.releasePointerCapture(event.pointerId);
 		}
 	}
-
-	function changeZoom(factor: number) {
-		if (!cropCanvas || uploadLoading) return;
-
-		const rect = cropCanvas.getBoundingClientRect();
-		const x = rect.left + rect.width / 2;
-		const y = rect.top + rect.height / 2;
-
-		transformCrop(cropCanvas, x, y, x, y, zoom * factor);
-	}
-
+	
 	function drawCrop(
 		canvas: HTMLCanvasElement,
 		image: HTMLImageElement,
@@ -654,28 +644,6 @@
 			<div class="avatar-crop-mask" aria-hidden="true"></div>
 		</div>
 
-		<div class="avatar-zoom-controls">
-			<button
-				type="button"
-				aria-label="Kicsinyítés"
-				onclick={() => changeZoom(1 / 1.15)}
-				disabled={uploadLoading || zoom <= 1}
-			>
-				−
-			</button>
-
-			<span>{zoom.toFixed(1)}×</span>
-
-			<button
-				type="button"
-				aria-label="Nagyítás"
-				onclick={() => changeZoom(1.15)}
-				disabled={uploadLoading || zoom >= 6}
-			>
-				+
-			</button>
-		</div>
-
 		{#if cropError}
 			<p role="alert" class="px-6 text-sm font-bold text-red-700">
 				{cropError}
@@ -742,12 +710,6 @@
         text-transform: uppercase;
     }
 
-    .avatar-editor-header p {
-        margin: 8px 0 0;
-        color: #8d7462;
-        font-size: 14px;
-    }
-
     .avatar-crop-stage {
         position: relative;
         width: 100%;
@@ -781,39 +743,6 @@
                 0 0 0 999px rgb(0 0 0 / 28%),
                 inset 0 0 0 2px rgb(255 255 255 / 95%);
         pointer-events: none;
-    }
-
-    .avatar-zoom-controls {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 24px;
-        margin-top: 20px;
-    }
-
-    .avatar-zoom-controls button {
-        width: 48px;
-        height: 48px;
-        border: 1px solid rgb(47 93 80 / 15%);
-        border-radius: 16px;
-        background: white;
-        color: #2f5d50;
-        font-size: 26px;
-        font-weight: 700;
-        touch-action: manipulation;
-    }
-
-    .avatar-zoom-controls span {
-        min-width: 48px;
-        text-align: center;
-        font-weight: 700;
-    }
-
-    .avatar-editor-hint {
-        margin: 16px 24px;
-        text-align: center;
-        font-size: 13px;
-        color: #8d7462;
     }
 
     .avatar-editor-actions {

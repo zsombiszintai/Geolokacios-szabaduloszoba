@@ -128,7 +128,10 @@ public class AdventureService{
     public AdventureProfileDTO getDetails(Long id, Double uLat, Double uLon) {
 
         AdventureEntity adv = adventureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Kaland nem található"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Kaland nem található"
+                ));
 
         List<StationEntity> stationEntities = stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id);
 
@@ -143,7 +146,7 @@ public class AdventureService{
         dto.setAverageTime(formatTime(adv.getAverageTimeInSeconds()));
         dto.setDistanceInMeters(adv.getTotalDistance());
         dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
-        dto.setCreatorName( adv.getCreator() != null? keycloakAdminService.getUsername(adv.getCreator().getKeycloakSub()): "Ismeretlen");
+        dto.setCreatorName(resolveCreatorName(adv.getCreator()));;
         dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);
 
         List<ReviewDTO> reviews = reviewRepository.findByAdventureId(id).stream()
@@ -310,6 +313,31 @@ public class AdventureService{
     }
 
     /// SEGÉD METÓDUSOK
+
+    private String resolveCreatorName(UserEntity creator) {
+        if (creator == null
+                || creator.getKeycloakSub() == null
+                || creator.getKeycloakSub().isBlank()) {
+            return "Ismeretlen";
+        }
+
+        try {
+            String username = keycloakAdminService.getUsername(
+                    creator.getKeycloakSub()
+            );
+
+            return username == null || username.isBlank()
+                    ? "Ismeretlen"
+                    : username;
+
+        } catch (ResponseStatusException exception) {
+            if (exception.getStatusCode().value() == 404) {
+                return "Ismeretlen";
+            }
+
+            throw exception;
+        }
+    }
 
     private Integer calculateDistance(double lat1, double lon1, double lat2, double lon2) {
 

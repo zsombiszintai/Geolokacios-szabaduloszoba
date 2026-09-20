@@ -39,9 +39,9 @@ public class AdventureAPI {
 
     @GetMapping("/{id}")
     public AdventureProfileDTO getAdventureDetails(
-            @PathVariable Long id,
-            @RequestParam Double lat,
-            @RequestParam Double lon) {
+            @PathVariable("id") Long id,
+            @RequestParam(value = "lat", required = false) Double lat,
+            @RequestParam(value = "lon", required = false) Double lon) {
 
         return adventureService.getDetails(id, lat, lon);
     }

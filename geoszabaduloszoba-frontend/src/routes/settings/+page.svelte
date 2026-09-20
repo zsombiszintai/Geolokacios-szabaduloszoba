@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { auth } from '$lib/auth.svelte.js';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { CameraPhotoOutline } from 'flowbite-svelte-icons';
 
@@ -21,19 +21,97 @@
 	let cropError = $state('');
 	let imageLoading = $state(false);
 
-	let drag: {
-		pointerId: number;
-		startX: number;
-		startY: number;
-		horizontal: number;
-		vertical: number;
-		width: number;
-		sourceSize: number;
-		imageWidth: number;
-		imageHeight: number;
-	} | null = null;
+	let restorePageScroll: (() => void) | undefined;
+	let disposed = false;
 
-	let isDragging = $state(false);
+	const CROP_RATIO = 0.76;
+
+	type TouchPoint = {
+		x: number;
+		y: number;
+	};
+
+	const pointers = new Map<number, TouchPoint>();
+
+	const clamp = (value: number, min: number, max: number) =>
+		Math.max(min, Math.min(max, value));
+
+	function lockPageScroll() {
+		if (restorePageScroll) return;
+
+		const body = document.body;
+		const root = document.documentElement;
+		const scrollX = window.scrollX;
+		const scrollY = window.scrollY;
+
+		const bodyProperties = [
+			'position', 'top', 'left', 'width', 'overflow'
+		];
+
+		const savedBody = bodyProperties.map((name) => ({
+			name,
+			value: body.style.getPropertyValue(name),
+			priority: body.style.getPropertyPriority(name)
+		}));
+
+		const rootOverflow = root.style.getPropertyValue('overflow');
+		const rootOverflowPriority = root.style.getPropertyPriority('overflow');
+
+		body.style.setProperty('position', 'fixed');
+		body.style.setProperty('top', `-${scrollY}px`);
+		body.style.setProperty('left', `-${scrollX}px`);
+		body.style.setProperty('width', '100%');
+		body.style.setProperty('overflow', 'hidden');
+		root.style.setProperty('overflow', 'hidden');
+
+		restorePageScroll = () => {
+			for (const property of savedBody) {
+				if (property.value) {
+					body.style.setProperty(
+						property.name,
+						property.value,
+						property.priority
+					);
+				} else {
+					body.style.removeProperty(property.name);
+				}
+			}
+
+			if (rootOverflow) {
+				root.style.setProperty(
+					'overflow',
+					rootOverflow,
+					rootOverflowPriority
+				);
+			} else {
+				root.style.removeProperty('overflow');
+			}
+
+			window.scrollTo({
+				left: scrollX,
+				top: scrollY,
+				behavior: 'instant'
+			});
+		};
+	}
+
+	function unlockPageScroll() {
+		restorePageScroll?.();
+		restorePageScroll = undefined;
+	}
+
+	function cleanupCrop() {
+		pointers.clear();
+		cropImage = null;
+		cropError = '';
+		unlockPageScroll();
+	}
+
+	onDestroy(() => {
+		disposed = true;
+		unlockPageScroll();
+		pointers.clear();
+	});
 
 	function getAvatarSrc(value: unknown): string {
 		return typeof value === 'string' && value.startsWith('https://')
@@ -41,68 +119,156 @@
 			: defaultAvatar;
 	}
 
+	function getGesture() {
+		const points = [...pointers.values()];
+
+		if (points.length === 0) return null;
+
+		if (points.length === 1) {
+			return {
+				x: points[0].x,
+				y: points[0].y,
+				distance: 0
+			};
+		}
+
+		const [a, b] = points;
+
+		return {
+			x: (a.x + b.x) / 2,
+			y: (a.y + b.y) / 2,
+			distance: Math.hypot(b.x - a.x, b.y - a.y)
+		};
+	}
+
+	function transformCrop(
+		element: HTMLElement,
+		oldX: number,
+		oldY: number,
+		newX: number,
+		newY: number,
+		requestedZoom: number
+	) {
+		if (!cropImage) return;
+
+		const rect = element.getBoundingClientRect();
+		const cropWidth = rect.width * CROP_RATIO;
+
+		if (cropWidth <= 0) return;
+
+		const imageWidth = cropImage.naturalWidth;
+		const imageHeight = cropImage.naturalHeight;
+		const shortestSide = Math.min(imageWidth, imageHeight);
+
+		const oldSize = shortestSide / zoom;
+		const nextZoom = clamp(requestedZoom, 1, 6);
+		const nextSize = shortestSide / nextZoom;
+
+		const oldSourceX =
+			(imageWidth - oldSize) * (horizontal + 100) / 200;
+
+		const oldSourceY =
+			(imageHeight - oldSize) * (vertical + 100) / 200;
+
+		const screenCenterX = rect.left + rect.width / 2;
+		const screenCenterY = rect.top + rect.height / 2;
+
+		// A kép azon pontja, amely az ujjak közepe alatt volt.
+		const anchorX =
+			oldSourceX + oldSize / 2 +
+			(oldX - screenCenterX) * oldSize / cropWidth;
+
+		const anchorY =
+			oldSourceY + oldSize / 2 +
+			(oldY - screenCenterY) * oldSize / cropWidth;
+
+		const nextSourceX = clamp(
+			anchorX -
+			(newX - screenCenterX) * nextSize / cropWidth -
+			nextSize / 2,
+			0,
+			imageWidth - nextSize
+		);
+
+		const nextSourceY = clamp(
+			anchorY -
+			(newY - screenCenterY) * nextSize / cropWidth -
+			nextSize / 2,
+			0,
+			imageHeight - nextSize
+		);
+
+		zoom = nextZoom;
+
+		horizontal = imageWidth > nextSize
+			? nextSourceX / (imageWidth - nextSize) * 200 - 100
+			: 0;
+
+		vertical = imageHeight > nextSize
+			? nextSourceY / (imageHeight - nextSize) * 200 - 100
+			: 0;
+	}
+
 	function startDrag(event: PointerEvent) {
-		if (!cropImage || uploadLoading || drag) return;
+		if (!cropImage || uploadLoading || pointers.size >= 2) return;
 		if (event.pointerType === 'mouse' && event.button !== 0) return;
 
 		const element = event.currentTarget as HTMLDivElement;
-		const width = element.getBoundingClientRect().width;
 
-		if (!width) return;
+		pointers.set(event.pointerId, {
+			x: event.clientX,
+			y: event.clientY
+		});
 
 		element.setPointerCapture(event.pointerId);
-
-		drag = {
-			pointerId: event.pointerId,
-			startX: event.clientX,
-			startY: event.clientY,
-			horizontal,
-			vertical,
-			width,
-			sourceSize:
-				Math.min(cropImage.naturalWidth, cropImage.naturalHeight) / zoom,
-			imageWidth: cropImage.naturalWidth,
-			imageHeight: cropImage.naturalHeight
-		};
-
-		isDragging = true;
 	}
 
 	function moveDrag(event: PointerEvent) {
-		if (!drag || event.pointerId !== drag.pointerId || uploadLoading) return;
+		if (!pointers.has(event.pointerId) || uploadLoading) return;
 
-		const dx = event.clientX - drag.startX;
-		const dy = event.clientY - drag.startY;
+		const before = getGesture();
 
-		const availableX = drag.imageWidth - drag.sourceSize;
-		const availableY = drag.imageHeight - drag.sourceSize;
+		pointers.set(event.pointerId, {
+			x: event.clientX,
+			y: event.clientY
+		});
 
-		if (availableX > 0) {
-			horizontal = Math.max(-100, Math.min(100,
-				drag.horizontal -
-				(dx / drag.width) * drag.sourceSize / availableX * 200
-			));
-		}
+		const after = getGesture();
 
-		if (availableY > 0) {
-			vertical = Math.max(-100, Math.min(100,
-				drag.vertical -
-				(dy / drag.width) * drag.sourceSize / availableY * 200
-			));
-		}
+		if (!before || !after) return;
+
+		const factor = pointers.size === 2 && before.distance > 0
+			? after.distance / before.distance
+			: 1;
+
+		transformCrop(
+			event.currentTarget as HTMLDivElement,
+			before.x,
+			before.y,
+			after.x,
+			after.y,
+			zoom * factor
+		);
 	}
 
 	function endDrag(event: PointerEvent) {
-		if (!drag || event.pointerId !== drag.pointerId) return;
+		pointers.delete(event.pointerId);
 
 		const element = event.currentTarget as HTMLDivElement;
-
-		drag = null;
-		isDragging = false;
 
 		if (element.hasPointerCapture(event.pointerId)) {
 			element.releasePointerCapture(event.pointerId);
 		}
+	}
+
+	function changeZoom(factor: number) {
+		if (!cropCanvas || uploadLoading) return;
+
+		const rect = cropCanvas.getBoundingClientRect();
+		const x = rect.left + rect.width / 2;
+		const y = rect.top + rect.height / 2;
+
+		transformCrop(cropCanvas, x, y, x, y, zoom * factor);
 	}
 
 	function drawCrop(
@@ -135,9 +301,41 @@
 	}
 
 	$effect(() => {
-		if (cropCanvas && cropImage) {
-			drawCrop(cropCanvas, cropImage, zoom, horizontal, vertical);
-		}
+		if (!cropCanvas || !cropImage) return;
+
+		const context = cropCanvas.getContext('2d');
+		if (!context) return;
+
+		const size = cropCanvas.width;
+		const cropSize = size * CROP_RATIO;
+		const margin = (size - cropSize) / 2;
+
+		const sourceSize =
+			Math.min(cropImage.naturalWidth, cropImage.naturalHeight) / zoom;
+
+		const sourceX =
+			(cropImage.naturalWidth - sourceSize) * (horizontal + 100) / 200;
+
+		const sourceY =
+			(cropImage.naturalHeight - sourceSize) * (vertical + 100) / 200;
+
+		const scale = cropSize / sourceSize;
+
+		context.clearRect(0, 0, size, size);
+		context.fillStyle = '#f5f2ea';
+		context.fillRect(0, 0, size, size);
+
+		context.imageSmoothingEnabled = true;
+		context.imageSmoothingQuality = 'high';
+
+		// Az előnézet a körön kívüli képrészt is megmutatja.
+		context.drawImage(
+			cropImage,
+			margin - sourceX * scale,
+			margin - sourceY * scale,
+			cropImage.naturalWidth * scale,
+			cropImage.naturalHeight * scale
+		);
 	});
 
 	function closeCrop() {
@@ -220,6 +418,10 @@
 			image.src = objectUrl;
 			await image.decode();
 
+			if (disposed) return;
+
+			pointers.clear();
+
 			zoom = 1;
 			horizontal = 0;
 			vertical = 0;
@@ -227,6 +429,7 @@
 			cropImage = image;
 
 			cropDialog.showModal();
+			lockPageScroll();
 		} catch (error) {
 			console.error('Képmegnyitási hiba:', error);
 			message = {
@@ -423,28 +626,17 @@
     event.preventDefault();
     closeCrop();
   }}
-	onclose={() => {
-    cropImage = null;
-  }}
+	onclose={cleanupCrop}
 >
-	<div class="p-6 sm:p-8">
-		<h2
-			id="avatar-editor-title"
-			class="text-2xl font-black uppercase text-[#2F5D50]"
-		>
-			Profilkép igazítása
-		</h2>
-
-		<p class="mt-2 mb-6 text-sm text-[#8D7462]">
-			Nagyíts és igazítsd a képet a kör közepére.
-		</p>
+	<div class="avatar-editor">
+		<header class="avatar-editor-header">
+			<h2 id="avatar-editor-title">Profilkép igazítása</h2>
+		</header>
 
 		<div
-			class="avatar-crop-area mx-auto w-full max-w-64 aspect-square overflow-hidden rounded-full ring-4 ring-white shadow-lg"
-			class:dragging={isDragging}
+			class="avatar-crop-stage"
 			role="group"
-			aria-label="Profilkép igazítása húzással vagy a nyílbillentyűkkel"
-			tabindex="0"
+			aria-label="Profilkép húzása és nagyítása"
 			onpointerdown={startDrag}
 			onpointermove={moveDrag}
 			onpointerup={endDrag}
@@ -453,26 +645,49 @@
 		>
 			<canvas
 				bind:this={cropCanvas}
-				width="512"
-				height="512"
-				class="block w-full h-full pointer-events-none"
+				width="800"
+				height="800"
 				role="img"
-				aria-label="A kivágott profilkép előnézete"
+				aria-label="Profilkép előnézete"
 			></canvas>
+
+			<div class="avatar-crop-mask" aria-hidden="true"></div>
+		</div>
+
+		<div class="avatar-zoom-controls">
+			<button
+				type="button"
+				aria-label="Kicsinyítés"
+				onclick={() => changeZoom(1 / 1.15)}
+				disabled={uploadLoading || zoom <= 1}
+			>
+				−
+			</button>
+
+			<span>{zoom.toFixed(1)}×</span>
+
+			<button
+				type="button"
+				aria-label="Nagyítás"
+				onclick={() => changeZoom(1.15)}
+				disabled={uploadLoading || zoom >= 6}
+			>
+				+
+			</button>
 		</div>
 
 		{#if cropError}
-			<p role="alert" class="mt-4 text-sm font-bold text-red-700">
+			<p role="alert" class="px-6 text-sm font-bold text-red-700">
 				{cropError}
 			</p>
 		{/if}
 
-		<div class="mt-7 flex gap-3">
+		<footer class="avatar-editor-actions">
 			<button
 				type="button"
 				onclick={closeCrop}
 				disabled={uploadLoading}
-				class="flex-1 rounded-2xl border border-[#8D7462]/30 px-4 py-3 font-bold text-[#8D7462] disabled:opacity-50"
+				class="avatar-cancel"
 			>
 				Mégse
 			</button>
@@ -481,11 +696,11 @@
 				type="button"
 				onclick={saveCroppedAvatar}
 				disabled={uploadLoading || !cropImage}
-				class="flex-1 rounded-2xl bg-[#2F5D50] px-4 py-3 font-bold text-white disabled:opacity-50"
+				class="avatar-save"
 			>
 				{uploadLoading ? 'Feltöltés...' : 'Mentés'}
 			</button>
-		</div>
+		</footer>
 	</div>
 </dialog>
 
@@ -494,19 +709,139 @@
         background-color: #F5F2EA;
     }
     .avatar-dialog {
-        width: min(440px, calc(100vw - 32px));
-        max-height: calc(100dvh - 32px);
+        width: min(440px, calc(100vw - 24px));
+        max-height: calc(100dvh - 24px);
         margin: auto;
         padding: 0;
         overflow-y: auto;
+        overscroll-behavior: contain;
         border: none;
         border-radius: 28px;
         background: #f5f2ea;
+        color: #2f5d50;
         box-shadow: 0 24px 80px rgb(0 0 0 / 25%);
     }
 
     .avatar-dialog::backdrop {
-        background: rgb(0 0 0 / 50%);
-        backdrop-filter: blur(4px);
+        background: rgb(0 0 0 / 45%);
+        backdrop-filter: blur(5px);
+    }
+
+    .avatar-editor {
+        padding: 24px 0 0;
+    }
+
+    .avatar-editor-header {
+        padding: 0 24px 20px;
+    }
+
+    .avatar-editor-header h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .avatar-editor-header p {
+        margin: 8px 0 0;
+        color: #8d7462;
+        font-size: 14px;
+    }
+
+    .avatar-crop-stage {
+        position: relative;
+        width: 100%;
+        max-width: 50dvh;
+        margin: 0 auto;
+        aspect-ratio: 1;
+        overflow: hidden;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: grab;
+        background: #f5f2ea;
+    }
+
+    .avatar-crop-stage:active {
+        cursor: grabbing;
+    }
+
+    .avatar-crop-stage canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    .avatar-crop-mask {
+        position: absolute;
+        inset: 12%;
+        border-radius: 50%;
+        box-shadow:
+                0 0 0 999px rgb(0 0 0 / 28%),
+                inset 0 0 0 2px rgb(255 255 255 / 95%);
+        pointer-events: none;
+    }
+
+    .avatar-zoom-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        margin-top: 20px;
+    }
+
+    .avatar-zoom-controls button {
+        width: 48px;
+        height: 48px;
+        border: 1px solid rgb(47 93 80 / 15%);
+        border-radius: 16px;
+        background: white;
+        color: #2f5d50;
+        font-size: 26px;
+        font-weight: 700;
+        touch-action: manipulation;
+    }
+
+    .avatar-zoom-controls span {
+        min-width: 48px;
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .avatar-editor-hint {
+        margin: 16px 24px;
+        text-align: center;
+        font-size: 13px;
+        color: #8d7462;
+    }
+
+    .avatar-editor-actions {
+        display: flex;
+        gap: 12px;
+        padding: 20px 24px max(24px, env(safe-area-inset-bottom));
+    }
+
+    .avatar-editor-actions button {
+        flex: 1;
+        min-height: 48px;
+        border-radius: 16px;
+        font-weight: 700;
+    }
+
+    .avatar-cancel {
+        border: 1px solid rgb(141 116 98 / 30%);
+        background: transparent;
+        color: #8d7462;
+    }
+
+    .avatar-save {
+        border: none;
+        background: #2f5d50;
+        color: white;
+    }
+
+    .avatar-dialog button:disabled {
+        opacity: 0.45;
     }
 </style>

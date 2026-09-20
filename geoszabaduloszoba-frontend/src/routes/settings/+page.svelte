@@ -9,6 +9,67 @@
 	let description = $state("");
 	let message = $state({ text: "", type: "" });
 
+	const defaultAvatar = '/images/default-avatar.png';
+
+	let cropDialog: HTMLDialogElement;
+	let cropCanvas = $state<HTMLCanvasElement>();
+	let cropImage = $state.raw<HTMLImageElement | null>(null);
+
+	let zoom = $state(1);
+	let horizontal = $state(0);
+	let vertical = $state(0);
+	let cropError = $state('');
+	let imageLoading = $state(false);
+
+	function getAvatarSrc(value: unknown): string {
+		return typeof value === 'string' && value.startsWith('https://')
+			? value
+			: defaultAvatar;
+	}
+
+	function drawCrop(
+		canvas: HTMLCanvasElement,
+		image: HTMLImageElement,
+		scale: number,
+		x: number,
+		y: number
+	) {
+		const context = canvas.getContext('2d');
+		if (!context) throw new Error('A képszerkesztő nem indítható el.');
+
+		const size = canvas.width;
+
+		const sourceSize = Math.min(image.naturalWidth, image.naturalHeight) / scale;
+		const sourceX = (image.naturalWidth - sourceSize) * (x + 100) / 200;
+		const sourceY = (image.naturalHeight - sourceSize) * (y + 100) / 200;
+
+		context.clearRect(0, 0, size, size);
+		context.fillStyle = '#ffffff';
+		context.fillRect(0, 0, size, size);
+		context.imageSmoothingEnabled = true;
+		context.imageSmoothingQuality = 'high';
+
+		context.drawImage(
+			image,
+			sourceX, sourceY, sourceSize, sourceSize,
+			0, 0, size, size
+		);
+	}
+
+	$effect(() => {
+		if (cropCanvas && cropImage) {
+			drawCrop(cropCanvas, cropImage, zoom, horizontal, vertical);
+		}
+	});
+
+	function closeCrop() {
+		if (uploadLoading) return;
+
+		cropDialog.close();
+		cropImage = null;
+		cropError = '';
+	}
+
 	async function fetchCurrentSettings() {
 		if (!auth.token) return;
 		try {
@@ -51,36 +112,123 @@
 	}
 
 	async function handleAvatarUpload(event: Event) {
-		const input = event.target as HTMLInputElement;
-		if (!input.files || input.files.length === 0) return;
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
 
-		const file = input.files[0];
-		const formData = new FormData();
-		formData.append('file', file);
+		if (!file || imageLoading || uploadLoading) return;
 
-		uploadLoading = true;
-		message = { text: "Feltöltés...", type: "info" };
+		if (!auth.token || !profile) {
+			message = {
+				text: 'Várd meg a profil betöltését.',
+				type: 'error'
+			};
+			return;
+		}
+
+		if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+			message = {
+				text: 'JPG, PNG vagy WebP képet válassz.',
+				type: 'error'
+			};
+			return;
+		}
+
+		imageLoading = true;
+		const objectUrl = URL.createObjectURL(file);
 
 		try {
-			const res = await fetch('https://api.zsomborszintai.com/settings/avatar', {
-				method: 'POST',
-				headers: { 'Authorization': `Bearer ${auth.token}` },
-				body: formData
+			const image = new Image();
+			image.src = objectUrl;
+			await image.decode();
+
+			zoom = 1;
+			horizontal = 0;
+			vertical = 0;
+			cropError = '';
+			cropImage = image;
+
+			cropDialog.showModal();
+		} catch (error) {
+			console.error('Képmegnyitási hiba:', error);
+			message = {
+				text: 'A képet nem sikerült megnyitni.',
+				type: 'error'
+			};
+		} finally {
+			URL.revokeObjectURL(objectUrl);
+			imageLoading = false;
+		}
+	}
+
+	async function saveCroppedAvatar() {
+		if (!cropImage || !auth.token || !profile || uploadLoading) return;
+
+		uploadLoading = true;
+		cropError = '';
+
+		try {
+			const canvas = document.createElement('canvas');
+			canvas.width = 512;
+			canvas.height = 512;
+
+			drawCrop(canvas, cropImage, zoom, horizontal, vertical);
+
+			const blob = await new Promise<Blob>((resolve, reject) => {
+				canvas.toBlob(
+					(result) => {
+						if (result) resolve(result);
+						else reject(new Error('Nem sikerült elkészíteni a képet.'));
+					},
+					'image/jpeg',
+					0.9
+				);
 			});
 
-			if (res.ok) {
-				const data = await res.json();
-				profile.profilePictureUrl = data.avatarUrl;
-				message = { text: "Profilkép sikeresen frissítve!", type: "success" };
-			} else {
-				message = { text: "Hiba történt a feltöltés során.", type: "error" };
+			const formData = new FormData();
+			formData.append('file', blob, 'avatar.jpg');
+
+			const res = await fetch(
+				'https://api.zsomborszintai.com/settings/avatar',
+				{
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${auth.token}`
+					},
+					body: formData
+				}
+			);
+
+			if (!res.ok) {
+				throw new Error(`A feltöltés sikertelen (HTTP ${res.status}).`);
 			}
-		} catch (err) {
-			message = { text: "Hálózati hiba történt.", type: "error" };
+
+			const data = await res.json();
+
+			if (
+				typeof data.avatarUrl !== 'string' ||
+				!data.avatarUrl.startsWith('https://')
+			) {
+				throw new Error(
+					'A feltöltés után nem érkezett érvényes HTTPS kép-URL.'
+				);
+			}
+
+			profile.profilePictureUrl = data.avatarUrl;
+
+			cropDialog.close();
+			cropImage = null;
+
+			message = {
+				text: 'Profilkép sikeresen frissítve!',
+				type: 'success'
+			};
+		} catch (error) {
+			cropError = error instanceof Error
+				? error.message
+				: 'A profilkép mentése sikertelen.';
 		} finally {
 			uploadLoading = false;
-			input.value = "";
-			setTimeout(() => message = { text: "", type: "" }, 3000);
 		}
 	}
 
@@ -115,11 +263,17 @@
 				<div class="w-32 h-32 rounded-full overflow-hidden border-4 border-[#F5F2EA] shadow-lg rotate-3 group-hover:rotate-0 transition-transform duration-500">
 					{#if profile}
 						<img
-							src={profile.profilePictureUrl?.startsWith('http')
-                         ? profile.profilePictureUrl
-                         : `http://localhost:8080${profile.profilePictureUrl}`}
-							alt="Avatar"
+							src={getAvatarSrc(profile.profilePictureUrl)}
+							alt="Profilkép"
 							class="w-full h-full object-cover"
+							onerror={(event) => {
+								const image = event.currentTarget;
+								const fallback = new URL(defaultAvatar, window.location.origin).href;
+
+								if (image.src !== fallback) {
+									image.src = fallback;
+								}
+							}}
 						/>
 					{:else}
 						<div class="w-full h-full bg-[#8D7462]/10 animate-pulse"></div>
@@ -128,7 +282,14 @@
 
 				<label class="absolute -bottom-2 -right-2 bg-[#2F5D50] text-white p-3 rounded-3xl shadow-xl cursor-pointer hover:scale-110 active:scale-90 transition-all border-4 border-white">
 					<CameraPhotoOutline class="w-5 h-5" />
-					<input type="file" accept="image/*" class="hidden" onchange={handleAvatarUpload} disabled={uploadLoading} />
+					<input
+						type="file"
+						accept="image/jpeg,image/png,image/webp"
+						aria-label="Új profilkép kiválasztása"
+						class="hidden"
+						onchange={handleAvatarUpload}
+						disabled={uploadLoading || imageLoading || !profile}
+					/>
 				</label>
 
 				{#if uploadLoading}
@@ -176,8 +337,125 @@
 	{/if}
 </main>
 
+<dialog
+	bind:this={cropDialog}
+	aria-labelledby="avatar-editor-title"
+	class="avatar-dialog font-josefin"
+	oncancel={(event) => {
+    event.preventDefault();
+    closeCrop();
+  }}
+	onclose={() => {
+    cropImage = null;
+  }}
+>
+	<div class="p-6 sm:p-8">
+		<h2
+			id="avatar-editor-title"
+			class="text-2xl font-black uppercase text-[#2F5D50]"
+		>
+			Profilkép igazítása
+		</h2>
+
+		<p class="mt-2 mb-6 text-sm text-[#8D7462]">
+			Nagyíts és igazítsd a képet a kör közepére.
+		</p>
+
+		<div class="mx-auto w-full max-w-64 aspect-square overflow-hidden rounded-full border-4 border-white shadow-lg">
+			<canvas
+				bind:this={cropCanvas}
+				width="512"
+				height="512"
+				class="block w-full h-full"
+				role="img"
+				aria-label="A kivágott profilkép előnézete"
+			></canvas>
+		</div>
+
+		<fieldset disabled={uploadLoading} class="mt-7 space-y-4">
+			<label class="block text-sm font-bold text-[#2F5D50]">
+				Nagyítás
+				<input
+					type="range"
+					min="1"
+					max="4"
+					step="0.01"
+					bind:value={zoom}
+					class="mt-2 block w-full accent-[#2F5D50]"
+				/>
+			</label>
+
+			<label class="block text-sm font-bold text-[#2F5D50]">
+				Vízszintes igazítás
+				<input
+					type="range"
+					min="-100"
+					max="100"
+					step="1"
+					bind:value={horizontal}
+					class="mt-2 block w-full accent-[#2F5D50]"
+				/>
+			</label>
+
+			<label class="block text-sm font-bold text-[#2F5D50]">
+				Függőleges igazítás
+				<input
+					type="range"
+					min="-100"
+					max="100"
+					step="1"
+					bind:value={vertical}
+					class="mt-2 block w-full accent-[#2F5D50]"
+				/>
+			</label>
+		</fieldset>
+
+		{#if cropError}
+			<p role="alert" class="mt-4 text-sm font-bold text-red-700">
+				{cropError}
+			</p>
+		{/if}
+
+		<div class="mt-7 flex gap-3">
+			<button
+				type="button"
+				onclick={closeCrop}
+				disabled={uploadLoading}
+				class="flex-1 rounded-2xl border border-[#8D7462]/30 px-4 py-3 font-bold text-[#8D7462] disabled:opacity-50"
+			>
+				Mégse
+			</button>
+
+			<button
+				type="button"
+				onclick={saveCroppedAvatar}
+				disabled={uploadLoading || !cropImage}
+				class="flex-1 rounded-2xl bg-[#2F5D50] px-4 py-3 font-bold text-white disabled:opacity-50"
+			>
+				{uploadLoading ? 'Feltöltés...' : 'Mentés'}
+			</button>
+		</div>
+	</div>
+</dialog>
+
 <style>
     :global(body) {
         background-color: #F5F2EA;
+    }
+    .avatar-dialog {
+        width: min(440px, calc(100vw - 32px));
+        max-height: calc(100dvh - 32px);
+        margin: auto;
+        padding: 0;
+        overflow-y: auto;
+        border: none;
+        border-radius: 28px;
+        background: #f5f2ea;
+        box-shadow: 0 24px 80px rgb(0 0 0 / 25%);
+    }
+
+    .avatar-dialog::backdrop {
+        background: rgb(0 0 0 / 50%);
+        backdrop-filter: blur(4px);
     }
 </style>

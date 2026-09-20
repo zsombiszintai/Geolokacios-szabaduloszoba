@@ -65,35 +65,59 @@ public class AdventureService{
                 .toList();
     }
 
-    public List<NearbyAdventureDTO> searchAndMap(String query, Double uLat, Double uLon) {
+    @Transactional(readOnly = true)
+    public List<NearbyAdventureDTO> searchAndMap(
+            String query,
+            Double uLat,
+            Double uLon
+    ) {
+        final String PUBLIC_STATUS = "PUBLIC";
+        final boolean hasUserLocation = uLat != null && uLon != null;
 
         List<AdventureEntity> adventures;
-        final String PUBLIC_STATUS = "PUBLIC";
 
         if (query == null || query.isBlank()) {
             adventures = adventureRepository.findByStatus(PUBLIC_STATUS);
         } else {
-            adventures = adventureRepository.findByTitleContainingIgnoreCase(query);
+            adventures = adventureRepository
+                    .findByTitleContainingIgnoreCase(query.trim());
         }
 
         return adventures.stream()
+                .filter(adv -> PUBLIC_STATUS.equals(adv.getStatus()))
                 .map(adv -> {
-                    Optional<StationEntity> startStation = stationRepository.findByAdventureIdAndSeqNumber(adv.getId(), 1);
+                    Optional<StationEntity> startStation =
+                            stationRepository.findByAdventureIdAndSeqNumber(
+                                    adv.getId(), 1
+                            );
 
-                    if (startStation.isEmpty()) return null;
+                    if (startStation.isEmpty()) {
+                        return null;
+                    }
 
-                    Double advLat = startStation.map(StationEntity::getLatitude).orElse(0.0);
-                    Double advLon = startStation.map(StationEntity::getLongitude).orElse(0.0);
+                    StationEntity station = startStation.get();
+                    Double advLat = station.getLatitude();
+                    Double advLon = station.getLongitude();
+
+                    if (advLat == null || advLon == null) {
+                        return null;
+                    }
+
+                    Integer distanceInMeters = null;
+
+                    if (hasUserLocation) {
+                        distanceInMeters = calculateDistance(
+                                uLat, uLon, advLat, advLon
+                        );
+                    }
 
                     return new NearbyAdventureDTO(
-
                             adv.getId(),
                             adv.getTitle(),
-                            calculateDistance(uLat, uLon, advLat, advLon),
+                            distanceInMeters,
                             adv.getAverageTimeInSeconds(),
                             advLon,
                             advLat
-
                     );
                 })
                 .filter(Objects::nonNull)

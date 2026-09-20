@@ -17,6 +17,7 @@
 
 	let searchResults = $state<any[]>([]);
 	let isSearching = $state(false);
+	let searchError = $state('');
 
 	function handleSearch(e?: Event) {
 		e?.preventDefault();
@@ -33,27 +34,54 @@
 		}
 	}
 
-	async function performSearch() {
-		if (!userPos || !auth.token || searchQuery.trim().length < 2) {
-			searchResults = [];
-			return;
-		}
-		isSearching = true;
+	async function performSearch(
+		query: string,
+		type: string,
+		token: string,
+		position: { lat: number; lon: number } | null,
+		signal: AbortSignal
+	) {
 		try {
-			const res = await fetch(
-				`https://api.zsomborszintai.com/search?q=${encodeURIComponent(searchQuery.trim())}&type=${searchType}&lat=${userPos.lat}&lon=${userPos.lon}`,
-				{ headers: { 'Authorization': `Bearer ${auth.token}` } }
-			);
-			if (res.ok) {
-				searchResults = await res.json();
+			const url = new URL('https://api.zsomborszintai.com/search');
+
+			url.searchParams.set('q', query.trim());
+			url.searchParams.set('type', type);
+
+			if (position) {
+				url.searchParams.set('lat', String(position.lat));
+				url.searchParams.set('lon', String(position.lon));
 			}
+
+			const res = await fetch(url, {
+				headers: { Authorization: `Bearer ${token}` },
+				signal
+			});
+
 			if (!res.ok) {
-				throw new Error(`A kalandok betöltése sikertelen: HTTP ${res.status}`);
+				throw new Error(`A keresés sikertelen (HTTP ${res.status}).`);
 			}
-		} catch (err) {
-			console.error("Keresési hiba:", err);
+
+			const data = await res.json();
+
+			if (!Array.isArray(data)) {
+				throw new Error('A szerver nem találati listát adott vissza.');
+			}
+
+			if (!signal.aborted) {
+				searchResults = data;
+			}
+		} catch (error) {
+			if (signal.aborted) return;
+
+			searchError = error instanceof Error
+				? error.message
+				: 'A keresés sikertelen.';
+
+			console.error('Keresési hiba:', error);
 		} finally {
-			isSearching = false;
+			if (!signal.aborted) {
+				isSearching = false;
+			}
 		}
 	}
 
@@ -225,21 +253,39 @@
 	});
 
 	$effect(() => {
-		const query = searchQuery;
+		const query = searchQuery.trim();
 		const type = searchType;
 		const position = userPos;
 		const token = auth.token;
 
-		if (!position || !token || query.trim().length < 2) {
-			searchResults = [];
+		searchResults = [];
+		searchError = '';
+		isSearching = false;
+
+		if (query.length < 2) return;
+
+		if (!token) {
+			searchError = 'A kereséshez jelentkezz be.';
 			return;
 		}
 
+		const controller = new AbortController();
+		isSearching = true;
+
 		const timer = setTimeout(() => {
-			void performSearch();
+			void performSearch(
+				query,
+				type,
+				token,
+				position,
+				controller.signal
+			);
 		}, 300);
 
-		return () => clearTimeout(timer);
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
 	});
 </script>
 
@@ -287,6 +333,11 @@
 						</button>
 					{/each}
 				</nav>
+				{#if searchError}
+					<p role="alert" class="px-4 py-3 text-sm font-bold text-red-700">
+						{searchError}
+					</p>
+				{/if}
 
 				{#if searchResults.length > 0 || isSearching}
 					<ul class="border-t-2 border-[#2F5D50]/10 overflow-y-auto no-scrollbar bg-white/30 flex-1">
@@ -323,22 +374,30 @@
 
 	{#if locationLoading || locationError}
 		<div
-			class="absolute inset-0 z-[1200] flex items-center justify-center bg-[#F5F2EA]/95 px-6"
+			class="absolute inset-0 z-[1000] flex items-center justify-center bg-[#F5F2EA] px-6 pt-40 pb-24"
 			role="status"
 			aria-live="polite"
 		>
 			<div class="max-w-sm text-center text-[#2F5D50]">
-				<p class="font-bold">
-					{locationError || 'Helyzeted meghatározása…'}
+				<p class="text-xl font-black">
+					{locationError
+						? 'A térkép most nem elérhető'
+						: 'Helyzeted meghatározása…'}
 				</p>
+
+				{#if locationError}
+					<p class="mt-3 text-sm leading-relaxed">
+						{locationError}
+					</p>
+				{/if}
 
 				{#if locationError}
 					<button
 						type="button"
 						onclick={() => window.location.reload()}
-						class="mt-5 rounded-xl bg-[#2F5D50] px-6 py-3 font-bold text-white"
+						class="mt-6 rounded-2xl bg-[#2F5D50] px-6 py-3 font-bold text-white"
 					>
-						Újrapróbálás
+						Oldal újratöltése
 					</button>
 				{/if}
 			</div>

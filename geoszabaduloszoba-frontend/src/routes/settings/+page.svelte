@@ -21,10 +21,88 @@
 	let cropError = $state('');
 	let imageLoading = $state(false);
 
+	let drag: {
+		pointerId: number;
+		startX: number;
+		startY: number;
+		horizontal: number;
+		vertical: number;
+		width: number;
+		sourceSize: number;
+		imageWidth: number;
+		imageHeight: number;
+	} | null = null;
+
+	let isDragging = $state(false);
+
 	function getAvatarSrc(value: unknown): string {
 		return typeof value === 'string' && value.startsWith('https://')
 			? value
 			: defaultAvatar;
+	}
+
+	function startDrag(event: PointerEvent) {
+		if (!cropImage || uploadLoading || drag) return;
+		if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+		const element = event.currentTarget as HTMLDivElement;
+		const width = element.getBoundingClientRect().width;
+
+		if (!width) return;
+
+		element.setPointerCapture(event.pointerId);
+
+		drag = {
+			pointerId: event.pointerId,
+			startX: event.clientX,
+			startY: event.clientY,
+			horizontal,
+			vertical,
+			width,
+			sourceSize:
+				Math.min(cropImage.naturalWidth, cropImage.naturalHeight) / zoom,
+			imageWidth: cropImage.naturalWidth,
+			imageHeight: cropImage.naturalHeight
+		};
+
+		isDragging = true;
+	}
+
+	function moveDrag(event: PointerEvent) {
+		if (!drag || event.pointerId !== drag.pointerId || uploadLoading) return;
+
+		const dx = event.clientX - drag.startX;
+		const dy = event.clientY - drag.startY;
+
+		const availableX = drag.imageWidth - drag.sourceSize;
+		const availableY = drag.imageHeight - drag.sourceSize;
+
+		if (availableX > 0) {
+			horizontal = Math.max(-100, Math.min(100,
+				drag.horizontal -
+				(dx / drag.width) * drag.sourceSize / availableX * 200
+			));
+		}
+
+		if (availableY > 0) {
+			vertical = Math.max(-100, Math.min(100,
+				drag.vertical -
+				(dy / drag.width) * drag.sourceSize / availableY * 200
+			));
+		}
+	}
+
+	function endDrag(event: PointerEvent) {
+		if (!drag || event.pointerId !== drag.pointerId) return;
+
+		const element = event.currentTarget as HTMLDivElement;
+
+		drag = null;
+		isDragging = false;
+
+		if (element.hasPointerCapture(event.pointerId)) {
+			element.releasePointerCapture(event.pointerId);
+		}
 	}
 
 	function drawCrop(
@@ -361,54 +439,28 @@
 			Nagyíts és igazítsd a képet a kör közepére.
 		</p>
 
-		<div class="mx-auto w-full max-w-64 aspect-square overflow-hidden rounded-full border-4 border-white shadow-lg">
+		<div
+			class="avatar-crop-area mx-auto w-full max-w-64 aspect-square overflow-hidden rounded-full ring-4 ring-white shadow-lg"
+			class:dragging={isDragging}
+			role="group"
+			aria-label="Profilkép igazítása húzással vagy a nyílbillentyűkkel"
+			tabindex="0"
+			onpointerdown={startDrag}
+			onpointermove={moveDrag}
+			onpointerup={endDrag}
+			onpointercancel={endDrag}
+			onlostpointercapture={endDrag}
+			onkeydown={moveWithKeyboard}
+		>
 			<canvas
 				bind:this={cropCanvas}
 				width="512"
 				height="512"
-				class="block w-full h-full"
+				class="block w-full h-full pointer-events-none"
 				role="img"
 				aria-label="A kivágott profilkép előnézete"
 			></canvas>
 		</div>
-
-		<fieldset disabled={uploadLoading} class="mt-7 space-y-4">
-			<label class="block text-sm font-bold text-[#2F5D50]">
-				Nagyítás
-				<input
-					type="range"
-					min="1"
-					max="4"
-					step="0.01"
-					bind:value={zoom}
-					class="mt-2 block w-full accent-[#2F5D50]"
-				/>
-			</label>
-
-			<label class="block text-sm font-bold text-[#2F5D50]">
-				Vízszintes igazítás
-				<input
-					type="range"
-					min="-100"
-					max="100"
-					step="1"
-					bind:value={horizontal}
-					class="mt-2 block w-full accent-[#2F5D50]"
-				/>
-			</label>
-
-			<label class="block text-sm font-bold text-[#2F5D50]">
-				Függőleges igazítás
-				<input
-					type="range"
-					min="-100"
-					max="100"
-					step="1"
-					bind:value={vertical}
-					class="mt-2 block w-full accent-[#2F5D50]"
-				/>
-			</label>
-		</fieldset>
 
 		{#if cropError}
 			<p role="alert" class="mt-4 text-sm font-bold text-red-700">

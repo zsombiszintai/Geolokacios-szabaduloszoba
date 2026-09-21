@@ -7,8 +7,10 @@ import com.cityscape.geoszabaduloszobabackend.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,38 +28,121 @@ public class GameService {
     private final AdventureRepository adventureRepository;
     private final GameServiceMapper gameServiceMapper;
 
-    public void updateActiveGame(ActiveGameDTO dto) {
+    public void updateActiveGame(ActiveGameDTO dto, String keycloakSub) {
+        var existing = getLockedSession(dto.sessionId(), keycloakSub);
 
-        var existing = abandonedRepository.findById(dto.sessionId())
-                .orElseThrow(() -> new RuntimeException("Session nem található: " + dto.sessionId()));
-
-        this.gameServiceMapper.mergeUpdate(existing, dto);
-
-        abandonedRepository.save(existing);
-
-        stationRepository.findById(dto.lastStationId()).ifPresent(station -> {
-            if (station.isLastStation()) {
-                finishGame(existing);
-            }
-        });
-    }
-
-    private void finishGame(AbandonedAdventureEntity abandoned) {
-        var completed = gameServiceMapper.toCompleted(abandoned);
-        completedRepository.save(completed);
-
-        var user = abandoned.getUser();
-        if (user != null) {
-
-            int currentPoints = user.getPoints() != null ? user.getPoints() : 0;
-            int earnedPoints = abandoned.getPoints() != null ? abandoned.getPoints() : 0;
-
-            user.setPoints(currentPoints + earnedPoints);
-            userRepository.save(user);
+        if (existing.isCompleted()) {
+            return;
         }
 
-        abandoned.setCompleted(true);
-        abandonedRepository.save(abandoned);
+        validateStation(existing, dto.lastStationId());
+
+        gameServiceMapper.mergeUpdate(existing, dto);
+        abandonedRepository.save(existing);
+    }
+
+    public void finishGame(ActiveGameDTO dto, String keycloakSub) {
+        var existing = getLockedSession(dto.sessionId(), keycloakSub);
+
+        if (existing.isCompleted()) {
+            return;
+        }
+
+        var station = validateStation(existing, dto.lastStationId());
+
+        if (!station.isLastStation()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A kaland csak az utolsó állomásnál fejezhető be."
+            );
+        }
+
+        gameServiceMapper.mergeUpdate(existing, dto);
+
+        int earnedPoints = existing.getPoints() == null
+                ? 0
+                : existing.getPoints();
+
+        if (earnedPoints < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A pontszám nem lehet negatív."
+            );
+        }
+
+        completedRepository.save(
+                gameServiceMapper.toCompleted(existing)
+        );
+
+        userRepository.addPoints(
+                existing.getUser().getId(),
+                earnedPoints
+        );
+
+        existing.setCompleted(true);
+        abandonedRepository.save(existing);
+    }
+
+    private AbandonedAdventureEntity getLockedSession(
+            Long sessionId,
+            String keycloakSub
+    ) {
+        if (sessionId == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Hiányzó sessionazonosító."
+            );
+        }
+
+        abandonedRepository.lockSession(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Session nem található."
+                ));
+
+        var existing = abandonedRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Session nem található."
+                ));
+
+        if (existing.getUser() == null
+                || !keycloakSub.equals(existing.getUser().getKeycloakSub())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Ez a játékmenet nem hozzád tartozik."
+            );
+        }
+
+        return existing;
+    }
+
+    private StationEntity validateStation(
+            AbandonedAdventureEntity session,
+            Long stationId
+    ) {
+        if (stationId == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Hiányzó állomásazonosító."
+            );
+        }
+
+        var station = stationRepository.findById(stationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Állomás nem található."
+                ));
+
+        if (!station.getAdventure().getId()
+                .equals(session.getAdventure().getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Az állomás nem ehhez a kalandhoz tartozik."
+            );
+        }
+
+        return station;
     }
 
     public Long startGame(Long adventureId, String keycloakSub) {

@@ -41,6 +41,10 @@
 	let gameLoading = $state(true);
 	let locationAccuracy = $state<number | null>(null);
 
+	let finishing = $state(false);
+	let finished = $state(false);
+	let finishError = $state('');
+
 	let disposed = false;
 	let gameLoadStarted = false;
 	const gameController = new AbortController();
@@ -64,8 +68,6 @@
 		return compassUsedAtCurrentStation ? hintsLength + 1 : hintsLength;
 	});
 
-	const totalScore = $derived(accumulatedPoints + currentStationPoints());
-
 	function unlockNextHint() {
 		const totalHints = currentTarget()?.content?.hints?.length || 0;
 		if (activeHintsCount < totalHints) {
@@ -80,28 +82,94 @@
 	}
 
 	async function nextStation() {
-		const currentIndex = allStations.findIndex(s => s.id === lastStationId);
+		if (finishing) return;
 
-		accumulatedPoints += currentStationPoints();
+		if (finished) {
+			await goto('/dashboard');
+			return;
+		}
 
-		console.log(`Állomás teljesítve! Pontszám: ${accumulatedPoints}`);
+		if (!isExplanationOpen) return;
 
-		if (currentIndex < allStations.length - 1) {
+		const currentIndex = allStations.findIndex(
+			station => station.id === lastStationId
+		);
+
+		if (currentIndex < 0) return;
+
+		const earnedPoints = currentStationPoints();
+		const isLast = currentIndex === allStations.length - 1;
+
+		if (!isLast) {
+			accumulatedPoints += earnedPoints;
+
+			isExplanationOpen = false;
 			lastStationId = allStations[currentIndex + 1].id;
+
 			activeHintsCount = 0;
 			currentHintViewIndex = 0;
 			compassUsedAtCurrentStation = false;
-			isExplanationOpen = false;
 			isRiddleOpen = true;
 
 			const target = currentTarget();
+
 			if (userPos && target) {
-				distanceInMeters = calculateDistance(userPos, { lat: target.latitude, lon: target.longitude });
+				distanceInMeters = calculateDistance(userPos, {
+					lat: target.latitude,
+					lon: target.longitude
+				});
 			}
-		} else {
-			await syncGameProgress();
-			goto('/dashboard');
+
+			return;
 		}
+
+		if (!auth.token) {
+			finishError = 'A mentéshez bejelentkezés szükséges.';
+			return;
+		}
+
+		finishing = true;
+		finishError = '';
+		clearInterval(timerInterval);
+
+		const finalPoints = accumulatedPoints + earnedPoints;
+
+		try {
+			const res = await fetch(
+				'https://api.zsomborszintai.com/api/game/finish',
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${auth.token}`
+					},
+					body: JSON.stringify({
+						sessionId,
+						lastStationId,
+						elapsedSec,
+						distanceInMeters: Math.round(distanceInMeters),
+						points: finalPoints
+					})
+				}
+			);
+
+			if (!res.ok) {
+				throw new Error(`A befejezés mentése sikertelen (HTTP ${res.status}).`);
+			}
+
+			accumulatedPoints = finalPoints;
+			finished = true;
+		} catch (error) {
+			finishError = error instanceof Error
+				? error.message
+				: 'A mentés sikertelen. Próbáld újra.';
+
+			return;
+		} finally {
+			finishing = false;
+		}
+
+		await goto('/dashboard');
 	}
 
 	function updateLocation(newLat: number, newLon: number) {
@@ -163,17 +231,39 @@
 	}
 
 	async function syncGameProgress() {
-		if (!sessionId || !lastStationId || !auth.token) return;
+		if (
+			finishing ||
+			finished ||
+			!sessionId ||
+			!lastStationId ||
+			!auth.token
+		) return;
+
 		try {
-			await fetch('https://api.zsomborszintai.com/api/game/update', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.token}` },
-				body: JSON.stringify({
-					sessionId, lastStationId, elapsedSec, distanceInMeters: Math.round(distanceInMeters),
-					points: totalScore
-				})
-			});
-		} catch (e) { console.warn("Auto-sync hiba", e); }
+			const res = await fetch(
+				'https://api.zsomborszintai.com/api/game/update',
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${auth.token}`
+					},
+					body: JSON.stringify({
+						sessionId,
+						lastStationId,
+						elapsedSec,
+						distanceInMeters: Math.round(distanceInMeters),
+						points: accumulatedPoints
+					})
+				}
+			);
+
+			if (!res.ok) {
+				throw new Error(`Mentési hiba: HTTP ${res.status}`);
+			}
+		} catch (error) {
+			console.warn('Automatikus mentési hiba:', error);
+		}
 	}
 
 	onMount(() => {
@@ -291,6 +381,7 @@
 	});
 
 	async function exitGame() {
+		if (finishing) return;
 		await syncGameProgress();
 
 		if (!adventureId) {
@@ -473,8 +564,24 @@
 						{currentTarget()?.content?.explanation}
 					</div>
 
-					<button onclick={nextStation} class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black uppercase">
-						{allStations.indexOf(currentTarget()) === allStations.length - 1 ? 'Befejezés' : 'Következő állomás'}
+					{#if finishError}
+						<p role="alert" class="text-red-600 text-sm font-bold mb-3">
+							{finishError}
+						</p>
+					{/if}
+
+					<button
+						onclick={nextStation}
+						disabled={finishing}
+						class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black uppercase disabled:opacity-50"
+					>
+						{finishing
+							? 'Mentés...'
+							: finished
+								? 'Vissza a főoldalra'
+								: allStations.indexOf(currentTarget()) === allStations.length - 1
+									? 'Befejezés'
+									: 'Következő állomás'}
 					</button>
 				</div>
 			</div>

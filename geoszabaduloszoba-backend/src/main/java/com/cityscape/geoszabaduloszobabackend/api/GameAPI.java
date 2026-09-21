@@ -13,9 +13,19 @@ public class GameAPI {
     private final GameService gameService;
 
     @PostMapping("/update")
-    public void updateStatus(@RequestBody ActiveGameDTO dto) {
+    public void updateStatus(
+            @RequestBody ActiveGameDTO dto,
+            JwtAuthenticationToken token
+    ) {
+        gameService.updateActiveGame(dto, token.getName());
+    }
 
-        gameService.updateActiveGame(dto);
+    @PostMapping("/finish")
+    public void finish(
+            @RequestBody ActiveGameDTO dto,
+            JwtAuthenticationToken token
+    ) {
+        gameService.finishGame(dto, token.getName());
     }
 
     @PostMapping("/start/{adventureId}")

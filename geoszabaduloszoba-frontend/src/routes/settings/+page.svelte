@@ -260,7 +260,7 @@
 			element.releasePointerCapture(event.pointerId);
 		}
 	}
-	
+
 	function drawCrop(
 		canvas: HTMLCanvasElement,
 		image: HTMLImageElement,

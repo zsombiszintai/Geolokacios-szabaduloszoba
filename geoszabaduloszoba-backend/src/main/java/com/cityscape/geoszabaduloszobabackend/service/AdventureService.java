@@ -88,7 +88,11 @@ public class AdventureService{
                 .map(adv -> {
                     Optional<StationEntity> startStation =
                             stationRepository.findByAdventureIdAndSeqNumber(
-                                    adv.getId(), 1
+                                    adv.getId(), 0
+                            ).or(() ->
+                                    stationRepository.findByAdventureIdAndSeqNumber(
+                                            adv.getId(), 1
+                                    )
                             );
 
                     if (startStation.isEmpty()) {
@@ -148,6 +152,7 @@ public class AdventureService{
         dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
         dto.setCreatorName(resolveCreatorName(adv.getCreator()));;
         dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);
+        dto.setHasStartingPoint(containsStartingPoint(stationEntities));
 
         List<ReviewDTO> reviews = reviewRepository.findByAdventureId(id).stream()
                 .map(r -> new ReviewDTO(
@@ -167,40 +172,31 @@ public class AdventureService{
     }
 
     @Transactional
-    public AdventureEntity createAdventureWithStations(AdventureEntity adventure, List<StationEntity> stations) {
+    public AdventureEntity createAdventureWithStations(
+            AdventureEntity adventure,
+            List<StationEntity> stations
+    ) {
+        boolean draft = "DRAFT".equals(adventure.getStatus());
+
+        List<StationEntity> preparedStations =
+                prepareStations(stations, draft);
 
         UserEntity user = userService.getOrCreateCurrentUser();
+
         adventure.setCreator(user);
+        adventure.setHasStartingPoint(
+                containsStartingPoint(preparedStations)
+        );
+        adventure.setTotalDistance(
+                calculateTotalDistance(preparedStations)
+        );
 
-        double totalDistance = 0.0;
-        if (stations != null && stations.size() > 1) {
+        AdventureEntity savedAdventure =
+                adventureRepository.save(adventure);
 
-            for (int i = 0; i < stations.size(); i++) {
-                stations.get(i).setSeqNumber(i + 1);
-            }
-
-            List<StationEntity> sortedStations = stations.stream()
-                    .sorted(Comparator.comparingInt(StationEntity::getSeqNumber))
-                    .toList();
-
-            for (int i = 0; i < sortedStations.size() - 1; i++) {
-                StationEntity current = sortedStations.get(i);
-                StationEntity next = sortedStations.get(i + 1);
-
-                if (current.getLatitude() != null && current.getLongitude() != null &&
-                        next.getLatitude() != null && next.getLongitude() != null) {
-
-                    totalDistance += calculateDistance(
-                            current.getLatitude(), current.getLongitude(),
-                            next.getLatitude(), next.getLongitude()
-                    );
-                }
-            }
+        if (!preparedStations.isEmpty()) {
+            stationService.saveStations(preparedStations, savedAdventure);
         }
-        adventure.setTotalDistance(totalDistance);
-
-        AdventureEntity savedAdventure = adventureRepository.save(adventure);
-        stationService.saveStations(stations, savedAdventure);
 
         return savedAdventure;
     }
@@ -235,7 +231,14 @@ public class AdventureService{
         dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().name() : "EASY");
         dto.setStatus(adv.getStatus());
 
-        int totalStations = stations.size();
+        int lastPlayableSequence = stations.stream()
+                .map(StationEntity::getSeqNumber)
+                .filter(Objects::nonNull)
+                .filter(sequence -> sequence > 0)
+                .max(Integer::compareTo)
+                .orElse(-1);
+
+        dto.setHasStartingPoint(containsStartingPoint(stations));
 
         List<StationCreateDTO> stationDTOs = stations.stream().map(s -> {
             StationContent content = null;
@@ -247,7 +250,9 @@ public class AdventureService{
                 }
             }
 
-            boolean isLast = s.getSeqNumber() != null && s.getSeqNumber() == totalStations;
+            boolean isLast = s.getSeqNumber() != null
+                    && s.getSeqNumber() > 0
+                    && s.getSeqNumber() == lastPlayableSequence;
 
             return new StationCreateDTO(
                     s.getSeqNumber(),
@@ -263,56 +268,183 @@ public class AdventureService{
     }
 
     @Transactional
-    public AdventureEntity updateAdventureWithStations(Long id, AdventureEntity updatedAdventure, List<StationEntity> newStations) {
-
+    public AdventureEntity updateAdventureWithStations(
+            Long id,
+            AdventureEntity updatedAdventure,
+            List<StationEntity> newStations
+    ) {
         UserEntity currentUser = userService.getOrCreateCurrentUser();
 
         AdventureEntity existing = adventureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Kaland nem található id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Kaland nem található."
+                ));
 
         if (!existing.getCreator().getId().equals(currentUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nincs jogosultságod a kaland módosításához!");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Nincs jogosultságod a kaland módosításához!"
+            );
         }
+
+        String status = updatedAdventure.getStatus() != null
+                ? updatedAdventure.getStatus()
+                : existing.getStatus();
+
+        List<StationEntity> preparedStations =
+                prepareStations(newStations, "DRAFT".equals(status));
 
         existing.setTitle(updatedAdventure.getTitle());
         existing.setDescription(updatedAdventure.getDescription());
         existing.setDifficulty(updatedAdventure.getDifficulty());
-        if (updatedAdventure.getStatus() != null) {
-            existing.setStatus(updatedAdventure.getStatus());
-        }
+        existing.setStatus(status);
+
+        existing.setHasStartingPoint(
+                containsStartingPoint(preparedStations)
+        );
+        existing.setTotalDistance(
+                calculateTotalDistance(preparedStations)
+        );
 
         stationRepository.deleteByAdventureId(id);
+        stationRepository.flush();
 
-        double totalDistance = 0.0;
-        if (newStations != null && !newStations.isEmpty()) {
-            for (int i = 0; i < newStations.size(); i++) {
-                newStations.get(i).setSeqNumber(i + 1);
-                newStations.get(i).setAdventure(existing);
-            }
+        AdventureEntity savedAdventure =
+                adventureRepository.save(existing);
 
-            for (int i = 0; i < newStations.size() - 1; i++) {
-                StationEntity current = newStations.get(i);
-                StationEntity next = newStations.get(i + 1);
-                if (current.getLatitude() != null && current.getLongitude() != null &&
-                        next.getLatitude() != null && next.getLongitude() != null) {
-                    totalDistance += calculateDistance(
-                            current.getLatitude(), current.getLongitude(),
-                            next.getLatitude(), next.getLongitude()
-                    );
-                }
-            }
-        }
-        existing.setTotalDistance(totalDistance);
-
-        AdventureEntity savedAdventure = adventureRepository.save(existing);
-        if (newStations != null && !newStations.isEmpty()) {
-            stationService.saveStations(newStations, savedAdventure);
+        if (!preparedStations.isEmpty()) {
+            stationService.saveStations(preparedStations, savedAdventure);
         }
 
         return savedAdventure;
     }
 
     /// SEGÉD METÓDUSOK
+
+    private List<StationEntity> prepareStations(
+            List<StationEntity> stations,
+            boolean draft
+    ) {
+        if (stations == null || stations.isEmpty()) {
+            if (draft) {
+                return List.of();
+            }
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Legalább egy rejtvényes állomás szükséges."
+            );
+        }
+
+        for (StationEntity station : stations) {
+            if (station == null
+                    || station.getSeqNumber() == null
+                    || station.getSeqNumber() < 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Hiányzó vagy hibás állomássorszám."
+                );
+            }
+        }
+
+        List<StationEntity> sorted = stations.stream()
+                .sorted(Comparator.comparingInt(StationEntity::getSeqNumber))
+                .toList();
+
+        int firstSequence = sorted.get(0).getSeqNumber();
+
+        if (firstSequence != 0 && firstSequence != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Az állomások számozása 0-val vagy 1-gyel kezdődjön."
+            );
+        }
+
+        for (int i = 0; i < sorted.size(); i++) {
+            StationEntity station = sorted.get(i);
+
+            if (station.getSeqNumber() != firstSequence + i) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Az állomások sorszámai legyenek folytonosak és egyediek."
+                );
+            }
+
+            Double latitude = station.getLatitude();
+            Double longitude = station.getLongitude();
+
+            // Piszkozatban a rejtvényes állomás helye még hiányozhat.
+            boolean missingLocationAllowed =
+                    draft && station.getSeqNumber() > 0;
+
+            if (latitude == null || longitude == null) {
+                if (!missingLocationAllowed
+                        || latitude != null
+                        || longitude != null) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Az állomás mindkét koordinátáját meg kell adni."
+                    );
+                }
+            } else if (!Double.isFinite(latitude)
+                    || !Double.isFinite(longitude)
+                    || latitude < -90 || latitude > 90
+                    || longitude < -180 || longitude > 180) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Érvénytelen állomáskoordináták."
+                );
+            }
+
+            station.setLastStation(false);
+        }
+
+        StationEntity last = sorted.get(sorted.size() - 1);
+
+        if (last.getSeqNumber() > 0) {
+            last.setLastStation(true);
+        } else if (!draft) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A kezdőpont mellé legalább egy rejtvényes állomás szükséges."
+            );
+        }
+
+        return sorted;
+    }
+
+    private boolean containsStartingPoint(List<StationEntity> stations) {
+        return stations.stream()
+                .anyMatch(station ->
+                        Integer.valueOf(0).equals(station.getSeqNumber())
+                );
+    }
+
+    private double calculateTotalDistance(List<StationEntity> stations) {
+        double totalDistance = 0.0;
+
+        for (int i = 0; i < stations.size() - 1; i++) {
+            StationEntity current = stations.get(i);
+            StationEntity next = stations.get(i + 1);
+
+            if (current.getLatitude() == null
+                    || current.getLongitude() == null
+                    || next.getLatitude() == null
+                    || next.getLongitude() == null) {
+                continue;
+            }
+
+            totalDistance += calculateDistance(
+                    current.getLatitude(),
+                    current.getLongitude(),
+                    next.getLatitude(),
+                    next.getLongitude()
+            );
+        }
+
+        return totalDistance;
+    }
 
     private String resolveCreatorName(UserEntity creator) {
         if (creator == null
@@ -352,8 +484,6 @@ public class AdventureService{
 
         return (int) (R * c);
     }
-
-
 
     private String formatTime(Integer totalSeconds) {
         if (totalSeconds == null || totalSeconds == 0) return "0 s";

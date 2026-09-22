@@ -35,8 +35,11 @@ public class AdventureEntity {
     @Column(nullable = false, updatable = false)
     private LocalDate createdAt = LocalDate.now();
 
-    @Column(nullable = false, updatable = false)
-    private Double totalDistance = (double) 0;
+    @Column(nullable = false)
+    private Double totalDistance = 0.0;
+
+    @Column
+    private boolean hasStartingPoint = false;
 
     private Double averageRating;
     private Integer averageTimeInSeconds;

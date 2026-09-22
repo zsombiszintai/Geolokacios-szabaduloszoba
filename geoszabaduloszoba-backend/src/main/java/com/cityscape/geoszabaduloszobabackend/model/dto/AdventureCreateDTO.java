@@ -10,4 +10,5 @@ public class AdventureCreateDTO {
     private String difficulty;
     private String status;
     private List<StationCreateDTO> stations;
+    private boolean hasStartingPoint;
 }

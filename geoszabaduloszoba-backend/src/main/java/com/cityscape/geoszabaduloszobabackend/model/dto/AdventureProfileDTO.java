@@ -18,4 +18,7 @@ public class AdventureProfileDTO {
     private List<Integer> ratingDistribution;
     private List<StationDTO> stations;
     private List<ReviewDTO> reviews;
+
+    private boolean hasStartingPoint;
+
 }

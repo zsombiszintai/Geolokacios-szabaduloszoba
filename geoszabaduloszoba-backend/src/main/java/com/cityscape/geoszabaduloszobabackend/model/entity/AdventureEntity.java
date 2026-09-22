@@ -38,7 +38,7 @@ public class AdventureEntity {
     @Column(nullable = false)
     private Double totalDistance = 0.0;
 
-    @Column
+    @Column(name = "has_starting_point", nullable = false)
     private boolean hasStartingPoint = false;
 
     private Double averageRating;

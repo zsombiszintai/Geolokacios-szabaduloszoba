@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
 import com.cityscape.geoszabaduloszobabackend.model.dto.ActiveGameDTO;
+import com.cityscape.geoszabaduloszobabackend.model.dto.GameSessionDTO;
 import com.cityscape.geoszabaduloszobabackend.service.GameService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -32,5 +33,13 @@ public class GameAPI {
     public Long start(@PathVariable Long adventureId, JwtAuthenticationToken token) {
         String sub = token.getName();
         return gameService.startGame(adventureId, sub);
+    }
+
+    @GetMapping("/session/{sessionId}")
+    public GameSessionDTO getSession(
+            @PathVariable("sessionId") Long sessionId,
+            JwtAuthenticationToken token
+    ) {
+        return gameService.getSession(sessionId, token.getName());
     }
 }

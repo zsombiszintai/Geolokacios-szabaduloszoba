@@ -1,12 +1,11 @@
 package com.cityscape.geoszabaduloszobabackend.model.dto;
 
-public record AbandonedAdventureDTO(
+public record GameSessionDTO(
         Long sessionId,
         Long adventureId,
-        String title,
         Long lastStationId,
-        Integer lastStationSeq,
         Integer elapsedSec,
-        Double distanceTravelled,
-        Integer points
+        Double distanceInMeters,
+        Integer points,
+        boolean completed
 ) {}

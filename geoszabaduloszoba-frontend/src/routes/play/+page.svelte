@@ -85,7 +85,9 @@
 						</p>
 
 						<button
-							onclick={() => goto(`/game?id=${item.adventureId}&station=${item.lastStationId}`)}
+							onclick={() => goto(
+								`/game?sessionId=${item.sessionId}&adventureId=${item.adventureId}`
+							)}
 							class="w-full bg-city-green text-[#F5F2EA] py-4 rounded-lg font-black uppercase text-sm tracking-widest shadow-md hover:bg-[#005c34] transition-colors"
 						>
 							Folytatás

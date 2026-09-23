@@ -49,6 +49,9 @@
 	let gameLoadStarted = false;
 	const gameController = new AbortController();
 
+	let progressSaveQueue: Promise<boolean> = Promise.resolve(true);
+	let saveError = $state('');
+
 	function calculateDistance(p1: {lat: number, lon: number}, p2: {lat: number, lon: number}) {
 		return L.latLng(p1.lat, p1.lon).distanceTo(L.latLng(p2.lat, p2.lon));
 	}
@@ -120,6 +123,7 @@
 				});
 			}
 
+			await syncGameProgress();
 			return;
 		}
 
@@ -152,6 +156,7 @@
 					})
 				}
 			);
+			await progressSaveQueue;
 
 			if (!res.ok) {
 				throw new Error(`A befejezés mentése sikertelen (HTTP ${res.status}).`);
@@ -224,46 +229,76 @@
 
 	function startTracking() {
 		clearInterval(timerInterval);
+
 		timerInterval = setInterval(() => {
+			if (
+				gameLoading ||
+				gameError ||
+				locationError ||
+				!userPos ||
+				finishing ||
+				finished
+			) return;
+
 			elapsedSec++;
-			if (elapsedSec % 10 === 0) syncGameProgress();
+
+			if (elapsedSec % 10 === 0) {
+				void syncGameProgress();
+			}
 		}, 1000);
 	}
 
-	async function syncGameProgress() {
+	function syncGameProgress(): Promise<boolean> {
 		if (
+			gameLoading ||
+			gameError ||
 			finishing ||
 			finished ||
 			!sessionId ||
 			!lastStationId ||
 			!auth.token
-		) return;
-
-		try {
-			const res = await fetch(
-				'https://api.zsomborszintai.com/api/game/update',
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${auth.token}`
-					},
-					body: JSON.stringify({
-						sessionId,
-						lastStationId,
-						elapsedSec,
-						distanceInMeters: Math.round(distanceInMeters),
-						points: accumulatedPoints
-					})
-				}
-			);
-
-			if (!res.ok) {
-				throw new Error(`Mentési hiba: HTTP ${res.status}`);
-			}
-		} catch (error) {
-			console.warn('Automatikus mentési hiba:', error);
+		) {
+			return Promise.resolve(false);
 		}
+
+		const token = auth.token;
+
+		const payload = {
+			sessionId,
+			lastStationId,
+			elapsedSec,
+			distanceInMeters: Math.round(distanceInMeters),
+			points: accumulatedPoints
+		};
+
+		progressSaveQueue = progressSaveQueue.then(async () => {
+			try {
+				const response = await fetch(
+					'https://api.zsomborszintai.com/api/game/update',
+					{
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${token}`
+						},
+						body: JSON.stringify(payload)
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error(`Mentési hiba: HTTP ${response.status}`);
+				}
+
+				saveError = '';
+				return true;
+			} catch (error) {
+				console.error('Mentési hiba:', error);
+				saveError = 'A mentés sikertelen. Ellenőrizd a kapcsolatot!';
+				return false;
+			}
+		});
+
+		return progressSaveQueue;
 	}
 
 	onMount(() => {
@@ -314,75 +349,127 @@
 		}
 
 		void initializeLocation();
+		startTracking();
 	});
 
 	$effect(() => {
-		const position = userPos;
 		const token = auth.token;
-		const id = adventureId;
 		const activeSessionId = sessionId;
+		const requestedAdventureId = adventureId;
 
-		if (!position || !token || gameLoadStarted) return;
+		if (!token || gameLoadStarted) return;
 
-		if (
-			!id ||
-			!Number.isInteger(activeSessionId) ||
-			activeSessionId <= 0
-		) {
-			gameError = 'Hiányzó vagy hibás játékazonosító.';
+		if (!Number.isSafeInteger(activeSessionId) || activeSessionId <= 0) {
+			gameError = 'Hiányzó vagy hibás mentésazonosító.';
 			gameLoading = false;
 			return;
 		}
 
 		gameLoadStarted = true;
 
-		async function loadAdventure() {
+		async function loadGame() {
 			try {
+				const options = {
+					headers: { Authorization: `Bearer ${token}` },
+					signal: gameController.signal
+				};
+
+				const sessionResponse = await fetch(
+					`https://api.zsomborszintai.com/api/game/session/${activeSessionId}`,
+					options
+				);
+
+				if (!sessionResponse.ok) {
+					throw new Error(
+						`A mentés betöltése sikertelen (HTTP ${sessionResponse.status}).`
+					);
+				}
+
+				const saved = await sessionResponse.json();
+				if (disposed) return;
+
+				if (saved.completed) {
+					throw new Error('Ezt a játékmenetet már befejezted.');
+				}
+
+				if (
+					requestedAdventureId &&
+					String(saved.adventureId) !== requestedAdventureId
+				) {
+					throw new Error('A mentés nem ehhez a kalandhoz tartozik.');
+				}
+
 				const response = await fetch(
-					`https://api.zsomborszintai.com/api/adventures/${encodeURIComponent(id!)}?lat=${position!.lat}&lon=${position!.lon}`,
-					{
-						headers: { Authorization: `Bearer ${token}` },
-						signal: gameController.signal
-					}
+					`https://api.zsomborszintai.com/api/adventures/${saved.adventureId}`,
+					options
 				);
 
 				if (!response.ok) {
-					throw new Error(`HTTP ${response.status}`);
+					throw new Error(
+						`A kaland betöltése sikertelen (HTTP ${response.status}).`
+					);
 				}
 
 				const data = await response.json();
 				if (disposed) return;
 
-				if (!Array.isArray(data.stations) || data.stations.length === 0) {
-					throw new Error('A kalandnak nincs betölthető állomása.');
+				if (!Array.isArray(data.stations)) {
+					throw new Error('A kaland állomásai nem tölthetők be.');
+				}
+
+				const stations = data.stations
+					.filter((station: any) => station.seqNumber > 0)
+					.sort((a: any, b: any) => a.seqNumber - b.seqNumber);
+
+				const savedStation = stations.find(
+					(station: any) => station.id === saved.lastStationId
+				);
+
+				if (!savedStation) {
+					throw new Error(
+						'A mentett állomás már nem található ebben a kalandban.'
+					);
 				}
 
 				adventureTitle = data.title;
-				allStations = data.stations;
-				lastStationId = allStations[0].id;
+				allStations = stations;
+				lastStationId = savedStation.id;
+
+				elapsedSec = saved.elapsedSec ?? 0;
+				accumulatedPoints = saved.points ?? 0;
+				distanceInMeters = saved.distanceInMeters ?? 0;
+
+				activeHintsCount = 0;
+				currentHintViewIndex = 0;
+				compassUsedAtCurrentStation = false;
+
+				isExplanationOpen = false;
+				isHintModalOpen = false;
 				isRiddleOpen = true;
+
+				gameError = '';
 				gameLoading = false;
-
-				if (userPos && !locationError) {
-					updateLocation(userPos.lat, userPos.lon);
-				}
-
-				startTracking();
 			} catch (error) {
 				if (disposed) return;
 
-				console.error('Játékbetöltési hiba:', error);
-				gameError = 'A kaland betöltése sikertelen. Próbáld újra.';
+				gameError = error instanceof Error
+					? error.message
+					: 'A mentés betöltése sikertelen.';
+
 				gameLoading = false;
 			}
 		}
 
-		void loadAdventure();
+		void loadGame();
 	});
 
 	async function exitGame() {
 		if (finishing) return;
-		await syncGameProgress();
+
+		if (!gameLoading && !gameError && !finished) {
+			const saved = await syncGameProgress();
+			if (!saved) return;
+		}
 
 		if (!adventureId) {
 			await goto('/dashboard');
@@ -419,6 +506,15 @@
 </script>
 
 <main class="flex flex-col h-[calc(100vh-128px)] bg-[#F5F2EA] font-josefin overflow-hidden relative">
+	{#if saveError}
+		<div
+			role="alert"
+			class="relative z-[900] bg-red-50 px-4 py-2 text-sm font-bold text-red-700"
+		>
+			{saveError}
+		</div>
+	{/if}
+
 	<header class="h-14 bg-[#775D4D] text-[#F5F2EA] flex items-center px-4 rounded-xl mx-2 shadow-lg z-10 shrink-0">
 		<div class="flex-1 font-mono text-sm tracking-tighter">
 			{new Date(elapsedSec * 1000).toISOString().substr(11, 8)}

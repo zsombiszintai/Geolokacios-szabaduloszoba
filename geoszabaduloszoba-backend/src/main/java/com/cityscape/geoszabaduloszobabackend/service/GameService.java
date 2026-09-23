@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.cityscape.geoszabaduloszobabackend.model.dto.GameSessionDTO;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,6 +28,33 @@ public class GameService {
     private final UserRepository userRepository;
     private final AdventureRepository adventureRepository;
     private final GameServiceMapper gameServiceMapper;
+
+    @Transactional(readOnly = true)
+    public GameSessionDTO getSession(Long sessionId, String keycloakSub) {
+        var session = abandonedRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "A mentett játékmenet nem található."
+                ));
+
+        if (session.getUser() == null
+                || !keycloakSub.equals(session.getUser().getKeycloakSub())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Ez a játékmenet nem hozzád tartozik."
+            );
+        }
+
+        return new GameSessionDTO(
+                session.getId(),
+                session.getAdventure().getId(),
+                session.getLastStationId(),
+                session.getElapsedSec(),
+                session.getDistanceTravelled(),
+                session.getPoints(),
+                session.isCompleted()
+        );
+    }
 
     public void updateActiveGame(ActiveGameDTO dto, String keycloakSub) {
         var existing = getLockedSession(dto.sessionId(), keycloakSub);

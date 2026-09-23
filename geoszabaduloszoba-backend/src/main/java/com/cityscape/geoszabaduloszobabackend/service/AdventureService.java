@@ -42,6 +42,7 @@ public class AdventureService{
                             .orElse(1);
 
                     return new AbandonedAdventureDTO(
+                            entity.getId(),
                             entity.getAdventure().getId(),
                             entity.getAdventure().getTitle(),
                             entity.getLastStationId(),

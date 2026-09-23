@@ -20,13 +20,100 @@
 	let searchQuery = $state<string>("");
 	let errorMessage = $state<string>("");
 
+	let isStarting = $state(false);
+	let startError = $state('');
+
+	let startedSession: {
+		adventureId: string;
+		sessionId: number;
+	} | null = null;
+
 	let filteredLists = $derived(
 		searchQuery.trim() === ""
 			? myLists
 			: myLists.filter(l => l.title?.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
 
-	const userPos = { lat: 46.0754, lon: 18.2205 };
+	async function startAdventure() {
+		if (isStarting || !adventure) return;
+
+		startError = '';
+
+		if (!auth.token) {
+			startError = 'A játék indításához jelentkezz be!';
+			return;
+		}
+
+		if (!Array.isArray(adventure.stations)) {
+			startError = 'Az állomások nem töltődtek be. Frissítsd az oldalt!';
+			return;
+		}
+
+		const id = String(adventure.id);
+
+		const startingStation = adventure.stations.find(
+			(station: any) => station.seqNumber === 0
+		);
+
+		const hasPlayableStation = adventure.stations.some(
+			(station: any) => station.seqNumber > 0
+		);
+
+		if (!hasPlayableStation) {
+			startError = 'A kalandnak nincs játszható állomása.';
+			return;
+		}
+
+		isStarting = true;
+
+		try {
+			if (startingStation) {
+				await goto(`/game/navigation?id=${encodeURIComponent(id)}`);
+				return;
+			}
+
+			if (startedSession?.adventureId !== id) {
+				const response = await fetch(
+					`https://api.zsomborszintai.com/api/game/start/${encodeURIComponent(id)}`,
+					{
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer ${auth.token}`
+						}
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error(
+						`A játék indítása sikertelen (HTTP ${response.status}).`
+					);
+				}
+
+				const sessionId = await response.json();
+
+				if (!Number.isSafeInteger(sessionId) || sessionId <= 0) {
+					throw new Error('A szerver hibás játékmenet-azonosítót adott vissza.');
+				}
+
+				startedSession = {
+					adventureId: id,
+					sessionId
+				};
+			}
+
+			await goto(
+				`/game?sessionId=${startedSession.sessionId}&adventureId=${encodeURIComponent(id)}`
+			);
+		} catch (error) {
+			console.error('Játékindítási hiba:', error);
+
+			startError = error instanceof Error
+				? error.message
+				: 'A játék indítása sikertelen. Próbáld újra.';
+		} finally {
+			isStarting = false;
+		}
+	}
 
 	function getDifficultyColor(difficulty: string): string {
 		if (!difficulty) return 'bg-gray-400';
@@ -98,7 +185,7 @@
 
 		try {
 			const id = page.params.id;
-			const url = `https://api.zsomborszintai.com/api/adventures/${id}?lat=${userPos.lat}&lon=${userPos.lon}`;
+			const url = `https://api.zsomborszintai.com/api/adventures/${encodeURIComponent(id)}`;
 
 			const res = await fetch(url, {
 				headers: { 'Authorization': `Bearer ${auth.token}` }
@@ -272,10 +359,15 @@
 					</div>
 
 					<div class="bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
-						<h2 class="label-city mb-1">Távolság</h2>
-						<p class="font-bold text-[#2F5D50]">{adventure.distanceInMeters} m</p>
+						<h2 class="label-city mb-1">Kaland hossza</h2>
+						<p class="font-bold text-[#2F5D50]">
+							{adventure.distanceInMeters == null
+								? 'Nincs adat'
+								: adventure.distanceInMeters >= 1000
+									? `${(adventure.distanceInMeters / 1000).toFixed(1)} km`
+									: `${Math.round(adventure.distanceInMeters)} m`}
+						</p>
 					</div>
-				</div>
 
 				<div class="flex justify-between items-center bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
 					<div>
@@ -343,11 +435,22 @@
 		</div>
 
 		<div class="fixed bottom-0 left-0 right-0 p-16 bg-gradient-to-t from-[#F5F2EA] via-[#F5F2EA] to-transparent">
+			{#if startError}
+				<p
+					role="alert"
+					class="mb-3 rounded-xl bg-red-50 p-3 text-center text-sm font-bold text-red-700"
+				>
+					{startError}
+				</p>
+			{/if}
+
 			<button
-				class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black text-xl shadow-xl active:scale-[0.97] transition-all uppercase tracking-widest"
-				onclick={() => goto(`/game/navigation?id=${adventure.id}`)}
+				type="button"
+				class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black text-xl shadow-xl active:scale-[0.97] transition-all uppercase tracking-widest disabled:opacity-50"
+				onclick={startAdventure}
+				disabled={isStarting}
 			>
-				Kaland Indítása
+				{isStarting ? 'Indítás...' : 'Kaland indítása'}
 			</button>
 		</div>
 	</main>

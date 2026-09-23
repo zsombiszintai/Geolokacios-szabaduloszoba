@@ -159,7 +159,7 @@ public class ProfileService {
     private UserListDTO mapUserToDTO(UserEntity user) {
         return new UserListDTO(
                 user.getId(),
-                keycloakAdminService.getUsername(user.getKeycloakSub()),
+                resolveUsername(user),
                 user.getProfileDescription(),
                 formatAvatarUrl(user.getProfilePictureUrl())
         );
@@ -178,4 +178,31 @@ public class ProfileService {
         return avatarStorageService.publicUrl(urlOrKey);
     }
 
+    private String resolveUsername(UserEntity user) {
+        String sub = user.getKeycloakSub();
+
+        if (sub == null || sub.isBlank()) {
+            log.warn(
+                    "Hiányzó Keycloak-azonosító a követési listában. userId={}",
+                    user.getId()
+            );
+            return "Nem elérhető felhasználó";
+        }
+
+        try {
+            return keycloakAdminService.getUsername(sub);
+        } catch (ResponseStatusException exception) {
+            if (exception.getStatusCode().value() != 404) {
+                throw exception;
+            }
+
+            log.warn(
+                    "Keycloak-felhasználó lekérdezése 404-et adott. userId={}, sub={}",
+                    user.getId(),
+                    sub
+            );
+
+            return "Nem elérhető felhasználó";
+        }
+    }
 }

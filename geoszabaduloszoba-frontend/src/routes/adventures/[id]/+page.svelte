@@ -369,21 +369,27 @@
 						</p>
 					</div>
 
-				<div class="flex justify-between items-center bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
-					<div>
-						<h2 class="label-city mb-1">Nehézség</h2>
-						<p class="font-black {getDifficultyColor(adventure.difficulty)} uppercase tracking-tighter">{adventure.difficulty}</p>
-					</div>
-					<div class="text-right">
-						<h2 class="label-city mb-1">Készítő</h2>
-						<div class="flex items-center gap-2 justify-end">
-							<a
-								href="/profile/user/{adventure.creatorName}"
-								class="font-bold text-[#8D7462] hover:underline"
-							>
-								{adventure.creatorName}
-							</a>
-							<UserCircleSolid class="w-6 h-6 text-[#8D7462]/40" />
+					<div class="grid grid-cols-2 gap-4 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
+						<div class="min-w-0">
+							<h2 class="label-city mb-1">Nehézség</h2>
+							<p class="font-black {getDifficultyColor(adventure.difficulty)} uppercase tracking-tighter break-words">
+								{adventure.difficulty}
+							</p>
+						</div>
+
+						<div class="min-w-0 text-right">
+							<h2 class="label-city mb-1">Készítő</h2>
+
+							<div class="flex items-start justify-end gap-2 min-w-0">
+								<a
+									href={`/profile/user/${encodeURIComponent(adventure.creatorName ?? '')}`}
+									class="min-w-0 font-bold text-[#8D7462] hover:underline [overflow-wrap:anywhere]"
+								>
+									{adventure.creatorName || 'Ismeretlen'}
+								</a>
+
+								<UserCircleSolid class="w-6 h-6 shrink-0 text-[#8D7462]/40" />
+							</div>
 						</div>
 					</div>
 				</div>

@@ -599,7 +599,7 @@
 		{#if isRiddleOpen}
 			<div class="absolute inset-0 z-[500] bg-[#775D4D]/90 backdrop-blur-sm flex items-center justify-center p-6 text-center">
 				<div class="bg-[#F5F2EA] p-8 rounded-3xl shadow-2xl border-t-8 border-[#775D4D] max-w-xs">
-					<h3 class="text-[#775D4D] font-black uppercase tracking-widest mb-4 text-xs">{currentTarget()?.seqNumber}. állomás – Aktuális rejtvény</h3>
+					<h3 class="text-[#775D4D] font-black uppercase tracking-widest mb-4 text-xs">{currentTarget()?.seqNumber}. állomás – Rejtvény</h3>
 					<p class="text-gray-800 italic font-medium">{currentTarget()?.content?.riddle || "Keresd az állomást!"}</p>
 					<button onclick={() => isRiddleOpen = false} class="mt-6 bg-[#775D4D] text-white px-6 py-2 rounded-full font-bold text-xs uppercase">Bezárás</button>
 				</div>

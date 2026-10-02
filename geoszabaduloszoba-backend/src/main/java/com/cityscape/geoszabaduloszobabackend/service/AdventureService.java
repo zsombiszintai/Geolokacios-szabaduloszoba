@@ -31,6 +31,8 @@ public class AdventureService{
     private final ReviewRepository reviewRepository;
     private final ObjectMapper objectMapper;
     private final KeycloakAdminService keycloakAdminService;
+    private final UserRepository userRepository;
+    private final AvatarStorageService avatarStorageService;
 
     public List<AbandonedAdventureDTO> getAllAbandonedByUser(String sub) {
 
@@ -144,6 +146,8 @@ public class AdventureService{
                 .map(stationService::convertToDTO)
                 .toList();
 
+        UserEntity creator = adv.getCreator();
+
         AdventureProfileDTO dto = new AdventureProfileDTO();
         dto.setId(adv.getId());
         dto.setTitle(adv.getTitle());
@@ -151,9 +155,10 @@ public class AdventureService{
         dto.setAverageTime(formatTime(adv.getAverageTimeInSeconds()));
         dto.setDistanceInMeters(adv.getTotalDistance());
         dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
-        dto.setCreatorName(resolveCreatorName(adv.getCreator()));;
+        dto.setCreatorName(resolveCreatorName(creator));
         dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);
         dto.setHasStartingPoint(containsStartingPoint(stationEntities));
+        dto.setCreatorProfilePictureUrl(formatAvatarUrl(creator != null ? creator.getProfilePictureUrl() : null));
 
         List<ReviewDTO> reviews = reviewRepository.findByAdventureId(id).stream()
                 .map(r -> new ReviewDTO(
@@ -375,7 +380,6 @@ public class AdventureService{
             Double latitude = station.getLatitude();
             Double longitude = station.getLongitude();
 
-            // Piszkozatban a rejtvényes állomás helye még hiányozhat.
             boolean missingLocationAllowed =
                     draft && station.getSeqNumber() > 0;
 
@@ -510,5 +514,20 @@ public class AdventureService{
         return sb.toString().trim();
     }
 
+    private String formatAvatarUrl(String urlOrKey) {
+        if (urlOrKey == null
+                || urlOrKey.isBlank()
+                || "/images/default-avatar.png".equals(urlOrKey)
+                || "images/default-avatar.png".equals(urlOrKey)) {
+            return null;
+        }
+
+        if (urlOrKey.startsWith("https://")
+                || urlOrKey.startsWith("http://")) {
+            return urlOrKey;
+        }
+
+        return avatarStorageService.publicUrl(urlOrKey);
+    }
 
 }

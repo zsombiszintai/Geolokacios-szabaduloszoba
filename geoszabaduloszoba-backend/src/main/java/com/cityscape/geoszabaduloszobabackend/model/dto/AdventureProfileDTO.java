@@ -13,6 +13,7 @@ public class AdventureProfileDTO {
     private Double distanceInMeters;
     private String difficulty;
     private String creatorName;
+    private String creatorProfilePictureUrl;
 
     private Double averageRating;
     private List<Integer> ratingDistribution;

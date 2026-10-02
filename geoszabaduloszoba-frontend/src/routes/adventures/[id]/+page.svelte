@@ -353,12 +353,14 @@
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
-					<div class="bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
+					<div class="min-w-0 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
 						<h2 class="label-city mb-1">Időtartam</h2>
-						<p class="font-bold text-[#2F5D50]">{adventure.averageTime}</p>
+						<p class="font-bold text-[#2F5D50]">
+							{adventure.averageTime}
+						</p>
 					</div>
 
-					<div class="bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
+					<div class="min-w-0 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
 						<h2 class="label-city mb-1">Kaland hossza</h2>
 						<p class="font-bold text-[#2F5D50]">
 							{adventure.distanceInMeters == null
@@ -369,27 +371,42 @@
 						</p>
 					</div>
 
-					<div class="grid grid-cols-2 gap-4 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
-						<div class="min-w-0">
-							<h2 class="label-city mb-1">Nehézség</h2>
-							<p class="font-black {getDifficultyColor(adventure.difficulty)} uppercase tracking-tighter break-words">
-								{adventure.difficulty}
-							</p>
-						</div>
+					<div class="min-w-0 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
+						<h2 class="label-city mb-1">Nehézség</h2>
+						<p class="font-black {getDifficultyColor(adventure.difficulty)} uppercase tracking-tighter break-words">
+							{adventure.difficulty}
+						</p>
+					</div>
 
-						<div class="min-w-0 text-right">
-							<h2 class="label-city mb-1">Készítő</h2>
+					<div class="min-w-0 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
+						<h2 class="label-city mb-1">Készítő</h2>
 
-							<div class="flex items-start justify-end gap-2 min-w-0">
+						<div class="flex items-center gap-2 min-w-0">
+							<img
+								src={adventure.creatorProfilePictureUrl || '/images/default-avatar.png'}
+								alt="A készítő profilképe"
+								class="w-8 h-8 shrink-0 rounded-full object-cover border border-[#2F5D50]/10"
+								onerror={(event) => {
+									const image = event.currentTarget;
+
+									if (image.getAttribute('src') !== '/images/default-avatar.png') {
+										image.src = '/images/default-avatar.png';
+									}
+								}}
+							/>
+
+							{#if adventure.creatorName && adventure.creatorName !== 'Ismeretlen'}
 								<a
-									href={`/profile/user/${encodeURIComponent(adventure.creatorName ?? '')}`}
+									href={`/profile/user/${encodeURIComponent(adventure.creatorName)}`}
 									class="min-w-0 font-bold text-[#8D7462] hover:underline [overflow-wrap:anywhere]"
 								>
-									{adventure.creatorName || 'Ismeretlen'}
+									{adventure.creatorName}
 								</a>
-
-								<UserCircleSolid class="w-6 h-6 shrink-0 text-[#8D7462]/40" />
-							</div>
+							{:else}
+								<span class="min-w-0 font-bold text-[#8D7462] [overflow-wrap:anywhere]">
+									Ismeretlen
+								</span>
+							{/if}
 						</div>
 					</div>
 				</div>

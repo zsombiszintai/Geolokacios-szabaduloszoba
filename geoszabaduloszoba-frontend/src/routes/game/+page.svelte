@@ -138,6 +138,8 @@
 
 		const finalPoints = accumulatedPoints + earnedPoints;
 
+		await progressSaveQueue;
+
 		try {
 			const res = await fetch(
 				'https://api.zsomborszintai.com/api/game/finish',
@@ -156,7 +158,6 @@
 					})
 				}
 			);
-			await progressSaveQueue;
 
 			if (!res.ok) {
 				throw new Error(`A befejezés mentése sikertelen (HTTP ${res.status}).`);
@@ -388,6 +389,15 @@
 				const saved = await sessionResponse.json();
 				if (disposed) return;
 
+				console.log('Betöltött játékmenet:', {
+					requestedSessionId: activeSessionId,
+					returnedSessionId: saved.sessionId,
+					adventureId: saved.adventureId,
+					lastStationId: saved.lastStationId,
+					elapsedSec: saved.elapsedSec,
+					points: saved.points
+				});
+
 				if (saved.completed) {
 					throw new Error('Ezt a játékmenetet már befejezted.');
 				}
@@ -434,6 +444,12 @@
 				adventureTitle = data.title;
 				allStations = stations;
 				lastStationId = savedStation.id;
+
+				console.log('Kiválasztott állomás:', {
+					id: savedStation.id,
+					seqNumber: savedStation.seqNumber,
+					riddle: savedStation.content?.riddle
+				});
 
 				elapsedSec = saved.elapsedSec ?? 0;
 				accumulatedPoints = saved.points ?? 0;
@@ -583,7 +599,7 @@
 		{#if isRiddleOpen}
 			<div class="absolute inset-0 z-[500] bg-[#775D4D]/90 backdrop-blur-sm flex items-center justify-center p-6 text-center">
 				<div class="bg-[#F5F2EA] p-8 rounded-3xl shadow-2xl border-t-8 border-[#775D4D] max-w-xs">
-					<h3 class="text-[#775D4D] font-black uppercase tracking-widest mb-4 text-xs">Aktuális Rejtvény</h3>
+					<h3 class="text-[#775D4D] font-black uppercase tracking-widest mb-4 text-xs">{currentTarget()?.seqNumber}. állomás – Aktuális rejtvény</h3>
 					<p class="text-gray-800 italic font-medium">{currentTarget()?.content?.riddle || "Keresd az állomást!"}</p>
 					<button onclick={() => isRiddleOpen = false} class="mt-6 bg-[#775D4D] text-white px-6 py-2 rounded-full font-bold text-xs uppercase">Bezárás</button>
 				</div>

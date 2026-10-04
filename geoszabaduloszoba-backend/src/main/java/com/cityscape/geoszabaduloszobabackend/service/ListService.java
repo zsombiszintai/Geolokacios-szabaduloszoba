@@ -2,6 +2,8 @@ package com.cityscape.geoszabaduloszobabackend.service;
 
 
 import com.cityscape.geoszabaduloszobabackend.api.ListAPI;
+import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureListDTO;
+import com.cityscape.geoszabaduloszobabackend.model.dto.ListDetailsDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.ListEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
@@ -10,7 +12,9 @@ import com.cityscape.geoszabaduloszobabackend.repository.ListRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -104,6 +108,32 @@ public class ListService {
                 list.getAdventures().stream()
                         .map(AdventureEntity::getId)
                         .collect(Collectors.toList())
+        );
+    }
+
+    @Transactional
+    public ListDetailsDTO getListDetails(Long listId) {
+        ListEntity list = listRepository.findById(listId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "A lista nem található."
+                ));
+
+        List<AdventureListDTO> adventures = list.getAdventures()
+                .stream()
+                .map(adventure -> new AdventureListDTO(
+                        adventure.getId(),
+                        adventure.getTitle(),
+                        adventure.getDescription(),
+                        adventure.getDifficulty()
+                ))
+                .toList();
+
+        return new ListDetailsDTO(
+                list.getId(),
+                list.getTitle(),
+                list.getDescription(),
+                adventures
         );
     }
 }

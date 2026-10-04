@@ -1,5 +1,6 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
+import com.cityscape.geoszabaduloszobabackend.model.dto.ListDetailsDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.ListEntity;
 import com.cityscape.geoszabaduloszobabackend.service.ListService;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,13 @@ public class ListAPI {
     @GetMapping("/{listId}")
     public ListAPI.ListDTO getListById(@PathVariable Long listId, @AuthenticationPrincipal Jwt jwt) {
         return listService.getListForEditing(listId, jwt.getSubject());
+    }
+
+    @GetMapping("/{listId}/details")
+    public ListDetailsDTO getListDetails(
+            @PathVariable("listId") Long listId
+    ) {
+        return listService.getListDetails(listId);
     }
 
     public record ListDTO(Long id, String title, String description, List<Long> adventureIds) {}

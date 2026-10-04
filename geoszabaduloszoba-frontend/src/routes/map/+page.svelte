@@ -21,17 +21,25 @@
 
 	function handleSearch(e?: Event) {
 		e?.preventDefault();
-		if (!searchQuery.trim()) {
+
+		const query = searchQuery.trim();
+
+		if (!query) {
 			isExpanded = false;
 			return;
 		}
-		if (searchType === "user") {
-			goto(`/profile/user/${searchQuery}`);
-		} else if (searchType === "adventure") {
-			goto(`/adventures?search=${searchQuery}`);
-		}else {
-			goto(`/list/${searchQuery}`);
+
+		if (searchType === 'list') {
+			isExpanded = true;
+			return;
 		}
+
+		if (searchType === 'user') {
+			void goto(`/profile/user/${encodeURIComponent(query)}`);
+			return;
+		}
+
+		void goto(`/adventures?search=${encodeURIComponent(query)}`);
 	}
 
 	async function performSearch(
@@ -86,14 +94,33 @@
 	}
 
 	function handleResultClick(res: any) {
-		if (searchType === 'user' || res.type === 'USER') {
-			goto(`/profile/user/${res.title}`);
-		} else {
-			if (map && res.advLat && res.advLon) {
-				map.setView([res.advLat, res.advLon], 16);
+		const resultType = String(res.type || searchType).toUpperCase();
+
+		if (resultType === 'USER') {
+			void goto(`/profile/user/${encodeURIComponent(res.title)}`);
+			return;
+		}
+
+		if (resultType === 'LIST') {
+			void goto(`/list/${encodeURIComponent(String(res.id))}`);
+			return;
+		}
+
+		if (resultType === 'ADVENTURE') {
+			const lat = res.lat;
+			const lon = res.lon;
+
+			if (
+				map &&
+				typeof lat === 'number' &&
+				typeof lon === 'number' &&
+				Number.isFinite(lat) &&
+				Number.isFinite(lon)
+			) {
+				map.setView([lat, lon], 16);
 				isExpanded = false;
 			} else {
-				goto(`/adventures/${res.id}`);
+				void goto(`/adventures/${res.id}`);
 			}
 		}
 	}

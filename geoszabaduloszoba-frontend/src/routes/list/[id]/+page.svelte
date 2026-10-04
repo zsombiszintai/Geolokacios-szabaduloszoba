@@ -155,6 +155,9 @@
 
 			{#if list.description}
 				<section class="bg-white/60 p-4 rounded-3xl mb-8 border border-[#2F5D50]/5">
+					<h2 class="text-[10px] font-black uppercase tracking-widest text-[#8D7462] mb-2">
+						Leírás
+					</h2>
 					<p class="text-[#2F5D50] leading-relaxed whitespace-pre-line break-words">
 						{list.description}
 					</p>

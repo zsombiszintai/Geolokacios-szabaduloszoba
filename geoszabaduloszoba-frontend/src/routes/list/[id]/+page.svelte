@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { auth } from '$lib/auth.svelte.js';
 	import { page } from '$app/state';
-	import { ChevronRightOutline } from 'flowbite-svelte-icons';
+	import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
 
 	type AdventureSummary = {
 		id: number;
@@ -108,13 +108,13 @@
 
 <main class="min-h-screen bg-[#F5F2EA] font-josefin px-6 pt-6 pb-24">
 	<div class="max-w-md mx-auto">
-		<a
-			href="/map"
-			class="inline-flex items-center gap-2 mb-8 text-[#8D7462] font-black text-xs uppercase tracking-widest"
+		<button
+			class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8 w-fit"
+			onclick={() => window.history.back()}
 		>
-			<span aria-hidden="true">←</span>
-			Vissza a térképre
-		</a>
+			<ChevronLeftOutline class="w-5 h-5 transition-transform group-hover:-translate-x-1" />
+			<span class="font-bold">Vissza</span>
+		</button>
 
 		{#if loading}
 			<div class="flex flex-col items-center justify-center py-24 gap-4">
@@ -154,11 +154,7 @@
 			</header>
 
 			{#if list.description}
-				<section class="bg-white/60 p-6 rounded-3xl mb-8 border border-[#2F5D50]/5">
-					<h2 class="text-[10px] font-black uppercase tracking-widest text-[#8D7462] mb-3">
-						A listáról
-					</h2>
-
+				<section class="bg-white/60 p-4 rounded-3xl mb-8 border border-[#2F5D50]/5">
 					<p class="text-[#2F5D50] leading-relaxed whitespace-pre-line break-words">
 						{list.description}
 					</p>
@@ -210,10 +206,6 @@
 										{adventure.description}
 									</p>
 								{/if}
-
-								<span class="block mt-5 text-[10px] font-black uppercase tracking-widest text-[#8D7462]">
-                  Kaland megnyitása →
-                </span>
 							</a>
 						{/each}
 					</div>

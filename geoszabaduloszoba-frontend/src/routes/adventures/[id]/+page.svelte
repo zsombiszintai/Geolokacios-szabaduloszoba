@@ -253,6 +253,10 @@
 	});
 </script>
 
+	<svelte:head>
+		<title>{adventure?.title || 'Kaland'} | CityScape</title>
+	</svelte:head>
+
 {#if adventure}
 	<main class="flex flex-col min-h-screen bg-[#F5F2EA] font-josefin p-6 pt-6 pb-6">
 

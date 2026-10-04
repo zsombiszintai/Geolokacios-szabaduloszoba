@@ -37,7 +37,7 @@
 </script>
 
 <svelte:head>
-    <link rel="icon" href="{favicon}" />
+    <title>CityScape</title>
 </svelte:head>
 
 {#if auth.loading}

@@ -5,11 +5,21 @@
 	import { page } from '$app/state';
 	import { TrashBinOutline, PenOutline } from 'flowbite-svelte-icons';
 
+	interface AiModerationResponse {
+		isProfane: boolean;
+		isSolvable: boolean;
+		profanityDetails: string | null;
+		solvabilityDetails: string | null;
+		overallApproved: boolean;
+		reason: string | null;
+	}
+
 	interface Adventure {
 		id: number;
 		title: string;
 		createdAt: string;
-		status: 'PUBLISHED' | 'DRAFT' | 'PENDING';
+		status: 'PUBLIC' | 'DRAFT' | 'PENDING' | 'REJECTED';
+		aiModeration?: AiModerationResponse | null;
 	}
 
 	interface AdventureList {
@@ -18,6 +28,9 @@
 		description: string;
 		adventureIds: number[];
 	}
+
+	let moderationDialog: HTMLDialogElement;
+	let selectedAdventure = $state<Adventure | null>(null);
 
 	let activeTab = $state<'adventures' | 'lists'>('adventures');
 	let adventures = $state<Adventure[]>([]);
@@ -28,6 +41,26 @@
 
 	let showDeleteModal = $state(false);
 	let itemToDelete = $state<{id: number, type: 'adventure' | 'list'} | null>(null);
+
+	function openModeration(adventure: Adventure) {
+		selectedAdventure = adventure;
+		moderationDialog.showModal();
+	}
+
+	function closeModeration() {
+		moderationDialog.close();
+	}
+
+	$effect(() => {
+		if (!selectedAdventure) return;
+
+		const previousOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+
+		return () => {
+			document.body.style.overflow = previousOverflow;
+		};
+	});
 
 	async function loadData() {
 		loading = true;
@@ -162,12 +195,10 @@
 			</button>
 
 			<h2 class="label-city mb-4">Létrehozott kalandjaid</h2>
-			<header class="grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] px-4 mb-2 text-[10px] font-bold text-gray-500 uppercase border-b border-gray-200 pb-2">
-				<span>Név</span>
+			<header class="grid grid-cols-[minmax(0,1fr)_44px_132px] items-center gap-2 px-4 mb-2 text-[10px] font-bold text-gray-500 uppercase border-b border-gray-200 pb-2">
+				<span>Név / dátum</span>
 				<span class="text-center">Állapot</span>
-				<span class="text-center">Dátum</span>
-				<span class="text-right">Szerk.</span>
-				<span class="text-right">Törlés</span>
+				<span class="text-right">Műveletek</span>
 			</header>
 
 			<div class="space-y-3">
@@ -177,15 +208,70 @@
 					<p class="text-center py-10 italic opacity-50">Nincs talált kaland.</p>
 				{:else}
 					{#each filteredAdventures as adventure}
-						<article class="bg-city-brown/90 p-4 rounded-2xl shadow-sm border border-[#2F5D50]/5 grid grid-cols-[2fr_1fr_1.5fr_0.5fr_0.5fr] items-center">
-							<span class="font-bold truncate text-city-cream">{adventure.title}</span>
-							<div class="flex justify-center">
-								<div class="w-3 h-3 rounded-full {statusColors[adventure.status] || 'bg-gray-400'}" title={adventure.status}></div>
-							</div>
-							<span class="text-[10px] text-center text-city-cream">{new Date(adventure.createdAt).toLocaleDateString('hu-HU')}</span>
-							<button onclick={() => goto(`/adventures/edit/${adventure.id}`)} class="flex justify-end text-city-cream hover:text-[#2F5D50]"><PenOutline class=" w-6 h-6"/></button>
-							<button onclick={() => confirmDelete(adventure.id, 'adventure')} class="flex justify-end text-red-400 hover:text-red-600"><TrashBinOutline class=" w-6 h-6 "/></button>
-						</article>
+						<article class="bg-city-brown/90 p-4 rounded-2xl shadow-sm border border-[#2F5D50]/5 grid grid-cols-[minmax(0,1fr)_44px_132px] items-center gap-2">
+						<div class="min-w-0">
+							<p class="font-bold truncate text-city-cream" title={adventure.title}>
+								{adventure.title}
+							</p>
+							<p class="mt-1 text-[10px] text-city-cream/70">
+								{new Date(adventure.createdAt).toLocaleDateString('hu-HU')}
+							</p>
+						</div>
+						<div class="flex justify-center">
+						<span
+							class="w-3 h-3 rounded-full {statusColors[adventure.status] || 'bg-gray-400'}"
+							title={adventure.status}
+						>
+							<span class="sr-only">{adventure.status}</span>
+						</span>
+						</div>
+
+						<div class="flex items-center justify-end">
+							{#if adventure.status === 'REJECTED'}
+								<button
+									type="button"
+									onclick={() => openModeration(adventure)}
+									class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-amber-300 hover:bg-white/10 active:scale-95"
+									aria-label={`${adventure.title}: elutasítás részletei`}
+									title="Miért lett elutasítva?"
+								>
+									<svg
+										width="24"
+										height="24"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										aria-hidden="true"
+									>
+										<path d="M10.3 4.1 2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 4.1a2 2 0 0 0-3.4 0Z" />
+										<path d="M12 9v4" />
+										<path d="M12 17h.01" />
+									</svg>
+								</button>
+							{/if}
+
+							<button
+								type="button"
+								onclick={() => goto(`/adventures/edit/${adventure.id}`)}
+								class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-city-cream hover:bg-white/10 active:scale-95"
+								aria-label="Kaland szerkesztése"
+							>
+								<PenOutline class="w-6 h-6" />
+							</button>
+
+							<button
+								type="button"
+								onclick={() => confirmDelete(adventure.id, 'adventure')}
+								class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-red-400 hover:bg-white/10 active:scale-95"
+								aria-label="Kaland törlése"
+							>
+								<TrashBinOutline class="w-6 h-6" />
+							</button>
+						</div>
+					</article>
 					{/each}
 				{/if}
 			</div>
@@ -263,8 +349,134 @@
 
 </main>
 
+<dialog
+	bind:this={moderationDialog}
+	onclose={() => selectedAdventure = null}
+	aria-labelledby="moderation-title"
+	class="moderation-dialog"
+>
+	{#if selectedAdventure}
+		{@const moderation = selectedAdventure.aiModeration}
+
+		<div class="p-6">
+			<div class="flex items-start justify-between gap-4">
+				<div class="min-w-0">
+					<p class="text-[10px] font-black uppercase tracking-widest text-[#8D7462] mb-2">
+						Automatikus ellenőrzés
+					</p>
+
+					<h2
+						id="moderation-title"
+						class="text-xl font-black text-[#2F5D50]"
+					>
+						Elutasítás részletei
+					</h2>
+
+					<p class="mt-2 text-sm text-[#8D7462] break-words">
+						{selectedAdventure.title}
+					</p>
+				</div>
+
+				<button
+					type="button"
+					onclick={closeModeration}
+					class="w-11 h-11 shrink-0 rounded-xl bg-[#8D7462]/10 text-[#2F5D50] text-xl"
+					aria-label="Ablak bezárása"
+				>
+					×
+				</button>
+			</div>
+
+			{#if moderation}
+				<div class="mt-6 rounded-2xl bg-red-50 border border-red-200 p-4">
+					<h3 class="text-sm font-black text-red-800 mb-2">
+						Indoklás
+					</h3>
+
+					<p class="text-sm text-red-900 leading-relaxed whitespace-pre-line break-words">
+						{moderation.reason || 'Az ellenőrzés nem adott meg külön indoklást.'}
+					</p>
+				</div>
+
+				<dl class="mt-5 space-y-4 text-sm">
+					<div>
+						<dt class="font-bold text-[#2F5D50]">
+							Sértő tartalom jelzése
+						</dt>
+						<dd class="mt-1 text-[#8D7462]">
+							{moderation.isProfane ? 'Igen' : 'Nem'}
+						</dd>
+
+						{#if moderation.profanityDetails}
+							<dd class="mt-2 text-[#2F5D50] whitespace-pre-line break-words">
+								{moderation.profanityDetails}
+							</dd>
+						{/if}
+					</div>
+
+					<div class="border-t border-[#8D7462]/20 pt-4">
+						<dt class="font-bold text-[#2F5D50]">
+							Megoldhatónak értékelve
+						</dt>
+						<dd class="mt-1 text-[#8D7462]">
+							{moderation.isSolvable ? 'Igen' : 'Nem'}
+						</dd>
+
+						{#if moderation.solvabilityDetails}
+							<dd class="mt-2 text-[#2F5D50] whitespace-pre-line break-words">
+								{moderation.solvabilityDetails}
+							</dd>
+						{/if}
+					</div>
+
+					<div class="border-t border-[#8D7462]/20 pt-4">
+						<dt class="font-bold text-[#2F5D50]">
+							Automatikus jóváhagyás
+						</dt>
+						<dd class="mt-1 text-[#8D7462]">
+							{moderation.overallApproved ? 'Jóváhagyva' : 'Nem jóváhagyott'}
+						</dd>
+					</div>
+				</dl>
+			{:else}
+				<p class="mt-6 rounded-2xl bg-[#8D7462]/10 p-4 text-sm text-[#2F5D50] leading-relaxed">
+					Ehhez a kalandhoz még nincs eltárolt részletes ellenőrzési eredmény.
+				</p>
+			{/if}
+
+			<button
+				type="button"
+				onclick={closeModeration}
+				class="mt-6 w-full rounded-xl bg-[#2F5D50] text-white py-3 font-bold active:scale-[0.98]"
+			>
+				Bezárás
+			</button>
+		</div>
+	{/if}
+</dialog>
+
 <style>
     .label-city {
         @apply text-[10px] font-black uppercase tracking-widest text-[#2F5D50] opacity-40;
+    }
+    .moderation-dialog {
+        position: fixed;
+        inset: 0;
+        margin: auto;
+        width: calc(100% - 2rem);
+        max-width: 28rem;
+        max-height: 85dvh;
+        padding: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border: 2px solid #8d7462;
+        border-radius: 1.5rem;
+        background: #f5f2ea;
+        box-shadow: 0 24px 70px rgb(0 0 0 / 30%);
+    }
+
+    .moderation-dialog::backdrop {
+        background: rgb(0 0 0 / 60%);
+        backdrop-filter: blur(4px);
     }
 </style>

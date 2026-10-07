@@ -7,6 +7,7 @@ import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
 import com.cityscape.geoszabaduloszobabackend.repository.AdventureRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.ModerationResponseRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.StationRepository;
+import com.cityscape.geoszabaduloszobabackend.service.AdventureService;
 import com.cityscape.geoszabaduloszobabackend.service.AiModerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class AdventureModerationScheduler {
     private final StationRepository stationRepository;
     private final AiModerationService moderationService;
     private final ModerationResponseRepository moderationResponseRepository;
+    private final AdventureService adventureService;
 
     private static final double MAX_STATION_DISTANCE_KM = 5.0;
 
@@ -52,7 +54,10 @@ public class AdventureModerationScheduler {
                     continue;
                 }
 
-                AiModerationResponse aiResponse = moderationService.evaluateTextWithAi(adventure, stations);
+                AiModerationResponse aiResponse =
+                        moderationService.evaluateTextWithAi(adventure, stations);
+
+                adventureService.saveModeration(adventure.getId(), aiResponse);
 
                 if (!aiResponse.isOverallApproved()) {
                     adventure.setStatus("REJECTED");

@@ -3,6 +3,7 @@ package com.cityscape.geoszabaduloszobabackend.service;
 import com.cityscape.geoszabaduloszobabackend.model.dto.*;
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
+import com.cityscape.geoszabaduloszobabackend.model.entity.AiModerationResponseEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.repository.*;
@@ -14,10 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,8 +30,34 @@ public class AdventureService{
     private final ReviewRepository reviewRepository;
     private final ObjectMapper objectMapper;
     private final KeycloakAdminService keycloakAdminService;
-    private final UserRepository userRepository;
     private final AvatarStorageService avatarStorageService;
+    private final AiModerationResponseRepository moderationRepository;
+
+
+    @Transactional
+    public void saveModeration(
+            Long adventureId,
+            AiModerationResponse result
+    ) {
+        AdventureEntity adventure = adventureRepository.findById(adventureId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Kaland nem található."
+                ));
+
+        AiModerationResponseEntity entity =
+                new AiModerationResponseEntity();
+
+        entity.setAdventure(adventure);
+        entity.setProfane(result.isProfane());
+        entity.setSolvable(result.isSolvable());
+        entity.setProfanityDetails(result.getProfanityDetails());
+        entity.setSolvabilityDetails(result.getSolvabilityDetails());
+        entity.setOverallApproved(result.isOverallApproved());
+        entity.setReason(result.getReason());
+
+        moderationRepository.save(entity);
+    }
 
     public List<AbandonedAdventureDTO> getAllAbandonedByUser(String sub) {
 
@@ -57,13 +82,34 @@ public class AdventureService{
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<AdventureCreatedDTO> getAdventuresByUser(UserEntity creator) {
-        return adventureRepository.findAllByCreator(creator).stream()
-                .map(entity -> new AdventureCreatedDTO(
-                        entity.getId(),
-                        entity.getTitle(),
-                        entity.getCreatedAt(),
-                        entity.getStatus()
+        List<AdventureEntity> adventures =
+                adventureRepository.findAllByCreator(creator);
+
+        if (adventures.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> adventureIds = adventures.stream()
+                .map(AdventureEntity::getId)
+                .toList();
+
+        Map<Long, AiModerationResponse> moderationByAdventure =
+                moderationRepository.findLatestByAdventureIds(adventureIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                moderation -> moderation.getAdventure().getId(),
+                                this::toModerationDTO
+                        ));
+
+        return adventures.stream()
+                .map(adventure -> new AdventureCreatedDTO(
+                        adventure.getId(),
+                        adventure.getTitle(),
+                        adventure.getCreatedAt(),
+                        adventure.getStatus(),
+                        moderationByAdventure.get(adventure.getId())
                 ))
                 .toList();
     }
@@ -214,7 +260,8 @@ public class AdventureService{
         }
 
         stationRepository.deleteByAdventureId(id);
-
+        moderationRepository.deleteByAdventureId(id);
+        moderationRepository.flush();
         adventureRepository.deleteById(id);
     }
 
@@ -327,6 +374,19 @@ public class AdventureService{
     }
 
     /// SEGÉD METÓDUSOK
+
+    private AiModerationResponse toModerationDTO(
+            AiModerationResponseEntity entity
+    ) {
+        return new AiModerationResponse(
+                entity.isProfane(),
+                entity.isSolvable(),
+                entity.getProfanityDetails(),
+                entity.getSolvabilityDetails(),
+                entity.isOverallApproved(),
+                entity.getReason()
+        );
+    }
 
     private List<StationEntity> prepareStations(
             List<StationEntity> stations,

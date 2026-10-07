@@ -231,7 +231,7 @@
 								<button
 									type="button"
 									onclick={() => openModeration(adventure)}
-									class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-amber-300 hover:bg-white/10 active:scale-95"
+									class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-red-600 hover:bg-white/10 active:scale-95"
 									aria-label={`${adventure.title}: elutasítás részletei`}
 									title="Miért lett elutasítva?"
 								>
@@ -265,7 +265,7 @@
 							<button
 								type="button"
 								onclick={() => confirmDelete(adventure.id, 'adventure')}
-								class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-red-400 hover:bg-white/10 active:scale-95"
+								class="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-red-500 hover:bg-white/10 active:scale-95"
 								aria-label="Kaland törlése"
 							>
 								<TrashBinOutline class="w-6 h-6" />
@@ -401,7 +401,7 @@
 				<dl class="mt-5 space-y-4 text-sm">
 					<div>
 						<dt class="font-bold text-[#2F5D50]">
-							Sértő tartalom jelzése
+							Sértő tartalom
 						</dt>
 						<dd class="mt-1 text-[#8D7462]">
 							{moderation.isProfane ? 'Igen' : 'Nem'}

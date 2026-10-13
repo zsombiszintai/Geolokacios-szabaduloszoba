@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte.js';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
@@ -152,7 +153,7 @@
 								<h3 class="font-black text-[#2F5D50] text-xl leading-tight flex-1 mr-4">{item.title}</h3>
 								{#if item.difficulty}
                   <span class="text-[10px] font-black px-2.5 py-1 bg-[#775D4D] text-[#F5F2EA] rounded-lg uppercase tracking-tighter shadow-sm">
-                    {item.difficulty}
+                    {translateDifficulty(item.difficulty)}
                   </span>
 								{/if}
 							</div>

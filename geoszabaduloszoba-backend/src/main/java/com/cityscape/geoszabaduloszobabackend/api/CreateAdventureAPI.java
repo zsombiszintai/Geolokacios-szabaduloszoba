@@ -1,13 +1,12 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
-import com.cityscape.geoszabaduloszobabackend.mapper.AdventureMapper;
+import com.cityscape.geoszabaduloszobabackend.api.mapper.AdventureMapper;
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureCreateDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureCreatedDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
-import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.service.AdventureService;
-import com.cityscape.geoszabaduloszobabackend.service.UserService;
+import com.cityscape.geoszabaduloszobabackend.api.mapper.ApiMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,9 +17,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CreateAdventureAPI {
 
+    private final ApiMapper apiMapper;
+
     private final AdventureService adventureService;
     private final AdventureMapper adventureMapper;
-    private final UserService userService;
 
     @PostMapping
     public Long create(@RequestBody AdventureCreateDTO dto) {
@@ -39,8 +39,7 @@ public class CreateAdventureAPI {
 
     @GetMapping("/created-adventures")
     public List<AdventureCreatedDTO> getMyAdventures() {
-        UserEntity currentUser = userService.getOrCreateCurrentUser();
-        return adventureService.getAdventuresByUser(currentUser);
+        return adventureService.getMyAdventures().stream().map(apiMapper::toDto).toList();
     }
 
     @DeleteMapping("/{id}")
@@ -50,7 +49,7 @@ public class CreateAdventureAPI {
 
     @GetMapping("/{id}")
     public AdventureCreateDTO getForEdit(@PathVariable Long id) {
-        return adventureService.getAdventureForEdit(id);
+        return apiMapper.toDto(adventureService.getAdventureForEdit(id));
     }
 
     @PutMapping("/{id}")

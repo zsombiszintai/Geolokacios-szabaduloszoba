@@ -22,6 +22,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final KeycloakAdminService keycloakAdminService;
 
+    public String getCurrentUserId() {
+        return getJwt().getSubject();
+    }
+
     public UUID getUserUUID() {
         return UUID.fromString(getJwt().getSubject());
     }

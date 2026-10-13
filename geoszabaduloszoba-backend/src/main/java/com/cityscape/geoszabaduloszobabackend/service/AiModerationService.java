@@ -1,6 +1,6 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
-import com.cityscape.geoszabaduloszobabackend.model.dto.AiModerationResponse;
+import com.cityscape.geoszabaduloszobabackend.model.domain.ModerationResult;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,7 +52,7 @@ public class AiModerationService {
         return true;
     }
 
-    public AiModerationResponse evaluateTextWithAi(AdventureEntity adventure, List<StationEntity> stations) {
+    public ModerationResult evaluateTextWithAi(AdventureEntity adventure, List<StationEntity> stations) {
         String title = adventure.getTitle() != null ? adventure.getTitle() : "";
         String description = adventure.getDescription() != null ? adventure.getDescription() : "";
 
@@ -105,10 +105,10 @@ public class AiModerationService {
 
             String cleanedResponse = rawResponse.replaceAll("```json", "").replaceAll("```", "").trim();
 
-            return objectMapper.readValue(cleanedResponse, AiModerationResponse.class);
+            return objectMapper.readValue(cleanedResponse, ModerationResult.class);
         } catch (Exception e) {
             log.error("Hiba történt a JSON válasz feldolgozásakor az AI-tól", e);
-            AiModerationResponse fallback = new AiModerationResponse();
+            ModerationResult fallback = new ModerationResult();
             fallback.setProfane(true);
             fallback.setSolvable(false);
             fallback.setProfanityDetails("Automatikus ellenőrzési hiba.");

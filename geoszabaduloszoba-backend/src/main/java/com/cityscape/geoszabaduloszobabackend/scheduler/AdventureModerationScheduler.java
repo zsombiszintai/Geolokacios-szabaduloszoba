@@ -1,6 +1,6 @@
 package com.cityscape.geoszabaduloszobabackend.scheduler;
 
-import com.cityscape.geoszabaduloszobabackend.model.dto.AiModerationResponse;
+import com.cityscape.geoszabaduloszobabackend.model.domain.ModerationResult;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.ModerationResponseEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
@@ -54,7 +54,7 @@ public class AdventureModerationScheduler {
                     continue;
                 }
 
-                AiModerationResponse aiResponse =
+                ModerationResult aiResponse =
                         moderationService.evaluateTextWithAi(adventure, stations);
 
                 adventureService.saveModeration(adventure.getId(), aiResponse);

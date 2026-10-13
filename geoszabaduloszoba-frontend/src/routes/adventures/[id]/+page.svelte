@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte';
 	import { page } from '$app/state';
 	import {
@@ -378,7 +379,7 @@
 					<div class="min-w-0 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
 						<h2 class="label-city mb-1">Nehézség</h2>
 						<p class="font-black {getDifficultyColor(adventure.difficulty)} uppercase tracking-tighter break-words">
-							{adventure.difficulty}
+							{translateDifficulty(adventure.difficulty)}
 						</p>
 					</div>
 

@@ -1,8 +1,6 @@
-package com.cityscape.geoszabaduloszobabackend.mapper;
+package com.cityscape.geoszabaduloszobabackend.api.mapper;
 
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureCreateDTO;
-import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
-import com.cityscape.geoszabaduloszobabackend.model.dto.StationContent;
 import com.cityscape.geoszabaduloszobabackend.model.dto.StationCreateDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;

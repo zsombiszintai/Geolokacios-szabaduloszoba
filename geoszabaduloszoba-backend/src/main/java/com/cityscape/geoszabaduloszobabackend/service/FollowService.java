@@ -13,12 +13,14 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class FollowService {
+    private final UserService userService;
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
 
     @Transactional
-    public void followUser(String followerSub, Long followedId) {
+    public void followUser(Long followedId) {
+        String followerSub = userService.getCurrentUserId();
         UserEntity follower = userRepository.findByKeycloakSub(followerSub)
                 .orElseThrow(() -> new RuntimeException("Follower not found"));
         UserEntity followed = userRepository.findById(followedId)
@@ -39,7 +41,8 @@ public class FollowService {
     }
 
     @Transactional
-    public void unfollowUser(String followerSub, Long followedId) {
+    public void unfollowUser(Long followedId) {
+        String followerSub = userService.getCurrentUserId();
         UserEntity follower = userRepository.findByKeycloakSub(followerSub)
                 .orElseThrow(() -> new RuntimeException("Follower not found"));
         UserEntity followed = userRepository.findById(followedId)
@@ -48,7 +51,8 @@ public class FollowService {
         followRepository.deleteByFollowerAndFollowed(follower, followed);
     }
 
-    public boolean isFollowing(String followerSub, Long followedId) {
+    public boolean isFollowing(Long followedId) {
+        String followerSub = userService.getCurrentUserId();
         return userRepository.findByKeycloakSub(followerSub)
                 .map(follower -> {
                     UserEntity followed = userRepository.findById(followedId).orElse(null);

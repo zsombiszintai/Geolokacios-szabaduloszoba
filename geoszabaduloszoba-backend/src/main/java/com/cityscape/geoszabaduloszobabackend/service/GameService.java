@@ -1,7 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
 import com.cityscape.geoszabaduloszobabackend.mapper.AbstractMapper;
-import com.cityscape.geoszabaduloszobabackend.model.dto.ActiveGameDTO;
+import com.cityscape.geoszabaduloszobabackend.model.domain.GameUpdate;
 import com.cityscape.geoszabaduloszobabackend.model.entity.*;
 import com.cityscape.geoszabaduloszobabackend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import com.cityscape.geoszabaduloszobabackend.model.dto.GameSessionDTO;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,6 +20,7 @@ import java.time.LocalDateTime;
 @Transactional
 @RequiredArgsConstructor
 public class GameService {
+    private final UserService userService;
 
     private final AbandonedAdventureRepository abandonedRepository;
     private final CompletedAdventureRepository completedRepository;
@@ -30,33 +30,18 @@ public class GameService {
     private final GameServiceMapper gameServiceMapper;
 
     @Transactional(readOnly = true)
-    public GameSessionDTO getSession(Long sessionId, String keycloakSub) {
+    public AbandonedAdventureEntity getSession(Long sessionId) {
+        String sub = userService.getCurrentUserId();
         var session = abandonedRepository.findById(sessionId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "A mentett játékmenet nem található."
-                ));
-
-        if (session.getUser() == null
-                || !keycloakSub.equals(session.getUser().getKeycloakSub())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "Ez a játékmenet nem hozzád tartozik."
-            );
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "A mentett játékmenet nem található."));
+        if (session.getUser() == null || !sub.equals(session.getUser().getKeycloakSub())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ez a játékmenet nem hozzád tartozik.");
         }
-
-        return new GameSessionDTO(
-                session.getId(),
-                session.getAdventure().getId(),
-                session.getLastStationId(),
-                session.getElapsedSec(),
-                session.getDistanceTravelled(),
-                session.getPoints(),
-                session.isCompleted()
-        );
+        return session;
     }
 
-    public void updateActiveGame(ActiveGameDTO dto, String keycloakSub) {
+    public void updateActiveGame(GameUpdate dto) {
+        String keycloakSub = userService.getCurrentUserId();
         var existing = getLockedSession(dto.sessionId(), keycloakSub);
 
         if (existing.isCompleted()) {
@@ -69,7 +54,8 @@ public class GameService {
         abandonedRepository.save(existing);
     }
 
-    public void finishGame(ActiveGameDTO dto, String keycloakSub) {
+    public void finishGame(GameUpdate dto) {
+        String keycloakSub = userService.getCurrentUserId();
         var existing = getLockedSession(dto.sessionId(), keycloakSub);
 
         if (existing.isCompleted()) {
@@ -173,7 +159,8 @@ public class GameService {
         return station;
     }
 
-    public Long startGame(Long adventureId, String keycloakSub) {
+    public Long startGame(Long adventureId) {
+        String keycloakSub = userService.getCurrentUserId();
         var user = userRepository.findByKeycloakSub(keycloakSub)
                 .orElseThrow(() -> new RuntimeException("Felhasználó nem található"));
 
@@ -214,7 +201,7 @@ public class GameService {
                 @Mapping(target = "points", source = "points"),
                 @Mapping(target = "completed", ignore = true)
         })
-        void mergeUpdate(@MappingTarget AbandonedAdventureEntity target, ActiveGameDTO src);
+        void mergeUpdate(@MappingTarget AbandonedAdventureEntity target, GameUpdate src);
 
         @Mappings({
                 @Mapping(target = "id", ignore = true),

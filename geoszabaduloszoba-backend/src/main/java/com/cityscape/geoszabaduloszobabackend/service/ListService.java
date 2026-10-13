@@ -1,9 +1,6 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
 
-import com.cityscape.geoszabaduloszobabackend.api.ListAPI;
-import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureListDTO;
-import com.cityscape.geoszabaduloszobabackend.model.dto.ListDetailsDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.ListEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
@@ -17,17 +14,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ListService {
+    private final UserService userService;
     private final ListRepository listRepository;
     private final UserRepository userRepository;
     private final AdventureRepository adventureRepository;
 
     @Transactional
-    public ListEntity createList(String title, String description, List<Long> adventureIds, String keycloakSub) {
+    public ListEntity createList(String title, String description, List<Long> adventureIds) {
+        String keycloakSub = userService.getCurrentUserId();
         UserEntity creator = userRepository.findByKeycloakSub(keycloakSub)
                 .orElseThrow(() -> new RuntimeException("Felhasználó nem található"));
 
@@ -43,7 +41,8 @@ public class ListService {
     }
 
     @Transactional
-    public void addAdventureToList(Long listId, Long adventureId, String keycloakSub) {
+    public void addAdventureToList(Long listId, Long adventureId) {
+        String keycloakSub = userService.getCurrentUserId();
         ListEntity list = listRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("A lista nem található"));
 
@@ -61,21 +60,13 @@ public class ListService {
     }
 
     @Transactional
-    public List<ListAPI.ListDTO> getMyLists(String sub) {
-        return listRepository.findAllByCreatorKeycloakSub(sub).stream()
-                .map(list -> new ListAPI.ListDTO(
-                        list.getId(),
-                        list.getTitle(),
-                        list.getDescription(),
-                        list.getAdventures().stream()
-                                .map(AdventureEntity::getId)
-                                .collect(Collectors.toList())
-                ))
-                .collect(Collectors.toList());
+    public List<ListEntity> getMyLists() {
+        return listRepository.findAllByCreatorKeycloakSub(userService.getCurrentUserId());
     }
 
     @Transactional
-    public void removeAdventureFromList(Long listId, Long adventureId, String keycloakSub) {
+    public void removeAdventureFromList(Long listId, Long adventureId) {
+        String keycloakSub = userService.getCurrentUserId();
         ListEntity list = listRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("A lista nem található"));
 
@@ -93,47 +84,19 @@ public class ListService {
     }
 
     @Transactional
-    public ListAPI.ListDTO getListForEditing(Long listId, String keycloakSub) {
+    public ListEntity getListForEditing(Long listId) {
+        String sub = userService.getCurrentUserId();
         ListEntity list = listRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("A lista nem található"));
-
-        if (!list.getCreator().getKeycloakSub().equals(keycloakSub)) {
+        if (!list.getCreator().getKeycloakSub().equals(sub)) {
             throw new RuntimeException("Nincs jogosultságod a lista szerkesztéséhez!");
         }
-
-        return new ListAPI.ListDTO(
-                list.getId(),
-                list.getTitle(),
-                list.getDescription(),
-                list.getAdventures().stream()
-                        .map(AdventureEntity::getId)
-                        .collect(Collectors.toList())
-        );
+        return list;
     }
 
     @Transactional
-    public ListDetailsDTO getListDetails(Long listId) {
-        ListEntity list = listRepository.findById(listId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "A lista nem található."
-                ));
-
-        List<AdventureListDTO> adventures = list.getAdventures()
-                .stream()
-                .map(adventure -> new AdventureListDTO(
-                        adventure.getId(),
-                        adventure.getTitle(),
-                        adventure.getDescription(),
-                        adventure.getDifficulty()
-                ))
-                .toList();
-
-        return new ListDetailsDTO(
-                list.getId(),
-                list.getTitle(),
-                list.getDescription(),
-                adventures
-        );
+    public ListEntity getListDetails(Long listId) {
+        return listRepository.findById(listId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "A lista nem található."));
     }
 }

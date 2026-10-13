@@ -4,12 +4,11 @@ import com.cityscape.geoszabaduloszobabackend.model.dto.AbandonedAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.service.AdventureService;
-import com.cityscape.geoszabaduloszobabackend.service.ListService;
+import com.cityscape.geoszabaduloszobabackend.model.dto.PageDTO;
+import com.cityscape.geoszabaduloszobabackend.api.mapper.ApiMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,13 +19,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdventureAPI {
 
+    private final ApiMapper apiMapper;
+
     private final AdventureService adventureService;
 
     @GetMapping("/map")
     public List<NearbyAdventureDTO> getMapData(
             @RequestParam Double lat,
             @RequestParam Double lon) {
-        return adventureService.searchAndMap(null, lat, lon);
+        return adventureService.searchNearby(null, lat, lon).stream().map(apiMapper::toDto).toList();
     }
 
     @GetMapping("/search")
@@ -34,7 +35,7 @@ public class AdventureAPI {
             @RequestParam String query,
             @RequestParam Double lat,
             @RequestParam Double lon) {
-        return adventureService.searchAndMap(query, lat, lon);
+        return adventureService.searchNearby(query, lat, lon).stream().map(apiMapper::toDto).toList();
     }
 
     @GetMapping("/{id}")
@@ -43,12 +44,21 @@ public class AdventureAPI {
             @RequestParam(value = "lat", required = false) Double lat,
             @RequestParam(value = "lon", required = false) Double lon) {
 
-        return adventureService.getDetails(id, lat, lon);
+        return apiMapper.toDto(adventureService.getDetails(id, lat, lon));
     }
 
     @GetMapping("/abandoned-all")
-    public List<AbandonedAdventureDTO> getAllAbandoned(@AuthenticationPrincipal Jwt jwt) {
-        return adventureService.getAllAbandonedByUser(jwt.getSubject());
+    public List<AbandonedAdventureDTO> getAllAbandoned() {
+        return adventureService.getAllAbandonedByUser().stream().map(apiMapper::toDto).toList();
     }
 
+    @GetMapping("/search/page")
+    public PageDTO<NearbyAdventureDTO> searchPage(
+            @RequestParam String query,
+            @RequestParam Double lat,
+            @RequestParam Double lon,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return PageDTO.from(adventureService.searchNearbyPage(query, lat, lon, page, size).map(apiMapper::toDto));
+    }
 }

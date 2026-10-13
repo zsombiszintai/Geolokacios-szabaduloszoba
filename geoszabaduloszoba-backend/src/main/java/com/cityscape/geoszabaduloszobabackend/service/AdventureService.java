@@ -1,17 +1,15 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
-import com.cityscape.geoszabaduloszobabackend.model.dto.*;
-import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
+import com.cityscape.geoszabaduloszobabackend.model.domain.*;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AiModerationResponseEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.repository.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -28,7 +26,6 @@ public class AdventureService{
     private final StationService stationService;
     private final AbandonedAdventureRepository abandonedRepository;
     private final ReviewRepository reviewRepository;
-    private final ObjectMapper objectMapper;
     private final KeycloakAdminService keycloakAdminService;
     private final AvatarStorageService avatarStorageService;
     private final AiModerationResponseRepository moderationRepository;
@@ -37,7 +34,7 @@ public class AdventureService{
     @Transactional
     public void saveModeration(
             Long adventureId,
-            AiModerationResponse result
+            ModerationResult result
     ) {
         AdventureEntity adventure = adventureRepository.findById(adventureId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -59,63 +56,32 @@ public class AdventureService{
         moderationRepository.save(entity);
     }
 
-    public List<AbandonedAdventureDTO> getAllAbandonedByUser(String sub) {
-
+    public List<AbandonedAdventure> getAllAbandonedByUser() {
+        String sub = userService.getCurrentUserId();
         return abandonedRepository.findAllByUserKeycloakSub(sub).stream()
-                .filter(entity -> !entity.isCompleted())
-                .map(entity -> {
-                    Integer seqNum = stationRepository.findById(entity.getLastStationId())
-                            .map(StationEntity::getSeqNumber)
-                            .orElse(1);
-
-                    return new AbandonedAdventureDTO(
-                            entity.getId(),
-                            entity.getAdventure().getId(),
-                            entity.getAdventure().getTitle(),
-                            entity.getLastStationId(),
-                            seqNum,
-                            entity.getElapsedSec(),
-                            entity.getDistanceTravelled(),
-                            entity.getPoints()
-                    );
-                })
+                .filter(session -> !session.isCompleted())
+                .map(session -> new AbandonedAdventure(session,
+                        stationRepository.findById(session.getLastStationId())
+                                .map(StationEntity::getSeqNumber).orElse(1)))
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public List<AdventureCreatedDTO> getAdventuresByUser(UserEntity creator) {
-        List<AdventureEntity> adventures =
-                adventureRepository.findAllByCreator(creator);
-
-        if (adventures.isEmpty()) {
-            return List.of();
-        }
-
-        List<Long> adventureIds = adventures.stream()
-                .map(AdventureEntity::getId)
-                .toList();
-
-        Map<Long, AiModerationResponse> moderationByAdventure =
-                moderationRepository.findLatestByAdventureIds(adventureIds)
-                        .stream()
-                        .collect(Collectors.toMap(
-                                moderation -> moderation.getAdventure().getId(),
-                                this::toModerationDTO
-                        ));
-
+    @Transactional
+    public List<CreatedAdventure> getMyAdventures() {
+        UserEntity creator = userService.getOrCreateCurrentUser();
+        List<AdventureEntity> adventures = adventureRepository.findAllByCreator(creator);
+        if (adventures.isEmpty()) return List.of();
+        List<Long> ids = adventures.stream().map(AdventureEntity::getId).toList();
+        Map<Long, AiModerationResponseEntity> moderationByAdventure = moderationRepository
+                .findLatestByAdventureIds(ids).stream()
+                .collect(Collectors.toMap(value -> value.getAdventure().getId(), value -> value));
         return adventures.stream()
-                .map(adventure -> new AdventureCreatedDTO(
-                        adventure.getId(),
-                        adventure.getTitle(),
-                        adventure.getCreatedAt(),
-                        adventure.getStatus(),
-                        moderationByAdventure.get(adventure.getId())
-                ))
+                .map(adventure -> new CreatedAdventure(adventure, moderationByAdventure.get(adventure.getId())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<NearbyAdventureDTO> searchAndMap(
+    public List<NearbyAdventureResult> searchNearby(
             String query,
             Double uLat,
             Double uLon
@@ -164,7 +130,7 @@ public class AdventureService{
                         );
                     }
 
-                    return new NearbyAdventureDTO(
+                    return new NearbyAdventureResult(
                             adv.getId(),
                             adv.getTitle(),
                             distanceInMeters,
@@ -178,49 +144,14 @@ public class AdventureService{
     }
 
 
-    public AdventureProfileDTO getDetails(Long id, Double uLat, Double uLon) {
-
-        AdventureEntity adv = adventureRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Kaland nem található"
-                ));
-
-        List<StationEntity> stationEntities = stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id);
-
-        List<StationDTO> stationDTOs = stationEntities.stream()
-                .map(stationService::convertToDTO)
-                .toList();
-
-        UserEntity creator = adv.getCreator();
-
-        AdventureProfileDTO dto = new AdventureProfileDTO();
-        dto.setId(adv.getId());
-        dto.setTitle(adv.getTitle());
-        dto.setDescription(adv.getDescription());
-        dto.setAverageTime(formatTime(adv.getAverageTimeInSeconds()));
-        dto.setDistanceInMeters(adv.getTotalDistance());
-        dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().getDisplayName() : "Ismeretlen");
-        dto.setCreatorName(resolveCreatorName(creator));
-        dto.setAverageRating(adv.getAverageRating() != null ? adv.getAverageRating() : 0.0);
-        dto.setHasStartingPoint(containsStartingPoint(stationEntities));
-        dto.setCreatorProfilePictureUrl(formatAvatarUrl(creator != null ? creator.getProfilePictureUrl() : null));
-
-        List<ReviewDTO> reviews = reviewRepository.findByAdventureId(id).stream()
-                .map(r -> new ReviewDTO(
-                        r.getId(),
-                        r.getAdventure().getId(),
-                        r.getAdventure().getTitle(),
-                        r.getRating(),
-                        r.getReviewText(),
-                        r.getReviewedAt()
-                )).toList();
-
-        dto.setReviews(reviews);
-
-        dto.setStations(stationDTOs);
-
-        return dto;
+    public AdventureDetails getDetails(Long id, Double uLat, Double uLon) {
+        AdventureEntity adventure = adventureRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kaland nem található"));
+        UserEntity creator = adventure.getCreator();
+        return new AdventureDetails(adventure,
+                stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id),
+                reviewRepository.findByAdventureId(id), resolveCreatorName(creator),
+                formatAvatarUrl(creator != null ? creator.getProfilePictureUrl() : null));
     }
 
     @Transactional
@@ -265,59 +196,14 @@ public class AdventureService{
         adventureRepository.deleteById(id);
     }
 
-    public AdventureCreateDTO getAdventureForEdit(Long id) {
-
+    public AdventureEdit getAdventureForEdit(Long id) {
         UserEntity currentUser = userService.getOrCreateCurrentUser();
-
-        AdventureEntity adv = adventureRepository.findById(id)
+        AdventureEntity adventure = adventureRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Kaland nem található"));
-
-        if (!adv.getCreator().getId().equals(currentUser.getId())) {
+        if (!adventure.getCreator().getId().equals(currentUser.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nincs jogosultságod a kaland szerkesztéséhez!");
         }
-
-        List<StationEntity> stations = stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id);
-
-        AdventureCreateDTO dto = new AdventureCreateDTO();
-        dto.setTitle(adv.getTitle());
-        dto.setDescription(adv.getDescription());
-        dto.setDifficulty(adv.getDifficulty() != null ? adv.getDifficulty().name() : "EASY");
-        dto.setStatus(adv.getStatus());
-
-        int lastPlayableSequence = stations.stream()
-                .map(StationEntity::getSeqNumber)
-                .filter(Objects::nonNull)
-                .filter(sequence -> sequence > 0)
-                .max(Integer::compareTo)
-                .orElse(-1);
-
-        dto.setHasStartingPoint(containsStartingPoint(stations));
-
-        List<StationCreateDTO> stationDTOs = stations.stream().map(s -> {
-            StationContent content = null;
-            if (s.getContent() != null && !s.getContent().isBlank()) {
-                try {
-                    content = objectMapper.readValue(s.getContent(), StationContent.class);
-                } catch (Exception e) {
-                    throw new RuntimeException("Hiba a StationContent JSON-nal");
-                }
-            }
-
-            boolean isLast = s.getSeqNumber() != null
-                    && s.getSeqNumber() > 0
-                    && s.getSeqNumber() == lastPlayableSequence;
-
-            return new StationCreateDTO(
-                    s.getSeqNumber(),
-                    content,
-                    s.getLatitude(),
-                    s.getLongitude(),
-                    isLast
-            );
-        }).toList();
-
-        dto.setStations(stationDTOs);
-        return dto;
+        return new AdventureEdit(adventure, stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id));
     }
 
     @Transactional
@@ -373,20 +259,25 @@ public class AdventureService{
         return savedAdventure;
     }
 
-    /// SEGÉD METÓDUSOK
 
-    private AiModerationResponse toModerationDTO(
-            AiModerationResponseEntity entity
-    ) {
-        return new AiModerationResponse(
-                entity.isProfane(),
-                entity.isSolvable(),
-                entity.getProfanityDetails(),
-                entity.getSolvabilityDetails(),
-                entity.isOverallApproved(),
-                entity.getReason()
-        );
+    @Transactional(readOnly = true)
+    public Page<NearbyAdventureResult> searchNearbyPage(String query, Double lat, Double lon, int page, int size) {
+        var pageable = SearchPagination.request(page, size);
+        String term = query == null ? "" : query.trim();
+        // Match Spring Data's literal substring semantics for '%' and '_'.
+        term = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        return adventureRepository.searchPublicWithLocation(term, pageable).map(adventure -> {
+            StationEntity station = stationRepository.findByAdventureIdAndSeqNumber(adventure.getId(), 0)
+                    .or(() -> stationRepository.findByAdventureIdAndSeqNumber(adventure.getId(), 1))
+                    .orElseThrow();
+            Integer distance = lat != null && lon != null
+                    ? calculateDistance(lat, lon, station.getLatitude(), station.getLongitude()) : null;
+            return new NearbyAdventureResult(adventure.getId(), adventure.getTitle(), distance,
+                    adventure.getAverageTimeInSeconds(), station.getLongitude(), station.getLatitude());
+        });
     }
+
+    /// SEGÉD METÓDUSOK
 
     private List<StationEntity> prepareStations(
             List<StationEntity> stations,
@@ -548,30 +439,6 @@ public class AdventureService{
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return (int) (R * c);
-    }
-
-    private String formatTime(Integer totalSeconds) {
-        if (totalSeconds == null || totalSeconds == 0) return "0 s";
-
-        long hours = totalSeconds / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        long seconds = totalSeconds % 60;
-
-        StringBuilder sb = new StringBuilder();
-
-        if (hours > 0) {
-            sb.append(hours).append(" h ");
-        }
-
-        if (minutes > 0 || hours > 0) {
-            sb.append(minutes).append(" m ");
-        }
-
-        if (seconds > 0 || (hours == 0 && minutes == 0)) {
-            sb.append(seconds).append(" s");
-        }
-
-        return sb.toString().trim();
     }
 
     private String formatAvatarUrl(String urlOrKey) {

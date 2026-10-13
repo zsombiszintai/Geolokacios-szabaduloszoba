@@ -3,8 +3,8 @@ package com.cityscape.geoszabaduloszobabackend.api;
 import com.cityscape.geoszabaduloszobabackend.model.dto.ActiveGameDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.GameSessionDTO;
 import com.cityscape.geoszabaduloszobabackend.service.GameService;
+import com.cityscape.geoszabaduloszobabackend.api.mapper.ApiMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -12,34 +12,28 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class GameAPI {
     private final GameService gameService;
+    private final ApiMapper apiMapper;
 
     @PostMapping("/update")
     public void updateStatus(
-            @RequestBody ActiveGameDTO dto,
-            JwtAuthenticationToken token
-    ) {
-        gameService.updateActiveGame(dto, token.getName());
+            @RequestBody ActiveGameDTO dto) {
+        gameService.updateActiveGame(apiMapper.toGameUpdate(dto));
     }
 
     @PostMapping("/finish")
     public void finish(
-            @RequestBody ActiveGameDTO dto,
-            JwtAuthenticationToken token
-    ) {
-        gameService.finishGame(dto, token.getName());
+            @RequestBody ActiveGameDTO dto) {
+        gameService.finishGame(apiMapper.toGameUpdate(dto));
     }
 
     @PostMapping("/start/{adventureId}")
-    public Long start(@PathVariable Long adventureId, JwtAuthenticationToken token) {
-        String sub = token.getName();
-        return gameService.startGame(adventureId, sub);
+    public Long start(@PathVariable Long adventureId) {
+        return gameService.startGame(adventureId);
     }
 
     @GetMapping("/session/{sessionId}")
     public GameSessionDTO getSession(
-            @PathVariable("sessionId") Long sessionId,
-            JwtAuthenticationToken token
-    ) {
-        return gameService.getSession(sessionId, token.getName());
+            @PathVariable("sessionId") Long sessionId) {
+        return apiMapper.toDto(gameService.getSession(sessionId));
     }
 }

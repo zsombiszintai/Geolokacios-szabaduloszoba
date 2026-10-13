@@ -1,8 +1,5 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
-import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureListDTO;
-import com.cityscape.geoszabaduloszobabackend.model.dto.ReviewDTO;
-import com.cityscape.geoszabaduloszobabackend.model.dto.UserListDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.ReviewEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
@@ -16,6 +13,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.cityscape.geoszabaduloszobabackend.model.domain.UserSummary;
+import com.cityscape.geoszabaduloszobabackend.model.domain.ReviewedAdventure;
 import java.util.Collections;
 import java.util.List;
 
@@ -32,11 +31,10 @@ public class ProfileService {
     private final FollowRepository followRepository;
     private final AvatarStorageService avatarStorageService;
     private final UserService userService;
-    private final UserRepository userRepository;
     private final KeycloakAdminService keycloakAdminService;
 
     @Transactional
-    public UserAdventureStatistics getMyStats(String keycloakSub) {
+    public UserAdventureStatistics getMyStats() {
         UserEntity currentUser = userService.getOrCreateCurrentUser();
 
         return buildProfile(
@@ -79,11 +77,10 @@ public class ProfileService {
 
     @Transactional(readOnly = true)
     public List<?> getListByType(
-            String currentSub,
             String username,
             String type
     ) {
-        String targetSub = currentSub;
+        String targetSub = userService.getCurrentUserId();
 
         if (username != null && !username.isBlank()) {
             targetSub = keycloakAdminService
@@ -94,70 +91,36 @@ public class ProfileService {
         return switch (type) {
 
             case "completed-adventure" -> completedRepository.findAllByUserKeycloakSub(targetSub).stream()
-                    .map(entity -> mapToDTO(entity.getAdventure()))
+                    .map(entity -> entity.getAdventure())
                     .toList();
 
             case "abandoned-adventure" -> abandonedRepository.findAllByUserKeycloakSub(targetSub).stream()
-                    .map(entity -> mapToDTO(entity.getAdventure()))
+                    .map(entity -> entity.getAdventure())
                     .toList();
 
             case "created" -> adventureRepository.findAllByCreatorKeycloakSub(targetSub).stream()
-                    .map(this::mapToDTO)
                     .toList();
 
             case "rated" -> reviewRepository.findAllByUserKeycloakSubAndRatingIsNotNull(targetSub).stream()
-                    .map(this::mapToRatedDTO)
                     .toList();
 
             case "reviewed" -> reviewRepository.findAllByUserKeycloakSub(targetSub).stream()
-                    .map(this::mapReviewToDTO).toList();
+                    .map(review -> new ReviewedAdventure(review.getAdventure(), review.getReviewText())).toList();
 
             case "followers" -> followRepository.findAllByFollowedKeycloakSub(targetSub).stream()
-                    .map(follow -> mapUserToDTO(follow.getFollower()))
+                    .map(follow -> toUserResult(follow.getFollower()))
                     .toList();
 
             case "following" -> followRepository.findAllByFollowerKeycloakSub(targetSub).stream()
-                    .map(follow -> mapUserToDTO(follow.getFollowed()))
+                    .map(follow -> toUserResult(follow.getFollowed()))
                     .toList();
             default -> Collections.emptyList();
         };
     }
 
 
-    private AdventureListDTO mapToDTO(AdventureEntity adventure) {
-        if (adventure == null) return null;
-
-        return new AdventureListDTO(
-                adventure.getId(),
-                adventure.getTitle(),
-                adventure.getDescription(),
-                adventure.getDifficulty()
-        );
-    }
-
-    private ReviewDTO mapToRatedDTO(ReviewEntity review) {
-        return new ReviewDTO(
-                review.getId(),
-                review.getAdventure().getId(),
-                review.getAdventure().getTitle(),
-                review.getRating(),
-                review.getReviewText(),
-                review.getReviewedAt()
-        );
-    }
-
-    private AdventureListDTO mapReviewToDTO(ReviewEntity review) {
-        AdventureEntity adv = review.getAdventure();
-        return new AdventureListDTO(
-                adv.getId(),
-                adv.getTitle(),
-                review.getReviewText(),
-                adv.getDifficulty()
-        );
-    }
-
-    private UserListDTO mapUserToDTO(UserEntity user) {
-        return new UserListDTO(
+    private UserSummary toUserResult(UserEntity user) {
+        return new UserSummary(
                 user.getId(),
                 resolveUsername(user),
                 user.getProfileDescription(),

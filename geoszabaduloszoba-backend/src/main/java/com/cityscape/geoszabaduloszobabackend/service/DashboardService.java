@@ -1,6 +1,6 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
-import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
+import com.cityscape.geoszabaduloszobabackend.model.domain.NearbyAdventureResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +13,11 @@ public class DashboardService {
 
     private final AdventureService adventureService;
 
-    public List<NearbyAdventureDTO> getNearbyTop3(Double lat, Double lon) {
-        List<NearbyAdventureDTO> allNearby = adventureService.searchAndMap(null, lat, lon);
+    public List<NearbyAdventureResult> getNearbyTop3(Double lat, Double lon) {
+        List<NearbyAdventureResult> allNearby = adventureService.searchNearby(null, lat, lon);
 
         return allNearby.stream()
-                .sorted(Comparator.comparingInt(NearbyAdventureDTO::distanceInMeters))
+                .sorted(Comparator.comparingInt(NearbyAdventureResult::distanceInMeters))
                 .limit(3)
                 .toList();
     }

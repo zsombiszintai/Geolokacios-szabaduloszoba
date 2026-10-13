@@ -5,7 +5,7 @@ import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import com.cityscape.geoszabaduloszobabackend.config.MinioProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,11 +19,7 @@ public class AvatarStorageService {
 
     private final MinioClient minioClient;
 
-    @Value("${minio.bucketName}")
-    private String bucketName;
-
-    @Value("${minio.url}")
-    private String minioUrl;
+    private final MinioProperties properties;
 
     /**
      * Alkalmazás indulásakor ellenőrzi, hogy létezik-e a bucket, ha nem, létrehozza.
@@ -31,10 +27,10 @@ public class AvatarStorageService {
     @PostConstruct
     public void init() {
         try {
-            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
+            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(properties.getBucketName()).build());
             if (!found) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-                log.info("MinIO bucket létrehozva: {}", bucketName);
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(properties.getBucketName()).build());
+                log.info("MinIO bucket létrehozva: {}", properties.getBucketName());
             }
         } catch (Exception e) {
             log.error("Hiba a MinIO inicializálásakor: {}", e.getMessage());
@@ -55,7 +51,7 @@ public class AvatarStorageService {
         try (InputStream is = file.getInputStream()) {
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(bucketName)
+                            .bucket(properties.getBucketName())
                             .object(key)
                             .stream(is, file.getSize(), -1)
                             .contentType(contentType)
@@ -75,7 +71,7 @@ public class AvatarStorageService {
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
-                            .bucket(bucketName)
+                            .bucket(properties.getBucketName())
                             .object(key)
                             .expiry(7, TimeUnit.DAYS)
                             .build()

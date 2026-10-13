@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte.js';
 	import { page } from '$app/state';
 	import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
@@ -200,7 +201,7 @@
 
 								{#if adventure.difficulty}
                   <span class="inline-block mt-3 bg-[#8D7462]/10 text-[#8D7462] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                    {adventure.difficulty}
+                    {translateDifficulty(adventure.difficulty)}
                   </span>
 								{/if}
 

@@ -2,10 +2,10 @@ package com.cityscape.geoszabaduloszobabackend.api;
 
 import com.cityscape.geoszabaduloszobabackend.model.dto.ReviewDTO;
 import com.cityscape.geoszabaduloszobabackend.service.ReviewService;
+import com.cityscape.geoszabaduloszobabackend.api.mapper.ApiMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -13,15 +13,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReviewAPI {
 
+    private final ApiMapper apiMapper;
+
     private final ReviewService reviewService;
 
     @PostMapping
-    public void postReview(Principal principal, @RequestBody ReviewDTO dto) {
-        reviewService.saveReview(principal.getName(), dto);
+    public void postReview(@RequestBody ReviewDTO dto) {
+        reviewService.saveReview(dto.adventureId(), apiMapper.toReviewEntity(dto));
     }
 
     @GetMapping("/my")
-    public List<ReviewDTO> getMyReviews(Principal principal) {
-        return reviewService.getUserReviews(principal.getName());
+    public List<ReviewDTO> getMyReviews() {
+        return reviewService.getUserReviews().stream().map(apiMapper::toDto).toList();
     }
 }

@@ -92,16 +92,12 @@
 
 <section class="flex flex-col p-6 pt-6 min-h-screen bg-[#F5F2EA]">
 
-	<nav class="fixed top-[64px] left-0 w-full z-[55] px-4 py-2 bg-[#F5F2EA]/80 backdrop-blur-sm mb-8">
+	<nav class="fixed top-16 left-0 w-full z-[100] p-4">
 		<button
-			type="button"
-			class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group"
 			onclick={() => goto('/adventures')}
+			class="p-3 bg-white rounded-2xl shadow-sm text-[#8D7462] border-b-4 border-[#8D7462]/10 active:scale-95 transition-all"
 		>
-			<span class="block p-2 rounded-full bg-[#8D7462]/10 group-hover:bg-[#2F5D50]/10">
-				<ArrowLeftOutline class="w-6 h-6" aria-hidden="true" />
-			</span>
-			<span class="text-[10px] font-black uppercase tracking-tighter">Vissza a listáimhoz</span>
+			<ArrowLeftOutline width="20" height="20" class="" aria-hidden="true" />
 		</button>
 	</nav>
 

@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { ChevronRightOutline, StarSolid } from 'flowbite-svelte-icons';
+	import { ChevronRightOutline, StarSolid, ChevronLeftOutline } from 'flowbite-svelte-icons';
 
 	let items = $state<any[]>([]);
 	let loading = $state(true);
@@ -82,17 +82,15 @@
 	onMount(fetchListData);
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
+<section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
 	<button
 		type="button"
 		class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8"
 		onclick={() => window.history.back()}
 	>
-		<div class="p-2 rounded-xl bg-white shadow-sm group-hover:shadow-md transition-all">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-				<path d="m15 18-6-6 6-6"/>
-			</svg>
-		</div>
+		<span class="block p-2 rounded-xl bg-white shadow-sm group-hover:shadow-md transition-all">
+			<ChevronLeftOutline width="20" height="20" class="" aria-hidden="true" />
+		</span>
 		<span class="text-[11px] font-black uppercase tracking-widest">Vissza a profilra</span>
 	</button>
 
@@ -100,7 +98,7 @@
 		<h2 class="text-3xl font-black text-[#2F5D50] leading-none uppercase tracking-tighter">
 			{titles[type] || 'Lista'}
 		</h2>
-		<div class="w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></div>
+		<span aria-hidden="true" class="block w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></span>
 	</header>
 
 	<div class="space-y-4">
@@ -126,42 +124,42 @@
 			</div>
 		{:else}
 			{#each items as item}
-				<div class="bg-white p-5 rounded-3xl shadow-sm border border-[#2F5D50]/5 transition-all active:scale-[0.98]">
+				<article class="bg-white p-5 rounded-3xl shadow-sm border border-[#2F5D50]/5 transition-all active:scale-[0.98]">
 					{#if item.username}
 						<button
 							class="flex items-center gap-4 w-full text-left"
 							onclick={() => goto(`/profile/user/${item.username}`)}
 						>
-							<div class="w-14 h-14 bg-[#8D7462]/10 rounded-full flex items-center justify-center overflow-hidden border-2 border-[#F5F2EA]">
+							<span class="w-14 h-14 bg-[#8D7462]/10 rounded-full flex items-center justify-center overflow-hidden border-2 border-[#F5F2EA]">
 								<img
 									src={item.profilePictureUrl || '/images/default-avatar.png'}
 									alt="avatar"
 									class="w-full h-full object-cover"
 								/>
-							</div>
-							<div class="flex-1">
+							</span>
+							<span class="flex-1">
 								<span class="font-black text-[#2F5D50] text-lg block">{item.username}</span>
 								<span class="text-xs text-[#8D7462] font-medium line-clamp-1 italic">
                   {item.description || 'Leírás...'}
                 </span>
-							</div>
+							</span>
 							<ChevronRightOutline class="w-5 h-5 text-[#2F5D50] opacity-20" />
 						</button>
 					{:else}
 						<div class="flex flex-col gap-3">
-							<div class="flex justify-between items-start">
+							<header class="flex justify-between items-start">
 								<h3 class="font-black text-[#2F5D50] text-xl leading-tight flex-1 mr-4">{item.title}</h3>
 								{#if item.difficulty}
                   <span class="text-[10px] font-black px-2.5 py-1 bg-[#775D4D] text-[#F5F2EA] rounded-lg uppercase tracking-tighter shadow-sm">
                     {translateDifficulty(item.difficulty)}
                   </span>
 								{/if}
-							</div>
+							</header>
 							{#if type === "rated"}
-								<div class="flex items-center gap-2">
+								<span class="flex items-center gap-2">
 									<span class="text-sm font-bold text-[#2F5D50]">{item.rating} / 5</span>
 									<StarSolid class="w-4 h-4 text-yellow-400" />
-								</div>
+								</span>
 							{/if}
 							<button
 								onclick={() => goto(`/adventures/${item.id}`)}
@@ -171,8 +169,8 @@
 							</button>
 						</div>
 					{/if}
-				</div>
+				</article>
 			{/each}
 		{/if}
 	</div>
-</main>
+</section>

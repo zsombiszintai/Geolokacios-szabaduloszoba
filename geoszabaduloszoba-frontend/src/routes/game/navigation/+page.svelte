@@ -319,13 +319,13 @@
 	});
 </script>
 
-<main class="flex flex-col h-[calc(100vh-128px)] bg-[#F5F2EA] font-josefin overflow-hidden relative">
+<section class="flex flex-col h-[calc(100vh-128px)] bg-[#F5F2EA] font-josefin overflow-hidden relative">
 	<header class="h-14 bg-[#775D4D] text-[#F5F2EA] flex items-center px-4 rounded-xl mx-2 shadow-lg z-10 shrink-0">
-		<div class="flex-1 font-mono text-xs uppercase font-black text-yellow-400 animate-pulse">
+		<p class="flex-1 font-mono text-xs uppercase font-black text-yellow-400 animate-pulse">
 			Navigáció...
-		</div>
-		<div class="flex-[2] text-center font-bold truncate px-2 text-sm italic">{adventureTitle}</div>
-		<div class="flex-1 text-right text-xs">Menj az első állomáshoz!</div>
+		</p>
+		<p class="flex-[2] text-center font-bold truncate px-2 text-sm italic">{adventureTitle}</p>
+		<p class="flex-1 text-right text-xs">Menj az első állomáshoz!</p>
 	</header>
 
 	<section class="flex-grow m-2 mb-6 rounded-3xl overflow-hidden shadow-2xl border-4 border-[#775D4D] relative bg-gray-200">
@@ -374,7 +374,7 @@
 			</div>
 		{/if}
 	</section>
-</main>
+</section>
 
 <style>
     :global(body) { margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden; position: fixed; }

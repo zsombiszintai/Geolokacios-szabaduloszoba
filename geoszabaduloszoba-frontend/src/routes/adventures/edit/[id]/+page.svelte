@@ -1,4 +1,5 @@
 <script lang="ts">
+ import { ArrowLeftOutline, CloseOutline } from 'flowbite-svelte-icons';
 	import { onMount, tick } from 'svelte';
 	import { auth } from '$lib/auth.svelte.js';
 	import { goto } from '$app/navigation';
@@ -262,10 +263,10 @@
 	}
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] px-6 pt-16 pb-32">
+<section class="min-h-screen bg-[#F5F2EA] px-6 pt-16 pb-32">
 	{#if loading}
 		<div class="flex items-center justify-center min-h-[50vh]">
-			<div class="w-10 h-10 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></div>
+			<span aria-hidden="true" class="block w-10 h-10 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></span>
 		</div>
 	{:else}
 		<nav class="fixed top-16 left-0 w-full z-[100] p-4">
@@ -273,9 +274,7 @@
 				onclick={handleExit}
 				class="p-3 bg-white rounded-2xl shadow-sm text-[#8D7462] border-b-4 border-[#8D7462]/10 active:scale-95 transition-all"
 			>
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-					<path d="M19 12H5M12 19l-7-7 7-7"/>
-				</svg>
+				<ArrowLeftOutline width="20" height="20" class="" aria-hidden="true" />
 			</button>
 		</nav>
 
@@ -283,23 +282,23 @@
 			<h1 class="text-4xl font-black text-[#2F5D50] uppercase tracking-tight leading-none mb-2">
 				Kaland<br/>Szerkesztése
 			</h1>
-			<div class="w-12 h-1.5 bg-[#8D7462] rounded-full"></div>
+			<span aria-hidden="true" class="block w-12 h-1.5 bg-[#8D7462] rounded-full"></span>
 		</header>
 
 		{#if errorMessage}
-			<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-xl mb-6 font-bold text-xs">
+			<p role="alert" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-xl mb-6 font-bold text-xs">
 				{errorMessage}
-			</div>
+			</p>
 		{/if}
 
 		<section class="space-y-4 mb-10">
-			<div class="relative">
+			<span class="block relative">
 				<input
 					class="input-custom"
 					placeholder="Kaland neve..."
 					bind:value={title}
 				/>
-			</div>
+			</span>
 			<textarea
 				class="input-custom min-h-[120px] py-4"
 				placeholder="Írj egy kedvcsináló leírást..."
@@ -327,45 +326,45 @@
              <span class="w-10 h-10 rounded-2xl bg-white text-[#8D7462] flex items-center justify-center font-black text-lg shadow-md">
                {i + 1}
              </span>
-							<div>
+							<hgroup>
 								<p class="text-[10px] font-black text-white/50 uppercase tracking-widest leading-none">Állomás</p>
 								<h3 class="text-white font-black text-xl tracking-tight">Helyszín</h3>
-							</div>
+							</hgroup>
 						</div>
 						{#if stations.length > 1}
 							<button onclick={() => removeStation(i)} class="p-2 bg-black/20 rounded-xl text-white/70 hover:text-white transition-colors">
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+								<CloseOutline width="18" height="18" class="" aria-hidden="true" />
 							</button>
 						{/if}
 					</header>
 
-					<div class="space-y-5">
-						<div class="space-y-2">
-							<label class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">feladvány</label>
+					<fieldset class="min-w-0 space-y-5">
+						<fieldset class="min-w-0 space-y-2">
+							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">feladvány</legend>
 							<textarea
-								class="input-card-inner min-h-[80px]"
+								aria-label="Feladvány" class="input-card-inner min-h-[80px]"
 								placeholder="Add meg a rejtvényt..."
 								bind:value={station.content.riddle}
 							></textarea>
-						</div>
+						</fieldset>
 
-						<div class="space-y-2">
-							<label class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Segítségek</label>
-							<div class="grid gap-2">
-								<input class="input-card-inner text-sm" placeholder="1. Könnyű nyom" bind:value={station.content.hints[0]} />
-								<input class="input-card-inner text-sm" placeholder="2. Konkrétabb segítség" bind:value={station.content.hints[1]} />
-								<input class="input-card-inner text-sm" placeholder="3. Szinte a megoldás" bind:value={station.content.hints[2]} />
-							</div>
-						</div>
+						<fieldset class="min-w-0 space-y-2">
+							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Segítségek</legend>
+							<span class="grid gap-2">
+								<input class="input-card-inner text-sm" aria-label="1. Könnyű nyom" placeholder="1. Könnyű nyom" bind:value={station.content.hints[0]} />
+								<input class="input-card-inner text-sm" aria-label="2. Konkrétabb segítség" placeholder="2. Konkrétabb segítség" bind:value={station.content.hints[1]} />
+								<input class="input-card-inner text-sm" aria-label="3. Szinte a megoldás" placeholder="3. Szinte a megoldás" bind:value={station.content.hints[2]} />
+							</span>
+						</fieldset>
 
-						<div class="space-y-2">
-							<label class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Magyarázat</label>
+						<fieldset class="min-w-0 space-y-2">
+							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Magyarázat</legend>
 							<textarea
-								class="input-card-inner min-h-[60px]"
+								aria-label="Magyarázat" class="input-card-inner min-h-[60px]"
 								placeholder="Add meg a rejtvény magyarázatát..."
 								bind:value={station.content.explanation}
 							></textarea>
-						</div>
+						</fieldset>
 
 						<button
 							type="button"
@@ -374,7 +373,7 @@
 						>
 							{station.latitude !== 0 ? 'Helyszín rögzítve' : 'Jelöld ki a térképen'}
 						</button>
-					</div>
+					</fieldset>
 				</article>
 			{/each}
 
@@ -396,28 +395,28 @@
 			</button>
 		</footer>
 	{/if}
-</main>
+</section>
 
 {#if showMapModal}
 	<div class="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-md p-4 flex items-center justify-center">
 		<div class="bg-[#F5F2EA] w-full max-w-sm h-[80vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden border-2 border-[#8D7462]">
 			<div id="map-selector" class="flex-grow"></div>
-			<div class="p-6 bg-white">
+			<footer class="p-6 bg-white">
 				<button class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black uppercase tracking-widest" onclick={saveAndClose}>
 					Mentés
 				</button>
-			</div>
+			</footer>
 		</div>
 	</div>
 {/if}
 
 {#if showLeaveModal}
 	<div class="fixed inset-0 z-[3000] bg-black/60 backdrop-blur-md p-6 flex items-center justify-center">
-		<div class="bg-[#F5F2EA] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border-2 border-[#8D7462] flex flex-col gap-4 text-center">
+		<section class="bg-[#F5F2EA] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border-2 border-[#8D7462] flex flex-col gap-4 text-center">
 			<h3 class="text-xl font-black text-[#2F5D50] uppercase tracking-tight">Félkész kaland</h3>
 			<p class="text-xs font-bold text-[#8D7462]">Szeretnéd elmenteni a módosításokat piszkozatként, mielőtt kilépsz?</p>
 
-			<div class="flex flex-col gap-2 mt-2">
+			<footer class="flex flex-col gap-2 mt-2">
 				<button
 					onclick={saveDraft}
 					class="w-full bg-[#2F5D50] text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md active:scale-95 transition-all"
@@ -438,8 +437,8 @@
 				>
 					Mégse
 				</button>
-			</div>
-		</div>
+			</footer>
+		</section>
 	</div>
 {/if}
 

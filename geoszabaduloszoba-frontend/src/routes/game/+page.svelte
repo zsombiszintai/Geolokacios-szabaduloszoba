@@ -521,24 +521,24 @@
 	});
 </script>
 
-<main class="flex flex-col h-[calc(100vh-128px)] bg-[#F5F2EA] font-josefin overflow-hidden relative">
+<section class="flex flex-col h-[calc(100vh-128px)] bg-[#F5F2EA] font-josefin overflow-hidden relative">
 	{#if saveError}
-		<div
+		<p
 			role="alert"
 			class="relative z-[900] bg-red-50 px-4 py-2 text-sm font-bold text-red-700"
 		>
 			{saveError}
-		</div>
+		</p>
 	{/if}
 
 	<header class="h-14 bg-[#775D4D] text-[#F5F2EA] flex items-center px-4 rounded-xl mx-2 shadow-lg z-10 shrink-0">
-		<div class="flex-1 font-mono text-sm tracking-tighter">
+		<p class="flex-1 font-mono text-sm tracking-tighter">
 			{new Date(elapsedSec * 1000).toISOString().substr(11, 8)}
-		</div>
-		<div class="flex-[2] text-center font-bold truncate px-2 text-sm italic">{adventureTitle}</div>
-		<div class="flex-1 text-right text-sm font-bold">
+		</p>
+		<p class="flex-[2] text-center font-bold truncate px-2 text-sm italic">{adventureTitle}</p>
+		<span class="flex-1 text-right text-sm font-bold">
 			{#if userPos !== null}{Math.round(distanceInMeters)} m{:else}... m{/if}
-		</div>
+		</span>
 	</header>
 
 	<section class="flex-grow m-2 mb-6 rounded-3xl overflow-hidden shadow-2xl border-4 border-[#775D4D] relative bg-gray-200">
@@ -586,7 +586,7 @@
 			</div>
 		{/if}
 
-		<div class="absolute bottom-6 left-0 right-0 px-6 flex justify-between items-center z-[450]">
+		<nav class="absolute bottom-6 left-0 right-0 px-6 flex justify-between items-center z-[450]">
 			<button onclick={() => isRiddleOpen = true} class="bg-city-brown w-14 h-14 rounded-full shadow-xl flex items-center justify-center border-2 border-city-cream">
 				<QuestionCircleOutline class="w-8 h-8 text-white" />
 			</button>
@@ -594,21 +594,21 @@
 			<button onclick={() => isHintModalOpen = true} class="bg-city-brown w-14 h-14 rounded-full shadow-xl flex items-center justify-center border-2 border-city-cream active:scale-95 transition-transform">
 				<LightbulbOutline class="w-8 h-8 text-white" />
 			</button>
-		</div>
+		</nav>
 
 		{#if isRiddleOpen}
 			<div class="absolute inset-0 z-[500] bg-[#775D4D]/90 backdrop-blur-sm flex items-center justify-center p-6 text-center">
-				<div class="bg-[#F5F2EA] p-8 rounded-3xl shadow-2xl border-t-8 border-[#775D4D] max-w-xs">
+				<section class="bg-[#F5F2EA] p-8 rounded-3xl shadow-2xl border-t-8 border-[#775D4D] max-w-xs">
 					<h3 class="text-[#775D4D] font-black uppercase tracking-widest mb-4 text-xs">{currentTarget()?.seqNumber}. állomás – Rejtvény</h3>
 					<p class="text-gray-800 italic font-medium">{currentTarget()?.content?.riddle || "Keresd az állomást!"}</p>
 					<button onclick={() => isRiddleOpen = false} class="mt-6 bg-[#775D4D] text-white px-6 py-2 rounded-full font-bold text-xs uppercase">Bezárás</button>
-				</div>
+				</section>
 			</div>
 		{/if}
 
 		{#if isHintModalOpen}
 			<div class="absolute inset-0 z-[600] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-				<div class="bg-[#F5F2EA] w-full max-w-xs rounded-3xl p-6 shadow-2xl border-t-8 border-[#775D4D]">
+				<section class="bg-[#F5F2EA] w-full max-w-xs rounded-3xl p-6 shadow-2xl border-t-8 border-[#775D4D]">
 					<h3 class="text-city-brown font-black uppercase text-[10px] tracking-widest mb-2 text-center">
 						{currentHintViewIndex === (currentTarget()?.content?.hints?.length || 0) ? 'Iránytű' : 'Segítség'}
 					</h3>
@@ -620,9 +620,9 @@
 						{:else if currentHintViewIndex === (currentTarget()?.content?.hints?.length || 0)}
 							<div class="flex flex-col items-center gap-2 animate-fade-in">
 								<p class="text-xs text-gray-500 mb-1">Kövesd a nyilat a cél felé!</p>
-								<div style="transform: rotate({compassRotation}deg)" class="transition-transform duration-300 w-16 h-16 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
+								<span style="transform: rotate({compassRotation}deg)" class="transition-transform duration-300 w-16 h-16 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
 									<ArrowUpOutline class="w-10 h-10 text-white" />
-								</div>
+								</span>
 							</div>
 						{:else}
 							<p class="italic text-gray-800">
@@ -631,11 +631,11 @@
 						{/if}
 					</div>
 
-					<div class="flex flex-col gap-2 mt-4">
+					<footer class="flex flex-col gap-2 mt-4">
 						{#if activeHintsCount === 0}
 							<button onclick={unlockNextHint} class="bg-[#775D4D] text-white py-3 rounded-xl font-bold uppercase text-xs">Igen, kérem</button>
 						{:else}
-							<div class="flex justify-between items-center bg-gray-100 rounded-xl p-2 mb-2">
+							<nav class="flex justify-between items-center bg-gray-100 rounded-xl p-2 mb-2">
 								<button disabled={currentHintViewIndex === 0} onclick={() => currentHintViewIndex--} class="p-1 disabled:opacity-20">
 									<ChevronLeftOutline/>
 								</button>
@@ -649,7 +649,7 @@
 								>
 									<ChevronRightOutline/>
 								</button>
-							</div>
+							</nav>
 
 							{#if activeHintsCount < (currentTarget()?.content?.hints?.length || 0)}
 								<button onclick={unlockNextHint} class="bg-city-brown text-city-cream py-3 rounded-xl text-[10px] font-bold uppercase">Újabb hint (-1 pont)</button>
@@ -660,21 +660,21 @@
 							{/if}
 						{/if}
 						<button onclick={() => isHintModalOpen = false} class="text-gray-400 text-[10px] font-bold uppercase mt-2">Bezárás</button>
-					</div>
-				</div>
+					</footer>
+				</section>
 			</div>
 		{/if}
 
 		{#if isExplanationOpen}
 			<div class="absolute inset-0 z-[700] bg-[#2F5D50]/90 backdrop-blur-xl flex items-center justify-center p-4">
-				<div class="bg-white w-full max-w-sm rounded-[40px] p-8 text-center shadow-2xl">
+				<section class="bg-white w-full max-w-sm rounded-[40px] p-8 text-center shadow-2xl">
 					<CheckCircleSolid class="w-16 h-16 text-green-500 mx-auto mb-4" />
 					<h2 class="text-2xl font-black text-[#2F5D50]">Sikerült!</h2>
-					<div class="bg-green-100 text-green-700 py-1 px-3 rounded-full text-xs font-bold inline-block my-2">+{currentStationPoints()} PONT</div>
+					<p class="bg-green-100 text-green-700 py-1 px-3 rounded-full text-xs font-bold inline-block my-2">+{currentStationPoints()} PONT</p>
 
-					<div class="text-left bg-gray-50 p-4 rounded-2xl my-4 text-sm italic text-gray-600 border-l-4 border-[#2F5D50]">
+					<p class="text-left bg-gray-50 p-4 rounded-2xl my-4 text-sm italic text-gray-600 border-l-4 border-[#2F5D50]">
 						{currentTarget()?.content?.explanation}
-					</div>
+					</p>
 
 					{#if finishError}
 						<p role="alert" class="text-red-600 text-sm font-bold mb-3">
@@ -695,11 +695,11 @@
 									? 'Befejezés'
 									: 'Következő állomás'}
 					</button>
-				</div>
+				</section>
 			</div>
 		{/if}
 	</section>
-</main>
+</section>
 
 <style>
     :global(body) { margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden; position: fixed; }

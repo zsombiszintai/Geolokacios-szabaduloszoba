@@ -205,14 +205,14 @@
   });
 </script>
 
-<main class="flex flex-col items-center min-h-screen pt-6 pb-24 px-4 bg-[#F5F2EA] font-josefin">
+<section class="flex flex-col items-center min-h-screen pt-6 pb-24 px-4 bg-[#F5F2EA] font-josefin">
 
     <section class="w-full max-w-md mx-auto mb-10">
         <header class="flex justify-between items-end mb-4 px-2">
-            <div>
+            <hgroup>
                 <h1 class="text-3xl font-black text-[#2F5D50] uppercase tracking-tight leading-none">Térkép</h1>
-                <div class="w-8 h-1 bg-[#8D7462] mt-2 rounded-full"></div>
-            </div>
+                <span aria-hidden="true" class="block w-8 h-1 bg-[#8D7462] mt-2 rounded-full"></span>
+            </hgroup>
             <button
               onclick={() => goto(`/map`)}
               class="flex items-center gap-1 text-[10px] font-black text-[#8D7462] uppercase tracking-widest bg-white py-2 px-4 rounded-xl shadow-sm border border-[#2F5D50]/5 active:scale-95 transition-all"
@@ -224,7 +224,7 @@
         <div class="relative w-full rounded-[1.5rem] overflow-hidden shadow-2xl border-8 border-city-cream group">
             <div bind:this={mapElement} class="h-72 w-full z-10"></div>
 
-            <div class="absolute inset-0 pointer-events-none ring-1 ring-inset ring-black/5"></div>
+            <span aria-hidden="true" class="absolute inset-0 pointer-events-none ring-1 ring-inset ring-black/5"></span>
 
             {#if locationLoading || locationError || !auth.token || dataLoading || dataError}
                 <div
@@ -278,24 +278,24 @@
                   class="grid grid-cols-[2fr_1fr_1fr] w-full items-center bg-[#8D7462]/90 p-5 rounded-3xl shadow-xl transition-all active:scale-[0.98] text-left border border-white/10"
                   onclick={() => goto(`/adventures/${adventure.id}`)}
                 >
-                    <div class="overflow-hidden">
+                    <span class="block overflow-hidden">
                         <span class="font-black text-white text-lg leading-tight truncate block">{adventure.title}</span>
-                    </div>
+                    </span>
 
                     <span class="text-center text-s font-bold text-[#F5F2EA]">
                         {adventure.averageTime ? `${formatTime(adventure.averageTime)}` : '-'}
                     </span>
 
-                    <div class="text-right">
+                    <span class="block text-right">
                         <span class="text-s font-black text-white px-2 py-1 rounded-lg shadow-inner">
                             {adventure.distanceInMeters >= 1000 ? (adventure.distanceInMeters / 1000).toFixed(1) + ' km' : Math.round(adventure.distanceInMeters) + ' m'}
                         </span>
-                    </div>
+                    </span>
                 </button>
             {/each}
         </div>
     </section>
-</main>
+</section>
 <style>
     .label-city {
         @apply text-[14px] font-black uppercase tracking-[0.2em] text-[#2F5D50] opacity-80;

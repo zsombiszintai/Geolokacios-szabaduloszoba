@@ -1,4 +1,5 @@
 <script lang="ts">
+ import { SearchOutline, ArrowLeftOutline, PlusOutline } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/auth.svelte';
 	import { page } from '$app/state';
@@ -135,7 +136,7 @@
 	});
 </script>
 
-<main class="flex flex-col p-6 pt-6 min-h-screen bg-[#F5F2EA]">
+<section class="flex flex-col p-6 pt-6 min-h-screen bg-[#F5F2EA]">
 
 	<nav class="fixed top-[64px] left-0 w-full z-[55] px-4 py-2 bg-[#F5F2EA]/80 backdrop-blur-sm mb-8">
 		<button
@@ -143,11 +144,9 @@
 			class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group"
 			onclick={() => goto('/adventures')}
 		>
-			<div class="p-2 rounded-full bg-[#8D7462]/10 group-hover:bg-[#2F5D50]/10">
-				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l-5-5 5-5M13.8 12H5"/>
-				</svg>
-			</div>
+			<span class="block p-2 rounded-full bg-[#8D7462]/10 group-hover:bg-[#2F5D50]/10">
+				<ArrowLeftOutline class="w-6 h-6" aria-hidden="true" />
+			</span>
 			<span class="text-[10px] font-black uppercase tracking-tighter">Mégse</span>
 		</button>
 	</nav>
@@ -156,7 +155,7 @@
 		<p class="text-center py-20 italic text-[#2F5D50]/60">Lista betöltése és ellenőrzése...</p>
 	{:else}
 		{#if errorMessage}
-			<div class="alert-error-city mt-4">{errorMessage}</div>
+			<p role="alert" class="alert-error-city mt-4">{errorMessage}</p>
 		{/if}
 
 		<section class="flex flex-col gap-2 mb-6 mt-4">
@@ -178,11 +177,9 @@
 		<section class="mb-8">
 			<h2 class="label-city mb-4">Kalandok hozzáadása / eltávolítása</h2>
 
-			<div class="relative mb-4">
+			<search class="relative mb-4">
        <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
-         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="2.5">
-           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-         </svg>
+         <SearchOutline width="20" height="20" class="" color="#2F5D50" aria-hidden="true" />
        </span>
 				<input
 					type="text"
@@ -203,27 +200,27 @@
 										class="w-full text-left p-4 hover:bg-[#F5F2EA] flex justify-between items-center transition-colors border-b border-[#F5F2EA] last:border-0"
 										onclick={() => addAdventure(res)}
 									>
-										<div>
+										<span class="block">
 											<span class="block font-bold text-[#2F5D50]">{res.title}</span>
 											<span class="block font-bold text-[#2F5D50]/30">{res.creator}</span>
-										</div>
-										<span class="text-[#2F5D50] font-black text-xl">+</span>
+										</span>
+										<span class="text-[#2F5D50] font-black text-xl"><PlusOutline class="w-6 h-6" aria-hidden="true" /></span>
 									</button>
 								</li>
 							{/each}
 						{/if}
 					</ul>
 				{/if}
-			</div>
+			</search>
 
 			<h3 class="label-city mb-2">A lista tartalma ({selectedAdventures.length})</h3>
 			<div class="space-y-2">
 				{#each selectedAdventures as adv, i}
 					<article class="adventure-card flex justify-between items-center bg-white/80 border border-[#2F5D50]/5">
-						<div class="flex items-center gap-3">
+						<span class="flex items-center gap-3">
 							<span class="text-[10px] font-black opacity-20">{i + 1}</span>
 							<span class="font-bold text-[#2F5D50]">{adv.title}</span>
-						</div>
+						</span>
 						<button
 							onclick={() => removeAdventure(adv.id)}
 							class="text-red-500 font-bold p-2 text-sm uppercase tracking-tighter"
@@ -245,7 +242,7 @@
 			</button>
 		</footer>
 	{/if}
-</main>
+</section>
 
 <style>
     .label-city {

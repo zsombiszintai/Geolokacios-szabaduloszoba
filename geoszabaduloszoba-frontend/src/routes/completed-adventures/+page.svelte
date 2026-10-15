@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/auth.svelte';
-	import { StarSolid, RefreshOutline } from 'flowbite-svelte-icons';
+	import { StarSolid, RefreshOutline, SearchOutline, CloseOutline } from 'flowbite-svelte-icons';
 
 	interface CompletedAdventure {
 		id: number;
@@ -12,12 +12,6 @@
 		durationSec: number;
 		rating: number | null;
 	}
-
-	const refreshIcon = `
-    <svg viewBox="0 0 24 24" class="inline-block w-6 h-6 mr-3 text-white transition-all hover:text-yellow-400" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-    </svg>
-  `;
 
 	let adventures = $state<CompletedAdventure[]>([]);
 	let selectedAdv = $state<CompletedAdventure | null>(null);
@@ -71,13 +65,11 @@
 
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-12">
+<section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-12">
 
 	<section class="relative mb-10 max-w-md mx-auto">
     <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="3">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-      </svg>
+      <SearchOutline width="18" height="18" class="" color="#2F5D50" aria-hidden="true" />
     </span>
 		<input
 			id="adventure-search"
@@ -92,7 +84,7 @@
 		<h1 class="text-3xl font-black text-[#2F5D50] uppercase tracking-tight leading-none mb-2">
 			Lejátszott<br/>Kalandok
 		</h1>
-		<div class="w-12 h-1.5 bg-[#8D7462] rounded-full"></div>
+		<span aria-hidden="true" class="block w-12 h-1.5 bg-[#8D7462] rounded-full"></span>
 	</header>
 
 	<header class="grid grid-cols-[2fr_1fr_1fr] px-4 mb-3 text-[10px] font-black text-[#2F5D50] opacity-40 uppercase tracking-[0.2em]">
@@ -107,25 +99,25 @@
 				onclick={() => { selectedAdv = adv; rating = adv.rating || 0; }}
 				class="grid grid-cols-[2fr_1fr_1fr] w-full items-center bg-[#8D7462]/90 p-5 rounded-3xl shadow-xl transition-all active:scale-[0.98] text-left border border-white/10"
 			>
-				<div class="overflow-hidden">
-					<div class="flex items-center gap-2">
+				<header class="overflow-hidden">
+					<hgroup class="flex items-center gap-2">
 						<h3 class="font-black text-white text-lg leading-tight truncate">{adv.adventureTitle}</h3>
-					</div>
-				</div>
+					</hgroup>
+				</header>
 
-				<div class="text-center">
+				<span class="block text-center">
 					<time datetime={adv.completedAt} class="text-xs font-bold text-[#F5F2EA]/80">
 						{new Date(adv.completedAt).toLocaleDateString('hu-HU')}
 					</time>
-				</div>
+				</span>
 
 				<div class="flex justify-end items-center gap-1">
 					{#if adv.rating}
 						<RefreshOutline class="w-6 h-6 text-city-cream"/>
 					{/if}
-					<div class="bg-[#8D7462]/90 px-2 py-1 rounded-lg flex items-center gap-1 shadow-inner border border-white/10">
+					<span class="bg-[#8D7462]/90 px-2 py-1 rounded-lg flex items-center gap-1 shadow-inner border border-white/10">
 						<StarSolid class="w-6 h-6 text-yellow-400" />
-					</div>
+					</span>
 				</div>
 			</button>
 		{/each}
@@ -136,20 +128,20 @@
 			<article class="w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-[#F5F2EA] shadow-2xl border-2 border-[#8D7462]">
 
 				<header class="p-8 pb-4">
-					<div class="flex items-start justify-between mb-6">
-						<div>
+					<header class="flex items-start justify-between mb-6">
+						<hgroup>
 							<h3 class="text-2xl font-black text-[#2F5D50] leading-tight">{selectedAdv.adventureTitle}</h3>
 							{#if selectedAdv.rating}
-								<div class="flex items-center gap-1 mt-1 text-[#8D7462]">
+								<span class="flex items-center gap-1 mt-1 text-[#8D7462]">
 									<RefreshOutline class="w-4 h-4 text-city-brown"/>
 									<span class="text-[10px] font-black uppercase tracking-widest">Értékeld újra</span>
-								</div>
+								</span>
 							{/if}
-						</div>
+						</hgroup>
 						<button onclick={() => (selectedAdv = null)} class="p-2 bg-white rounded-xl shadow-sm text-[#8D7462]" aria-label="Bezárás">
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+							<CloseOutline width="20" height="20" class="" aria-hidden="true" />
 						</button>
-					</div>
+					</header>
 
 					<div class="flex flex-wrap gap-2 justify-center py-4">
 							<div class="bg-white/60 px-4 py-2 rounded-full border border-[#2F5D50]/10 flex flex-col items-center min-w-[80px]">
@@ -168,22 +160,22 @@
 				</header>
 
 				<form method="dialog" class="p-8 pt-4" onsubmit={postReview}>
-					<div class="mb-6 text-center">
+					<fieldset class="min-w-0 mb-6 text-center">
 						<p class="label-city mb-4">Milyen volt a kaland?</p>
-						<div class="flex justify-center gap-2">
+						<span class="flex justify-center gap-2">
 							{#each [1, 2, 3, 4, 5] as star}
 								<button
 									type="button"
-									onclick={() => (rating = star)}
+									aria-label={`${star} csillag`} aria-pressed={rating === star} onclick={() => (rating = star)}
 									class="text-4xl transition-all {star <= rating ? 'text-yellow-400 scale-110' : 'text-gray-300 opacity-40'}"
 								>
-									★
+									<StarSolid class="w-9 h-9" aria-hidden="true" />
 								</button>
 							{/each}
-						</div>
-					</div>
+						</span>
+					</fieldset>
 
-					<div class="space-y-2">
+					<fieldset class="min-w-0 space-y-2">
 						<label for="review-text" class="label-city ml-1">Véleményed</label>
 						<textarea
 							id="review-text"
@@ -191,7 +183,7 @@
 							placeholder="Meséld el a tapasztalataidat..."
 							class="w-full h-32 rounded-2xl bg-white p-4 text-[#2F5D50] font-medium placeholder-[#2F5D50]/30 outline-none border border-[#2F5D50]/5 focus:border-[#2F5D50] transition-all resize-none shadow-inner"
 						></textarea>
-					</div>
+					</fieldset>
 
 					<button
 						type="submit"
@@ -203,7 +195,7 @@
 			</article>
 		</dialog>
 	{/if}
-</main>
+</section>
 
 <style>
     .label-city {

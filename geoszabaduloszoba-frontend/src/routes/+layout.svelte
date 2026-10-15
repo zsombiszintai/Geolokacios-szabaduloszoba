@@ -42,15 +42,15 @@
 
 {#if auth.loading}
 
-<div class="flex items-center justify-center min-h-screen">
+<main class="flex items-center justify-center min-h-screen">
     <p>Authenticating...</p>
-</div>
+</main>
 
 {:else if auth.error}
 
-<div class="flex items-center justify-center min-h-screen">
+<main class="flex items-center justify-center min-h-screen">
     <p class="text-red-500">{auth.error}</p>
-</div>
+</main>
 
 {:else if auth.authenticated}
 
@@ -58,11 +58,11 @@
     
     {#if showNavbar}
         <header class="fixed top-0 left-0 w-full h-16 bg-[#2F5D50] text-[#F5F2EA] flex items-center justify-between px-6 z-50 shadow-md">
-            <a href="/settings">
+            <a aria-label="Beállítások" href="/settings">
                 <UserSettingsOutline class="w-7 h-7 cursor-pointer" />
             </a>
             <h1 class="text-2xl font-bold tracking-[0.2em] font-josefin">CityScape</h1>
-            <div class="flex items-center gap-3">
+            <span class="flex items-center gap-3">
                  <button
                    onclick={handleLogout}
                    class="flex items-center justify-center hover:text-red-400 transition-colors"
@@ -70,7 +70,7 @@
                  >
                      <ArrowRightToBracketOutline class="w-7 h-7" />
                  </button>
-            </div>
+            </span>
         </header>
     {/if}
 
@@ -81,27 +81,27 @@
     {#if showNavbar}
         <nav class="fixed bottom-0 left-0 w-full h-16 bg-[#2F5D50] border-t border-white/10 z-50 flex items-center justify-around px-2">
             
-            <a href="/dashboard" class="flex flex-col items-center justify-center w-full h-full transition-colors">
+            <a aria-label="Kezdőlap" href="/dashboard" class="flex flex-col items-center justify-center w-full h-full transition-colors">
                 <HomeOutline class="w-7 h-7 {activePath === '/dashboard' ? 'text-white' : 'text-white/50'}" />
             </a>
             
-            <a href="/map" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+            <a aria-label="Térkép" href="/map" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <MapPinSolid class="w-7 h-7 {activePath === '/map' ? 'text-white' : 'text-white/50'}" />
             </a>
             
-            <a href="/adventures" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
-                <PlusOutline class="w-7 h-7 {activePath === '/create-adventure' ? 'text-white' : 'text-white/50'}" />
+            <a aria-label="Kalandjaim" href="/adventures" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+                <PlusOutline class="w-7 h-7 {activePath.startsWith('/adventures') ? 'text-white' : 'text-white/50'}" />
             </a>
             
-            <a href="/completed-adventures" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+            <a aria-label="Teljesített kalandok" href="/completed-adventures" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <StarOutline class="w-7 h-7 text-white/50" />
             </a>
             
-            <a href="/play" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
+            <a aria-label="Játék folytatása" href="/play" class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <PlayOutline class="w-7 h-7 text-white/50" />
             </a>
 
-            <a href="/profile/user/{auth.username || 'me'}"
+            <a aria-label="Profil" href="/profile/user/{auth.username || 'me'}"
                class="flex flex-col items-center justify-center w-full h-full border-l border-white/10">
                 <UserCircleOutline class="w-7 h-7 {activePath.startsWith('/profile') ? 'text-white' : 'text-white/50'}" />
             </a>

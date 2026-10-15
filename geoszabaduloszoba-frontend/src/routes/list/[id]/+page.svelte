@@ -107,7 +107,7 @@
 	<title>{list?.title || 'Lista'} | CityScape</title>
 </svelte:head>
 
-<main class="min-h-screen bg-[#F5F2EA] font-josefin px-6 pt-6 pb-24">
+<section class="min-h-screen bg-[#F5F2EA] font-josefin px-6 pt-6 pb-24">
 	<div class="max-w-md mx-auto">
 		<button
 			class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8 w-fit"
@@ -119,9 +119,9 @@
 
 		{#if loading}
 			<div class="flex flex-col items-center justify-center py-24 gap-4">
-				<div
-					class="w-10 h-10 rounded-full border-4 border-[#2F5D50] border-t-transparent animate-spin"
-				></div>
+				<span aria-hidden="true"
+					class="block w-10 h-10 rounded-full border-4 border-[#2F5D50] border-t-transparent animate-spin"
+				></span>
 
 				<p class="text-[#2F5D50] font-bold" role="status">
 					Lista betöltése...
@@ -151,7 +151,7 @@
 					{list.title}
 				</h1>
 
-				<div class="w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></div>
+				<span aria-hidden="true" class="block w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></span>
 			</header>
 
 			{#if list.description}
@@ -166,7 +166,7 @@
 			{/if}
 
 			<section>
-				<div class="flex items-center justify-between mb-5">
+				<header class="flex items-center justify-between mb-5">
 					<h2 class="text-sm font-black uppercase tracking-widest text-[#2F5D50]">
 						Kalandok
 					</h2>
@@ -174,7 +174,7 @@
 					<span class="text-sm font-bold text-[#8D7462]">
             {list.adventures.length} db
           </span>
-				</div>
+				</header>
 
 				{#if list.adventures.length === 0}
 					<div class="p-8 rounded-3xl border-2 border-dashed border-[#2F5D50]/15 text-center">
@@ -183,13 +183,14 @@
 						</p>
 					</div>
 				{:else}
-					<div class="space-y-4">
+					<ul class="space-y-4">
 						{#each list.adventures as adventure}
+							<li>
 							<a
 								href={`/adventures/${adventure.id}`}
 								class="block bg-white p-6 rounded-3xl border border-[#2F5D50]/5 shadow-sm transition-transform active:scale-[0.98]"
 							>
-								<div class="flex items-start gap-3">
+								<header class="flex items-start gap-3">
 									<h3 class="flex-1 min-w-0 text-xl font-black text-[#2F5D50] leading-tight break-words">
 										{adventure.title}
 									</h3>
@@ -197,7 +198,7 @@
 									<ChevronRightOutline
 										class="w-5 h-5 shrink-0 text-[#8D7462] mt-1"
 									/>
-								</div>
+								</header>
 
 								{#if adventure.difficulty}
                   <span class="inline-block mt-3 bg-[#8D7462]/10 text-[#8D7462] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
@@ -211,10 +212,11 @@
 									</p>
 								{/if}
 							</a>
+						</li>
 						{/each}
-					</div>
+					</ul>
 				{/if}
 			</section>
 		{/if}
 	</div>
-</main>
+</section>

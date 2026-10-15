@@ -2,7 +2,7 @@
 	import { auth } from '$lib/auth.svelte.js';
 	import { onMount, onDestroy } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { CameraPhotoOutline } from 'flowbite-svelte-icons';
+	import { CameraPhotoOutline, ChevronLeftOutline } from 'flowbite-svelte-icons';
 
 	let profile = $state<any>(null);
 	let uploadLoading = $state(false);
@@ -506,17 +506,15 @@
 	onMount(fetchCurrentSettings);
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
+<section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
 	<button
 		type="button"
 		class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8"
 		onclick={() => window.history.back()}
 	>
-		<div class="p-2 rounded-xl bg-white shadow-sm group-hover:shadow-md transition-all">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-				<path d="m15 18-6-6 6-6"/>
-			</svg>
-		</div>
+		<span class="block p-2 rounded-xl bg-white shadow-sm group-hover:shadow-md transition-all">
+			<ChevronLeftOutline width="20" height="20" class="" aria-hidden="true" />
+		</span>
 		<span class="text-[11px] font-black uppercase tracking-widest">Vissza a profilra</span>
 	</button>
 
@@ -524,7 +522,7 @@
 		<h2 class="text-3xl font-black text-[#2F5D50] leading-none uppercase tracking-tighter">
 			Beállítások
 		</h2>
-		<div class="w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></div>
+		<span aria-hidden="true" class="block w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></span>
 	</header>
 
 	<div class="max-w-md mx-auto space-y-6">
@@ -547,7 +545,7 @@
 							}}
 						/>
 					{:else}
-						<div class="w-full h-full bg-[#8D7462]/10 animate-pulse"></div>
+						<span aria-hidden="true" class="block w-full h-full bg-[#8D7462]/10 animate-pulse"></span>
 					{/if}
 				</div>
 
@@ -565,7 +563,7 @@
 
 				{#if uploadLoading}
 					<div class="absolute inset-0 bg-white/60 rounded-[32px] flex items-center justify-center backdrop-blur-[2px]">
-						<div class="w-8 h-8 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></div>
+						<span aria-hidden="true" class="block w-8 h-8 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></span>
 					</div>
 				{/if}
 			</div>
@@ -574,15 +572,15 @@
 		</section>
 
 		<section class="bg-white p-6 rounded-[40px] shadow-sm border border-[#2F5D50]/5 space-y-5">
-			<div>
-				<label class="block text-[11px] font-black text-[#8D7462] uppercase tracking-widest mb-3 ml-2">Bemutatkozás</label>
-				<textarea
+			<fieldset class="min-w-0">
+				<label for="profile-description" class="block text-[11px] font-black text-[#8D7462] uppercase tracking-widest mb-3 ml-2">Bemutatkozás</label>
+				<textarea id="profile-description"
 					bind:value={description}
 					rows="4"
 					class="w-full p-5 rounded-[24px] bg-[#F5F2EA]/50 border-2 border-transparent focus:border-[#2F5D50]/20 focus:bg-white outline-none transition-all resize-none text-[#2F5D50] font-medium"
 					placeholder="Írj magadról néhány szót..."
 				></textarea>
-			</div>
+			</fieldset>
 
 			<button
 				class="w-full bg-[#2F5D50] text-[#F5F2EA] py-4 rounded-[20px] font-black uppercase tracking-widest shadow-lg shadow-[#2F5D50]/20 hover:bg-[#1e3d34] active:scale-[0.97] transition-all flex items-center justify-center gap-2"
@@ -600,13 +598,13 @@
 			<div class="px-6 py-3 rounded-2xl shadow-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3
           {message.type === 'success' ? 'bg-[#2F5D50]/90 text-white' : 'bg-[#8D7462] text-white'}">
 				{#if message.type === 'info'}
-					<div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+					<span aria-hidden="true" class="block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
 				{/if}
 				{message.text}
 			</div>
 		</div>
 	{/if}
-</main>
+</section>
 
 <dialog
 	bind:this={cropDialog}
@@ -641,7 +639,7 @@
 				aria-label="Profilkép előnézete"
 			></canvas>
 
-			<div class="avatar-crop-mask" aria-hidden="true"></div>
+			<span class="block avatar-crop-mask" aria-hidden="true"></span>
 		</div>
 
 		{#if cropError}

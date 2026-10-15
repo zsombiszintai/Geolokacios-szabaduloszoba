@@ -1,4 +1,5 @@
 <script lang="ts">
+ import { SearchOutline, CloseOutline } from 'flowbite-svelte-icons';
 	import { auth } from '$lib/auth.svelte';
 	import 'leaflet/dist/leaflet.css';
 	import { goto } from '$app/navigation';
@@ -324,10 +325,8 @@
 			class="max-w-md mx-auto w-full pointer-events-auto bg-white/80 rounded-xl border-b-4 border-[#2F5D50]/20 transition-all duration-300 ease-in-out flex flex-col overflow-hidden focus-within:border-[#2F5D50]"
 			style="height: {isExpanded ? 'auto' : '48px'}; max-height: 500px;"
 		>
-			<div class="flex items-center px-4 h-12 shrink-0 gap-3">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="3" class="opacity-40">
-					<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-				</svg>
+			<span class="flex items-center px-4 h-12 shrink-0 gap-3">
+				<SearchOutline width="20" height="20" class="opacity-40" color="#2F5D50" aria-hidden="true" />
 
 				<input
 					type="search"
@@ -341,11 +340,11 @@
 					<button
 						type="button"
 						onclick={() => {searchQuery = ""; searchResults = [];}}
-						class="text-[#2F5D50] opacity-50 hover:opacity-100 font-bold text-xl"
+						aria-label="Keresés törlése" class="text-[#2F5D50] opacity-50 hover:opacity-100 font-bold text-xl"
 					>
-					</button>
+					<CloseOutline class="w-5 h-5" /></button>
 				{/if}
-			</div>
+			</span>
 
 			{#if isExpanded}
 				<nav class="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar shrink-0 border-t border-[#2F5D50]/5 pt-3">
@@ -380,12 +379,12 @@
 										onclick={() => handleResultClick(res)}
 										class="w-full text-left px-4 py-3 hover:bg-white/60 border-b border-[#2F5D50]/5 flex justify-between items-center group transition-colors"
 									>
-										<div>
+										<span class="block">
 											<span class="block font-black text-[#2F5D50] group-hover:text-black">{res.title}</span>
 											<span class="text-[11px] font-medium text-[#2F5D50]/60">
                     {res.description || (res.distanceInMeters ? `${res.distanceInMeters} m • ${res.averageTime} perc` : "")}
                   </span>
-										</div>
+										</span>
 										<span class="text-[#2F5D50] opacity-30 group-hover:opacity-100 font-black">❯</span>
 									</button>
 								</li>
@@ -397,7 +396,7 @@
 		</form>
 	</section>
 
-	<main bind:this={mapElement} class="flex-1 w-full z-0 saturate-[1.2] contrast-[1.05]"></main>
+	<section bind:this={mapElement} class="flex-1 w-full z-0 saturate-[1.2] contrast-[1.05]"></section>
 
 	{#if locationLoading || locationError}
 		<div

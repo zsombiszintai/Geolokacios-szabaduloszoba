@@ -132,10 +132,10 @@
 	}
 </script>
 
-<main class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-12">
+<section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-12">
 	{#if loading}
 		<div class="flex flex-col justify-center items-center h-[60vh] gap-4">
-			<div class="w-12 h-12 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></div>
+			<span aria-hidden="true" class="block w-12 h-12 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></span>
 			<p class="font-bold text-[#2F5D50]">Profil betöltése...</p>
 		</div>
 	{:else if profileError}
@@ -154,7 +154,7 @@
 	{:else if stats}
 		<section class="flex flex-col items-center text-center mb-8">
 			<div class="relative mb-4">
-				<div class="w-28 h-28 bg-white rounded-full border-4 border-[#2F5D50]/10 shadow-xl flex items-center justify-center overflow-hidden">
+				<span class="w-28 h-28 bg-white rounded-full border-4 border-[#2F5D50]/10 shadow-xl flex items-center justify-center overflow-hidden">
 					<img
 						src={getAvatarSrc(stats.profilePictureUrl)}
 						alt="Profilkép"
@@ -168,7 +168,7 @@
 							}
 						}}
 					/>
-				</div>
+				</span>
 			</div>
 
 			<h1 class="text-3xl font-black text-[#2F5D50] tracking-tight mb-1">{stats.username}</h1>
@@ -184,13 +184,13 @@
 			{/if}
 		</section>
 
-		<div class="bg-white/60 backdrop-blur-sm p-6 rounded-3xl border border-[#2F5D50]/5 shadow-sm mb-8 relative overflow-hidden">
-			<div class="absolute top-0 left-0 w-1 h-full bg-[#8D7462]"></div>
+		<section class="bg-white/60 backdrop-blur-sm p-6 rounded-3xl border border-[#2F5D50]/5 shadow-sm mb-8 relative overflow-hidden">
+			<span aria-hidden="true" class="absolute top-0 left-0 w-1 h-full bg-[#8D7462]"></span>
 			<h2 class="label-city mb-2">Bemutatkozás</h2>
 			<p class="text-[#2F5D50] font-medium italic leading-relaxed">
 				{stats.profileDescription || "Leírás..."}
 			</p>
-		</div>
+		</section>
 
 		<nav class="space-y-3">
 			<h2 class="label-city ml-2 mb-4">Statisztikák</h2>
@@ -210,15 +210,15 @@
 					class="flex items-center justify-between p-5 rounded-2xl border border-[#2F5D50]/5 shadow-sm transition-all active:scale-[0.98] {item.color === 'bg-white' ? 'bg-white/80' : item.color + ' text-white'}"
 				>
 					<span class="font-bold uppercase tracking-wider text-sm {item.color === 'bg-white' ? 'text-[#2F5D50]' : 'text-[#F5F2EA]'}">{item.label}</span>
-					<div class="flex items-center gap-3">
+					<span class="flex items-center gap-3">
 						<span class="text-2xl font-black">{item.count || 0}</span>
 						<ChevronRightOutline class="w-5 h-5 opacity-40" />
-					</div>
+					</span>
 				</a>
 			{/each}
 		</nav>
 	{/if}
-</main>
+</section>
 
 <style>
     .label-city {

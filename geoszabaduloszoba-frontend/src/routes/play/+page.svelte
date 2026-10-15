@@ -1,4 +1,5 @@
 <script lang="ts">
+ import { SearchOutline } from 'flowbite-svelte-icons';
 	import { auth } from '$lib/auth.svelte.js';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -35,20 +36,18 @@
 	onMount(fetchAbandonedAdventures);
 </script>
 
-<main class="flex flex-col p-6 pt-24 pb-20 min-h-screen bg-[#F5F2EA]">
+<section class="flex flex-col p-6 pt-24 pb-20 min-h-screen bg-[#F5F2EA]">
 
 	<header class="mb-10">
 		<h1 class="text-3xl font-black text-[#2F5D50] uppercase tracking-[0.2em] leading-none mb-2">
 			Félbehagyott<br/>Kalandok
 		</h1>
-		<div class="w-12 h-1 bg-[#8D7462] mb-4"></div>
+		<span aria-hidden="true" class="block w-12 h-1 bg-[#8D7462] mb-4"></span>
 	</header>
 
-	<div class="relative mb-10 max-w-md">
+	<search class="relative mb-10 max-w-md">
     <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="3">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-      </svg>
+      <SearchOutline width="18" height="18" class="" color="#2F5D50" aria-hidden="true" />
     </span>
 		<input
 			type="text"
@@ -56,14 +55,14 @@
 			class="w-full h-12 pl-12 pr-4 bg-white/80 rounded-xl border-b-4 border-[#2F5D50]/20 outline-none focus:border-[#2F5D50] transition-all text-[#2F5D50] font-bold"
 			bind:value={searchTerm}
 		/>
-	</div>
+	</search>
 
 	<section class="max-w-md">
 		<h2 class="label-city mb-6">Mentett állások</h2>
 
 		<div class="space-y-8">
 			{#if loading}
-				<div class="text-left py-4 italic opacity-50 text-[#2F5D50]">Adatok lehívása...</div>
+				<p class="text-left py-4 italic opacity-50 text-[#2F5D50]">Adatok lehívása...</p>
 			{:else if filteredAdventures.length === 0}
 				<div class="bg-white/30 p-6 rounded-xl border-2 border-dashed border-[#2F5D50]/10">
 					<p class="text-[#2F5D50] opacity-50 italic">Nincs ilyen mentésed.</p>
@@ -108,7 +107,7 @@
 		</button>
 	</footer>
 
-</main>
+</section>
 
 <style>
     .label-city {

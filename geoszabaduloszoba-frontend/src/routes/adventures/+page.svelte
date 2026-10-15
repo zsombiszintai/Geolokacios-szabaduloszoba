@@ -3,7 +3,7 @@
 	import { auth } from '$lib/auth.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { TrashBinOutline, PenOutline } from 'flowbite-svelte-icons';
+	import { TrashBinOutline, PenOutline, SearchOutline, ExclamationCircleOutline, PlusOutline, CloseOutline } from 'flowbite-svelte-icons';
 
 	interface AiModerationResponse {
 		isProfane: boolean;
@@ -141,16 +141,16 @@
 	};
 </script>
 
-<main class="flex flex-col p-6 pt-12 pb-6 min-h-screen bg-[#F5F2EA]">
+<section class="flex flex-col p-6 pt-12 pb-6 min-h-screen bg-[#F5F2EA]">
 
 	{#if errorMessage}
-		<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-xl mb-6 font-bold text-xs flex justify-between items-center shadow-sm">
+		<p role="alert" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-xl mb-6 font-bold text-xs flex justify-between items-center shadow-sm">
 			<span>{errorMessage}</span>
-			<button onclick={() => errorMessage = ""} class="text-red-700 hover:text-red-900 font-black ml-2 text-sm">✕</button>
-		</div>
+			<button onclick={() => errorMessage = ""} class="text-red-700 hover:text-red-900 font-black ml-2 text-sm" aria-label="Hibaüzenet bezárása"><CloseOutline class="w-4 h-4" aria-hidden="true" /></button>
+		</p>
 	{/if}
 
-	<div class="flex bg-white/50 rounded-2xl p-1 mb-4 shadow-inner border border-[#2F5D50]/10">
+	<fieldset class="min-w-0 flex bg-white/50 rounded-2xl p-1 mb-4 shadow-inner border border-[#2F5D50]/10">
 		<button
 			class="flex-1 py-3 rounded-xl font-bold transition-all {activeTab === 'adventures' ? 'bg-city-brown text-white shadow-md' : 'text-city-brown'}"
 			onclick={() => activeTab = 'adventures'}>
@@ -161,13 +161,11 @@
 			onclick={() => activeTab = 'lists'}>
 			Listáim
 		</button>
-	</div>
+	</fieldset>
 
-	<div class="relative mb-8">
+	<search class="relative mb-8">
     <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F5D50" stroke-width="2.5">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-      </svg>
+      <SearchOutline width="20" height="20" class="" color="#2F5D50" aria-hidden="true" />
     </span>
 		<input
 			type="text"
@@ -175,22 +173,22 @@
 			class="w-full h-12 pl-12 pr-4 bg-white/80 rounded-xl border-b-4 border-[#2F5D50]/20 outline-none focus:border-[#2F5D50] transition-all text-[#2F5D50] font-bold"
 			bind:value={searchTerm}
 		/>
-	</div>
+	</search>
 
 	{#if activeTab === 'adventures'}
 		<section>
-			<div class="flex justify-between items-end mb-4">
+			<header class="flex justify-between items-end mb-4">
 				<h2 class="text-sm font-bold text-[#2F5D50] uppercase tracking-wider">Új kaland</h2>
-			</div>
+			</header>
 
 			<button
 				type="button"
 				class="w-full flex flex-col items-start gap-2 group mb-10"
 				onclick={() => goto('/adventures/create')}
 			>
-				<div class="w-full h-16 bg-[#8D7462] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
-					<span class="text-white text-4xl font-light">+</span>
-				</div>
+				<span class="w-full h-16 bg-[#8D7462] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
+					<span class="text-white text-4xl font-light"><PlusOutline class="w-6 h-6" aria-hidden="true" /></span>
+				</span>
 				<p class="text-[#8D7462] text-sm italic">Készítsd el a saját kalandod...</p>
 			</button>
 
@@ -209,24 +207,24 @@
 				{:else}
 					{#each filteredAdventures as adventure}
 						<article class="bg-city-brown/90 p-4 rounded-2xl shadow-sm border border-[#2F5D50]/5 grid grid-cols-[minmax(0,1fr)_44px_132px] items-center gap-2">
-						<div class="min-w-0">
+						<header class="min-w-0">
 							<p class="font-bold truncate text-city-cream" title={adventure.title}>
 								{adventure.title}
 							</p>
 							<p class="mt-1 text-[10px] text-city-cream/70">
 								{new Date(adventure.createdAt).toLocaleDateString('hu-HU')}
 							</p>
-						</div>
-						<div class="flex justify-center">
+						</header>
+						<span class="flex justify-center">
 						<span
 							class="w-3 h-3 rounded-full {statusColors[adventure.status] || 'bg-gray-400'}"
 							title={adventure.status}
 						>
 							<span class="sr-only">{adventure.status}</span>
 						</span>
-						</div>
+						</span>
 
-						<div class="flex items-center justify-end">
+						<span class="flex items-center justify-end">
 							{#if adventure.status === 'REJECTED'}
 								<button
 									type="button"
@@ -235,21 +233,7 @@
 									aria-label={`${adventure.title}: elutasítás részletei`}
 									title="Miért lett elutasítva?"
 								>
-									<svg
-										width="24"
-										height="24"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										aria-hidden="true"
-									>
-										<path d="M10.3 4.1 2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 4.1a2 2 0 0 0-3.4 0Z" />
-										<path d="M12 9v4" />
-										<path d="M12 17h.01" />
-									</svg>
+									<ExclamationCircleOutline width="24" height="24" class="" aria-hidden="true" />
 								</button>
 							{/if}
 
@@ -270,7 +254,7 @@
 							>
 								<TrashBinOutline class="w-6 h-6" />
 							</button>
-						</div>
+						</span>
 					</article>
 					{/each}
 				{/if}
@@ -285,9 +269,9 @@
 				class="w-full flex flex-col items-start gap-2 group mb-10"
 				onclick={() => goto('/adventures/lists/create')}
 			>
-				<div class="w-full h-16 bg-[#2F5D50] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
-					<span class="text-white text-4xl font-light">+</span>
-				</div>
+				<span class="w-full h-16 bg-[#2F5D50] rounded-2xl flex items-center justify-center shadow-lg group-active:scale-[0.98] transition-all">
+					<span class="text-white text-4xl font-light"><PlusOutline class="w-6 h-6" aria-hidden="true" /></span>
+				</span>
 				<p class="text-[#2F5D50] text-sm italic">Gyűjtsd össze kedvenc kalandjaidat...</p>
 			</button>
 
@@ -300,15 +284,15 @@
 				{:else}
 					{#each filteredLists as list}
 						<article class="bg-city-green p-5 rounded-2xl shadow-sm border border-[#2F5D50]/10 flex items-center justify-between gap-4">
-							<div class="flex-1 min-w-0">
+							<header class="flex-1 min-w-0">
 								<h3 class="font-bold text-city-cream text-lg truncate">{list.title}</h3>
-								<div class="flex gap-1 mt-1">
+								<span class="flex gap-1 mt-1">
       <span class="text-[10px] font-bold bg-[#2F5D50]/80 text-city-cream px-1 py-1 rounded-lg uppercase">
         {list.adventureIds?.length || 0} KALAND
       </span>
-								</div>
-							</div>
-							<div class="flex items-center gap-2 shrink-0">
+								</span>
+							</header>
+							<span class="flex items-center gap-2 shrink-0">
 								<button
 									onclick={() => goto(`/adventures/lists/edit/${list.id}`)}
 									class="p-2 text-city-cream hover:bg-white/10 rounded-xl transition-all active:scale-90"
@@ -324,7 +308,7 @@
 								>
 									<TrashBinOutline class="w-6 h-6"/>
 								</button>
-							</div>
+							</span>
 						</article>
 					{/each}
 				{/if}
@@ -334,20 +318,20 @@
 
 	{#if showDeleteModal}
 		<div class="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-			<div class="bg-[#F5F2EA] w-full max-w-sm rounded-3xl p-8 shadow-2xl border-2 border-[#8D7462]">
+			<section class="bg-[#F5F2EA] w-full max-w-sm rounded-3xl p-8 shadow-2xl border-2 border-[#8D7462]">
 				<h3 class="text-[#2F5D50] text-xl font-bold mb-4">Biztosan törlöd?</h3>
 				<p class="text-[#8D7462] mb-8 leading-relaxed text-sm">
 					Ez a művelet végleges. A {itemToDelete?.type === 'adventure' ? 'kaland' : 'lista'} minden adata törlődik a rendszerből.
 				</p>
-				<div class="flex gap-4">
+				<footer class="flex gap-4">
 					<button onclick={() => showDeleteModal = false} class="flex-1 py-3 rounded-xl font-bold text-gray-400">Mégse</button>
 					<button onclick={executeDelete} class="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white shadow-lg active:scale-95 transition-all">Törlés</button>
-				</div>
-			</div>
+				</footer>
+			</section>
 		</div>
 	{/if}
 
-</main>
+</section>
 
 <dialog
 	bind:this={moderationDialog}
@@ -359,8 +343,8 @@
 		{@const moderation = selectedAdventure.aiModeration}
 
 		<div class="p-6">
-			<div class="flex items-start justify-between gap-4">
-				<div class="min-w-0">
+			<header class="flex items-start justify-between gap-4">
+				<hgroup class="min-w-0">
 					<p class="text-[10px] font-black uppercase tracking-widest text-[#8D7462] mb-2">
 						Automatikus ellenőrzés
 					</p>
@@ -375,7 +359,7 @@
 					<p class="mt-2 text-sm text-[#8D7462] break-words">
 						{selectedAdventure.title}
 					</p>
-				</div>
+				</hgroup>
 
 				<button
 					type="button"
@@ -383,12 +367,12 @@
 					class="w-11 h-11 shrink-0 rounded-xl bg-[#8D7462]/10 text-[#2F5D50] text-xl"
 					aria-label="Ablak bezárása"
 				>
-					×
+					<CloseOutline class="w-6 h-6 mx-auto" aria-hidden="true" />
 				</button>
-			</div>
+			</header>
 
 			{#if moderation}
-				<div class="mt-6 rounded-2xl bg-red-50 border border-red-200 p-4">
+				<section class="mt-6 rounded-2xl bg-red-50 border border-red-200 p-4">
 					<h3 class="text-sm font-black text-red-800 mb-2">
 						Indoklás
 					</h3>
@@ -396,7 +380,7 @@
 					<p class="text-sm text-red-900 leading-relaxed whitespace-pre-line break-words">
 						{moderation.reason || 'Az ellenőrzés nem adott meg külön indoklást.'}
 					</p>
-				</div>
+				</section>
 
 				<dl class="mt-5 space-y-4 text-sm">
 					<div>

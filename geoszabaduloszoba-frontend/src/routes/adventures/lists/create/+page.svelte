@@ -106,16 +106,21 @@
 	{/if}
 
 	<section class="flex flex-col gap-2 mb-6 mt-4">
-		<h1 class="label-city">Új lista összeállítása</h1>
+		<header class="mb-10 mt-4">
+			<h1 class="text-4xl font-black text-[#2F5D50] uppercase tracking-tight leading-none mb-2">
+				Új Lista<br/>Összeállítása
+			</h1>
+			<span aria-hidden="true" class="block w-12 h-1.5 bg-[#8D7462] rounded-full"></span>
+		</header>
 
 		<input
-			class="input-city-brown"
+			class="input-custom"
 			placeholder="Lista neve..."
 			bind:value={title}
 		/>
 
 		<textarea
-			class="input-city-brown h-24"
+			class="input-custom h-24"
 			placeholder="Leírás..."
 			bind:value={description}
 		></textarea>
@@ -131,7 +136,7 @@
 			<input
 				type="text"
 				placeholder="Keress kalandokat név alapján..."
-				class="input-city-brown pl-12 mb-0 w-full"
+				class="input-custom pl-12 mb-0 w-full"
 				bind:value={searchQuery}
 			/>
 
@@ -197,6 +202,10 @@
 </section>
 
 <style>
+    .input-custom {
+        @apply w-full h-14 px-6 bg-white rounded-2xl border-b-4 border-[#2F5D50]/10 outline-none focus:border-[#2F5D50] transition-all text-[#2F5D50] font-bold shadow-sm placeholder:text-[#2F5D50]/60 placeholder:font-normal;
+    }
+
     .label-city {
         @apply text-[10px] font-black uppercase tracking-widest text-[#2F5D50] opacity-40 mb-1 block;
     }

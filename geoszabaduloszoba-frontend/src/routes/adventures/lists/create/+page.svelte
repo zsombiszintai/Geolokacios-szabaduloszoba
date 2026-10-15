@@ -136,7 +136,7 @@
 			<input
 				type="text"
 				placeholder="Keress kalandokat név alapján..."
-				class="input-custom pl-12 mb-0 w-full"
+				class="input-custom pl-24 mb-0 w-full"
 				bind:value={searchQuery}
 			/>
 
@@ -192,7 +192,7 @@
 
 	<footer class="mt-auto pt-10">
 		<button
-			class="btn-primary w-full shadow-2xl"
+			class="w-full bg-[#2F5D50] text-white py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all disabled:opacity-30"
 			onclick={handleSubmit}
 			disabled={!title || selectedAdventures.length === 0}
 		>

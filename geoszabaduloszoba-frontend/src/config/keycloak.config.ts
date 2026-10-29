@@ -1,7 +1,10 @@
-let realKeycloak = null;
+import type Keycloak from 'keycloak-js';
+import type { KeycloakInitOptions } from 'keycloak-js';
+
+let realKeycloak: Keycloak | null = null;
 
 const keycloak = {
-	async init(options) {
+	async init(options: KeycloakInitOptions) {
 		if (typeof window !== 'undefined') {
 			if (!realKeycloak) {
 				const KeycloakModule = await import('keycloak-js');
@@ -23,6 +26,12 @@ const keycloak = {
 		if (realKeycloak) {
 			realKeycloak.logout();
 		}
+	},
+	login() {
+		return realKeycloak?.login({ redirectUri: window.location.origin + '/dashboard' });
+	},
+	register() {
+		return realKeycloak?.register({ redirectUri: window.location.origin + '/dashboard' });
 	},
 	get token() {
 		return realKeycloak?.token;

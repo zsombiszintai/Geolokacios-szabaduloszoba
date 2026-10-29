@@ -136,7 +136,7 @@
 			<input
 				type="text"
 				placeholder="Keress kalandokat név alapján..."
-				class="input-custom pl-36 mb-0 w-full"
+				class="input-custom pl-48 mb-0 w-full"
 				bind:value={searchQuery}
 			/>
 

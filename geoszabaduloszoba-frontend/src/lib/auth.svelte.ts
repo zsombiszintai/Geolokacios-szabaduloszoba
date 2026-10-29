@@ -5,10 +5,10 @@ let authenticated = $state(false);
 let loading = $state(true);
 let error = $state<string | null>(null);
 
-async function init() {
+async function init(requireLogin = true) {
 	try {
 		authenticated = await keycloak.init({
-			onLoad: 'login-required',
+			onLoad: requireLogin ? 'login-required' : 'check-sso',
 			checkLoginIframe: false,
 			adapter: 'default',
 			redirectUri: window.location.origin + window.location.pathname
@@ -41,5 +41,7 @@ export const auth = {
 		get username() { return keycloak.tokenParsed?.preferred_username as string | undefined; },
     get fullName() { return keycloak.tokenParsed?.name as string | undefined; },
     init,
+    login: () => keycloak.login(),
+    register: () => keycloak.register(),
     logout
 };

@@ -24,9 +24,12 @@
     const showNavbar = $derived(!hideNavbarPaths.includes(activePath));
 
     onMount(async () => {
-        await auth.init();
-        if ($page.url.pathname === '/') {
-            goto('/dashboard');
+        await auth.init($page.url.pathname !== '/');
+    });
+
+    $effect(() => {
+        if (activePath !== '/' && !auth.loading && !auth.error && !auth.authenticated) {
+            void auth.login();
         }
     });
 
@@ -40,7 +43,9 @@
     <title>CityScape</title>
 </svelte:head>
 
-{#if auth.loading}
+{#if activePath === '/'}
+    {@render children()}
+{:else if auth.loading}
 
 <main class="flex items-center justify-center min-h-screen">
     <p>Authenticating...</p>

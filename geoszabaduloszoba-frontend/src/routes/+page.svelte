@@ -37,7 +37,7 @@
 			<div>
 				<p class="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[#775D4D]"><MapPin size={16} /> Szabadtéri szabadulós kalandok</p>
 				<h1 class="text-5xl font-bold leading-[1.08] tracking-tight sm:text-7xl">A város a te<br /><span class="text-[#8D7462]">játszótered.</span></h1>
-				<p class="mt-6 max-w-md text-lg leading-relaxed text-[#58665e]">Fordulj be egy új utcába. Kövesd a nyomokat. Oldd meg a rejtélyt. A CityScape-pel egy egyszerű séta is kalanddá válik.</p>
+				<p class="mt-6 max-w-md text-lg leading-relaxed text-[#58665e]">Kövesd a nyomokat. Oldd meg a rejtélyt. A CityScape-pel egy egyszerű séta is kalanddá válik.</p>
 				<div class="mt-9 flex flex-wrap gap-3">
 					{#if auth.authenticated}
 						<a class="primary-action" href="/dashboard">Irány a kaland! <ArrowRight size={20} /></a>

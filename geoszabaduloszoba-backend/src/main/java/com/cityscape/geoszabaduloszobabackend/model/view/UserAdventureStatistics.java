@@ -34,4 +34,5 @@ public class UserAdventureStatistics {
     private Long reviewsCount;
     private Long followerCount;
     private Long followingCount;
+    private Long listCount;
 }

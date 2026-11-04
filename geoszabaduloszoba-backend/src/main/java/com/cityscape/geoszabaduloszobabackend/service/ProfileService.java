@@ -25,6 +25,7 @@ public class ProfileService {
 
     private final UserAdventureStatisticsRepository statsRepository;
     private final AdventureRepository adventureRepository;
+    private final ListRepository listRepository;
     private final CompletedAdventureRepository completedRepository;
     private final AbandonedAdventureRepository abandonedRepository;
     private final ReviewRepository reviewRepository;
@@ -89,6 +90,7 @@ public class ProfileService {
         }
 
         return switch (type) {
+            case "lists" -> listRepository.findAllByCreatorKeycloakSub(targetSub);
 
             case "completed-adventure" -> completedRepository.findAllByUserKeycloakSub(targetSub).stream()
                     .map(entity -> entity.getAdventure())

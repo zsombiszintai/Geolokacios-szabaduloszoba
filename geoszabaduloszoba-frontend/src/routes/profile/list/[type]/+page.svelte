@@ -10,12 +10,13 @@
 	let loading = $state(true);
 	let listError = $state('');
 
-	const type = $derived(page.params.type);
+	const type = $derived(page.params.type ?? '');
 
 	const titles: Record<string, string> = {
 		'completed-adventure': 'Lejátszott kalandok',
 		'abandoned-adventure': 'Félbehagyott kalandok',
 		'created': 'Saját kalandok',
+		'lists': 'Saját listák',
 		'rated': 'Értékelt kalandok',
 		'reviewed': 'Vélemények',
 		'followers': 'Követők',
@@ -125,7 +126,18 @@
 		{:else}
 			{#each items as item}
 				<article class="bg-white p-5 rounded-3xl shadow-sm border border-[#2F5D50]/5 transition-all active:scale-[0.98]">
-					{#if item.username}
+					{#if type === 'lists'}
+						<a href={`/list/${item.id}`} class="flex items-center gap-4 text-left">
+							<div class="flex-1 min-w-0">
+								<h3 class="font-black text-[#2F5D50] text-xl leading-tight">{item.title}</h3>
+								{#if item.description}
+									<p class="mt-2 text-sm text-[#8D7462] line-clamp-2">{item.description}</p>
+								{/if}
+								<p class="mt-2 text-xs font-bold text-[#8D7462]">{item.adventureIds.length} kaland</p>
+							</div>
+							<ChevronRightOutline class="w-5 h-5 text-[#2F5D50] opacity-40" />
+						</a>
+					{:else if item.username}
 						<button
 							class="flex items-center gap-4 w-full text-left"
 							onclick={() => goto(`/profile/user/${item.username}`)}

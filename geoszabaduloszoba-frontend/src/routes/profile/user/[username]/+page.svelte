@@ -160,7 +160,7 @@
 						alt="Profilkép"
 						class="w-full h-full object-cover"
 						onerror={(event) => {
-							const image = event.currentTarget;
+							const image = event.currentTarget as HTMLImageElement;
 							const fallbackUrl = new URL(defaultAvatar, window.location.origin).href;
 
 							if (image.src !== fallbackUrl) {
@@ -198,6 +198,7 @@
 				{ label: 'Lejátszott kalandok', key: 'completed-adventure', count: stats.completedCount, color: 'bg-city-brown/90' },
 				{ label: 'Félbehagyott kalandok', key: 'abandoned-adventure', count: stats.abandonedCount, color: 'bg-city-brown/90' },
 				{ label: 'Saját kalandok', key: 'created', count: stats.ownedCount, color: 'bg-city-brown/90' },
+				{ label: 'Saját listák', key: 'lists', count: stats.listCount, color: 'bg-city-brown/90' },
 				{ label: 'Értékelt kalandok', key: 'rated', count: stats.ratedCount, color: 'bg-city-brown/90' },
 				{ label: 'Vélemények', key: 'reviewed', count: stats.reviewsCount, color: 'bg-city-brown/90' },
 				{ label: 'Követők', key: 'followers', count: stats.followerCount, color: 'bg-city-brown/90' },

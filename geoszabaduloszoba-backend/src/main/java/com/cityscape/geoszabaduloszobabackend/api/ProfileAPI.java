@@ -35,6 +35,7 @@ public class ProfileAPI {
                 .map(this::toDto).toList();
     }
     private Object toDto(Object result) {
+        if (result instanceof ListEntity list) return apiMapper.toDto(list);
         if (result instanceof AdventureEntity adventure) return apiMapper.toDto(adventure);
         if (result instanceof ReviewEntity review) return apiMapper.toDto(review);
         if (result instanceof UserSummary user) return apiMapper.toDto(user);

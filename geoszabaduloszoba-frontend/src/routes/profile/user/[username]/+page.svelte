@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { auth } from '$lib/auth.svelte.js';
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { page } from '$app/state';
 	import { ChevronRightOutline } from 'flowbite-svelte-icons';
 
@@ -11,6 +11,12 @@
 
 	let profileError = $state('');
 	let profileRequestId = 0;
+	const points = $derived(Math.max(0, Number(stats?.points) || 0));
+	const pointStep = 10;
+	const level = $derived(Math.floor(points / pointStep) + 1);
+	const nextPointGoal = $derived((Math.floor(points / pointStep) + 1) * pointStep);
+	const pointProgress = $derived((points % pointStep) / pointStep * 100);
+	const formatPoints = (value: number) => value.toLocaleString('hu-HU');
 
 	const usernameParam = $derived(page?.params?.username || null);
 	const isOwnProfile = $derived(
@@ -189,6 +195,25 @@
 			<h2 class="label-city mb-2">Bemutatkozás</h2>
 			<p class="text-[#2F5D50] font-medium italic leading-relaxed">
 				{stats.profileDescription || "Leírás..."}
+			</p>
+		</section>
+
+		<section aria-labelledby="points-heading" class="bg-white/80 p-6 rounded-3xl border border-[#2F5D50]/10 shadow-sm mb-8">
+			<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+				<h2 id="points-heading" class="text-lg font-black text-[#2F5D50]">{formatPoints(level)}. szint</h2>
+				<p class="text-3xl font-black text-[#2F5D50]">{formatPoints(points)} <span class="text-sm font-bold">pont</span></p>
+			</div>
+			<div
+				role="progressbar"
+				aria-valuemin={nextPointGoal - pointStep}
+				aria-valuemax={nextPointGoal}
+				aria-valuenow={points}
+				class="h-3 rounded-full bg-[#2F5D50]/10 overflow-hidden"
+			>
+				<div class="h-full rounded-full bg-[#2F5D50]" style:width={`${pointProgress}%`}></div>
+			</div>
+			<p class="mt-3 text-sm font-medium text-[#2F5D50]">
+				Még {formatPoints(nextPointGoal - points)} pont a {formatPoints(level + 1)}. szintig.
 			</p>
 		</section>
 

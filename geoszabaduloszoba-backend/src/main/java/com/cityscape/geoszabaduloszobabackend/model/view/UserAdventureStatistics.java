@@ -21,6 +21,9 @@ public class UserAdventureStatistics {
     private String keycloakSub;
     private String username;
 
+    @Column(name = "points")
+    private Integer points;
+
     @Column(name = "profile_picture_url")
     private String profilePictureUrl;
 

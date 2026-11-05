@@ -201,7 +201,7 @@
 		<section aria-labelledby="points-heading" class="bg-white/80 p-6 rounded-3xl border border-[#2F5D50]/10 shadow-sm mb-8">
 			<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
 				<h2 id="points-heading" class="text-lg font-black text-[#2F5D50]">{formatPoints(level)}. szint</h2>
-				<p class="text-3xl font-black text-[#2F5D50]">{formatPoints(points)} <span class="text-sm font-bold">pont</span></p>
+				<p class="text-2xl font-black text-[#2F5D50]">{formatPoints(points)} <span class="text-sm font-bold">pont</span></p>
 			</div>
 			<div
 				role="progressbar"
@@ -212,9 +212,6 @@
 			>
 				<div class="h-full rounded-full bg-[#2F5D50]" style:width={`${pointProgress}%`}></div>
 			</div>
-			<p class="mt-3 text-sm font-medium text-[#2F5D50]">
-				Még {formatPoints(nextPointGoal - points)} pont a {formatPoints(level + 1)}. szintig.
-			</p>
 		</section>
 
 		<nav class="space-y-3">

@@ -2,10 +2,10 @@ package com.cityscape.geoszabaduloszobabackend.service;
 
 import com.cityscape.geoszabaduloszobabackend.model.entity.AccountDeletionEntity;
 import com.cityscape.geoszabaduloszobabackend.repository.AccountDeletionRepository;
+import com.cityscape.geoszabaduloszobabackend.repository.AccountDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class AccountService {
     private final KeycloakAdminService keycloak;
     private final AccountDeletionRepository deletions;
     private final AvatarStorageService avatars;
-    private final JdbcTemplate jdbc;
+    private final AccountDataRepository accountData;
     private final TransactionTemplate transactions;
     private final Map<String, Long> verificationRequests = new HashMap<>();
 
@@ -79,38 +79,14 @@ public class AccountService {
 
     public synchronized void finishDeletion(String sub) throws Exception {
         keycloak.deleteAccount(sub);
-        var userIds = jdbc.queryForList("select id from users where keycloak_sub = ?", Long.class, sub);
+        var userIds = accountData.findUserIdsBySubject(sub);
         for (Long id : userIds) avatars.deleteUserAvatars(id);
         transactions.executeWithoutResult(status -> {
-            for (Long id : userIds) deleteLocalData(id);
+            for (Long id : userIds) accountData.anonymizeAndDeletePersonalData(id);
             var deletion = deletions.findById(sub).orElseThrow();
             deletion.setCompleted(true);
             deletions.save(deletion);
         });
     }
 
-    private void deleteLocalData(Long id) {
-        // Capture affected surviving adventures before removing this user's reviews/results.
-        var affected = jdbc.queryForList("select id from adventure where id in "
-                + "(select adventure_id from review where user_id = ?) or id in "
-                + "(select adventure_id from completed_adventure where user_id = ?)", Long.class, id, id);
-        String owned = "select id from adventure where creator_id = ?";
-        jdbc.update("delete from list_adventures where list_id in (select id from adventure_list where creator_id = ?) "
-                + "or adventure_id in (" + owned + ")", id, id);
-        jdbc.update("delete from adventure_list where creator_id = ?", id);
-        jdbc.update("delete from user_follows where follower_id = ? or followed_id = ?", id, id);
-        for (String table : new String[]{"review", "completed_adventure", "abandoned_adventure"}) {
-            jdbc.update("delete from " + table + " where user_id = ? or adventure_id in (" + owned + ")", id, id);
-        }
-        for (String table : new String[]{"station", "moderation_response", "ai_moderation_response"}) {
-            jdbc.update("delete from " + table + " where adventure_id in (" + owned + ")", id);
-        }
-        jdbc.update("delete from adventure where creator_id = ?", id);
-        jdbc.update("delete from users where id = ?", id);
-        for (Long adventureId : affected) {
-            jdbc.update("update adventure set average_rating = (select avg(rating) from review where adventure_id = ?), "
-                    + "average_time_in_seconds = (select avg(duration_sec) from completed_adventure where adventure_id = ?) "
-                    + "where id = ?", adventureId, adventureId, adventureId);
-        }
-    }
 }

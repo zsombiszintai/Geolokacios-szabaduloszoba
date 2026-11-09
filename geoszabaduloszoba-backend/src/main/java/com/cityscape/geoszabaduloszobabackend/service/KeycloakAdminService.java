@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
 import jakarta.ws.rs.NotFoundException;
+import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import lombok.RequiredArgsConstructor;
@@ -87,6 +88,9 @@ public class KeycloakAdminService {
     }
 
     public String getUsername(String keycloakSub) {
+        if (UserEntity.DELETED_SUBJECT.equals(keycloakSub)) {
+            return UserEntity.DELETED_NAME;
+        }
         return getById(keycloakSub).getUsername();
     }
 

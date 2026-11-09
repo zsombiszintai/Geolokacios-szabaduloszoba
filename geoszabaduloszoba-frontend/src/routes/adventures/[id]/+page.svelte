@@ -186,6 +186,7 @@
 
 		try {
 			const id = page.params.id;
+			if (!id) return;
 			const url = `https://api.zsomborszintai.com/api/adventures/${encodeURIComponent(id)}`;
 
 			const res = await fetch(url, {
@@ -358,6 +359,13 @@
 				</hgroup>
 
 				<div class="grid grid-cols-2 gap-4">
+					<section class="col-span-2 min-w-0 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
+						<h2 class="label-city mb-1">Átlagos értékelés</h2>
+						<p class="font-bold text-[#2F5D50] flex items-center gap-2">
+							<StarSolid class="w-5 h-5 text-yellow-500" />
+							{adventure.averageRating > 0 ? `${Number(adventure.averageRating).toLocaleString('hu-HU', { maximumFractionDigits: 1 })} / 5` : 'Még nincs értékelés'}
+						</p>
+					</section>
 					<section class="min-w-0 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">
 						<h2 class="label-city mb-1">Időtartam</h2>
 						<p class="font-bold text-[#2F5D50]">
@@ -392,7 +400,7 @@
 								alt="A készítő profilképe"
 								class="w-8 h-8 shrink-0 rounded-full object-cover border border-[#2F5D50]/10"
 								onerror={(event) => {
-									const image = event.currentTarget;
+									const image = event.currentTarget as HTMLImageElement;
 
 									if (image.getAttribute('src') !== '/images/default-avatar.png') {
 										image.src = '/images/default-avatar.png';
@@ -400,7 +408,7 @@
 								}}
 							/>
 
-							{#if adventure.creatorName && adventure.creatorName !== 'Ismeretlen'}
+							{#if adventure.creatorName && !['Ismeretlen', 'Törölt felhasználó'].includes(adventure.creatorName)}
 								<a
 									href={`/profile/user/${encodeURIComponent(adventure.creatorName)}`}
 									class="min-w-0 font-bold text-[#8D7462] hover:underline [overflow-wrap:anywhere]"
@@ -409,7 +417,7 @@
 								</a>
 							{:else}
 								<span class="min-w-0 font-bold text-[#8D7462] [overflow-wrap:anywhere]">
-									Ismeretlen
+									{adventure.creatorName || 'Ismeretlen'}
 								</span>
 							{/if}
 						</span>
@@ -430,7 +438,7 @@
 											<UserCircleSolid class="w-6 h-6 text-city-cream" />
 										</span>
 										<span class="flex flex-col">
-											<span class="font-bold text-city-cream text-sm">Névtelen kalandor</span>
+											<span class="font-bold text-city-cream text-sm">{review.authorName || 'Törölt felhasználó'}</span>
 											<span class="text-[10px] font-bold text-city-cream opacity-60 uppercase">
               {new Date(review.reviewedAt).toLocaleDateString('hu-HU')}
             </span>

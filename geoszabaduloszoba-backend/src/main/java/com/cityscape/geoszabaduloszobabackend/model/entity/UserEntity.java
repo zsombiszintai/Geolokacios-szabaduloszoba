@@ -10,6 +10,8 @@ import java.time.LocalDate;
 @Table(name = "users")
 @Getter @Setter
 public class UserEntity {
+    public static final String DELETED_SUBJECT = "__deleted_account__";
+    public static final String DELETED_NAME = "Törölt felhasználó";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

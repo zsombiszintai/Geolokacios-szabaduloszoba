@@ -41,7 +41,8 @@ public class ApiMapper {
 
     public ReviewDTO toDto(ReviewEntity review) {
         return new ReviewDTO(review.getId(), review.getAdventure().getId(), review.getAdventure().getTitle(),
-                review.getRating(), review.getReviewText(), review.getReviewedAt());
+                review.getRating(), review.getReviewText(), review.getReviewedAt(),
+                UserEntity.DELETED_NAME);
     }
 
     public ReviewEntity toReviewEntity(ReviewDTO source) {

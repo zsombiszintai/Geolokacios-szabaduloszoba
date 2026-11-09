@@ -8,5 +8,6 @@ public record ReviewDTO(
         String title,
         Integer rating,
         String reviewText,
-        LocalDate reviewedAt
+        LocalDate reviewedAt,
+        String authorName
 ) {}

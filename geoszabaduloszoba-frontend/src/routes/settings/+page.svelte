@@ -684,7 +684,7 @@
 
 		<section class="bg-white p-6 rounded-[40px] shadow-sm border border-red-200 space-y-4" aria-labelledby="delete-heading">
 			<h3 id="delete-heading" class="font-black uppercase tracking-widest text-red-800">Fiók törlése</h3>
-			<p class="text-[#8D7462]">A fiókod és a hozzá tartozó adatok véglegesen törlődnek.</p>
+			<p class="text-[#8D7462]">A fiókod törlődik. A közzétett kalandjaid és véleményeid „Törölt felhasználó” néven megmaradnak.</p>
 			<button type="button" onclick={() => { confirmation = ''; deletionError = ''; deleteDialog.showModal(); }}
 				class="w-full rounded-2xl border border-red-700 p-4 text-red-800 font-bold">Fiók törlése</button>
 		</section>
@@ -774,7 +774,7 @@
 	oncancel={(event) => { if (deletingAccount) event.preventDefault(); }}>
 	<div class="p-6 space-y-4">
 		<h2 id="delete-dialog-heading" class="text-xl font-black text-red-800">Végleg törlöd a fiókodat?</h2>
-		<p id="delete-dialog-description">Törlődik a profilod, az összes saját kalandod és listád, az értékeléseid, követéseid és játékadataid. A saját kalandjaid mások listáiról és játékelőzményeiből is eltűnnek. A művelet nem vonható vissza.</p>
+		<p id="delete-dialog-description">A profilod, profilképeid, saját listáid, követéseid, folyamatban lévő játékaid és nem közzétett kalandjaid törlődnek. A közzétett kalandjaid, véleményeid, értékeléseid és teljesítéseid egy közös „Törölt felhasználó” rekordhoz kerülnek. Az eredeti profilod többé nem érhető el. A művelet nem vonható vissza.</p>
 		<label for="delete-confirmation" class="block font-bold">A megerősítéshez írd be: TÖRLÉS</label>
 		<input id="delete-confirmation" bind:value={confirmation} autocomplete="off" disabled={deletingAccount}
 			class="w-full rounded-xl border border-red-300 bg-white p-3" />

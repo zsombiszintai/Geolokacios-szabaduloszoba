@@ -18,6 +18,9 @@
 	let rating = $state(0);
 	let reviewText = $state('');
 	let searchTerm = $state('');
+	let reviewTexts = $state<Record<number, string>>({});
+	let savingReview = $state(false);
+	let reviewError = $state('');
 
 	let filteredAdventures = $derived(
 		adventures.filter((a) => a.adventureTitle.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -28,6 +31,12 @@
 			headers: { Authorization: `Bearer ${auth.token}` }
 		});
 		if (res.ok) adventures = await res.json();
+		const reviews = await fetch('https://api.zsomborszintai.com/api/reviews/my', {
+			headers: { Authorization: `Bearer ${auth.token}` }
+		});
+		if (reviews.ok) {
+			for (const review of await reviews.json()) reviewTexts[review.adventureId] = review.reviewText || '';
+		}
 	});
 
 	function formatDuration(seconds: number) {
@@ -38,24 +47,32 @@
 
 	async function postReview(e: SubmitEvent) {
 		e.preventDefault();
-		if (!selectedAdv) return;
+		if (!selectedAdv || savingReview) return;
+		if (rating < 1 || rating > 5) { reviewError = 'Válassz 1–5 csillagot.'; return; }
+		const adventureId = selectedAdv.adventureId;
+		savingReview = true;
+		reviewError = '';
+		try {
+			const res = await fetch('https://api.zsomborszintai.com/api/reviews', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${auth.token}`
+				},
+				body: JSON.stringify({ adventureId, rating, reviewText })
+			});
 
-		const res = await fetch('https://api.zsomborszintai.com/api/reviews', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${auth.token}`
-			},
-			body: JSON.stringify({
-				adventureId: selectedAdv.adventureId,
-				rating,
-				reviewText
-			})
-		});
-
-		if (res.ok) {
-			adventures = adventures.map((a) => (a.id === selectedAdv?.id ? { ...a, rating } : a));
-			selectedAdv = null;
+			if (res.ok) {
+				adventures = adventures.map((a) => (a.adventureId === adventureId ? { ...a, rating } : a));
+				reviewTexts[adventureId] = reviewText;
+				selectedAdv = null;
+			} else {
+				reviewError = 'Az értékelés mentése sikertelen. Próbáld újra.';
+			}
+		} catch {
+			reviewError = 'Hálózati hiba történt. Próbáld újra.';
+		} finally {
+			savingReview = false;
 		}
 	}
 
@@ -96,7 +113,7 @@
 	<section class="space-y-4">
 		{#each filteredAdventures as adv (adv.id)}
 			<button
-				onclick={() => { selectedAdv = adv; rating = adv.rating || 0; }}
+				onclick={() => { selectedAdv = adv; rating = adv.rating || 0; reviewText = reviewTexts[adv.adventureId] || ''; reviewError = ''; }}
 				class="grid grid-cols-[2fr_1fr_1fr] w-full items-center bg-[#8D7462]/90 p-5 rounded-3xl shadow-xl transition-all active:scale-[0.98] text-left border border-white/10"
 			>
 				<header class="overflow-hidden">
@@ -138,7 +155,7 @@
 								</span>
 							{/if}
 						</hgroup>
-						<button onclick={() => (selectedAdv = null)} class="p-2 bg-white rounded-xl shadow-sm text-[#8D7462]" aria-label="Bezárás">
+						<button disabled={savingReview} onclick={() => (selectedAdv = null)} class="p-2 bg-white rounded-xl shadow-sm text-[#8D7462]" aria-label="Bezárás">
 							<CloseOutline width="20" height="20" class="" aria-hidden="true" />
 						</button>
 					</header>
@@ -160,12 +177,14 @@
 				</header>
 
 				<form method="dialog" class="p-8 pt-4" onsubmit={postReview}>
+					{#if reviewError}<p role="alert" class="mb-4 text-red-700">{reviewError}</p>{/if}
 					<fieldset class="min-w-0 mb-6 text-center">
 						<p class="label-city mb-4">Milyen volt a kaland?</p>
 						<span class="flex justify-center gap-2">
 							{#each [1, 2, 3, 4, 5] as star}
 								<button
 									type="button"
+									disabled={savingReview}
 									aria-label={`${star} csillag`} aria-pressed={rating === star} onclick={() => (rating = star)}
 									class="text-4xl transition-all {star <= rating ? 'text-yellow-400 scale-110' : 'text-gray-300 opacity-40'}"
 								>
@@ -179,6 +198,8 @@
 						<label for="review-text" class="label-city ml-1">Véleményed</label>
 						<textarea
 							id="review-text"
+							maxlength="500"
+							disabled={savingReview}
 							bind:value={reviewText}
 							placeholder="Meséld el a tapasztalataidat..."
 							class="w-full h-32 rounded-2xl bg-white p-4 text-[#2F5D50] font-medium placeholder-[#2F5D50]/30 outline-none border border-[#2F5D50]/5 focus:border-[#2F5D50] transition-all resize-none shadow-inner"
@@ -187,6 +208,7 @@
 
 					<button
 						type="submit"
+						disabled={savingReview || rating < 1}
 						class="mt-8 w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
 					>
 						{selectedAdv.rating ? 'Értékelés frissítése' : 'Értékelés küldése'}

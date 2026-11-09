@@ -403,6 +403,9 @@ public class AdventureService{
     }
 
     private String resolveCreatorName(UserEntity creator) {
+        if (creator != null && UserEntity.DELETED_SUBJECT.equals(creator.getKeycloakSub())) {
+            return UserEntity.DELETED_NAME;
+        }
         if (creator == null
                 || creator.getKeycloakSub() == null
                 || creator.getKeycloakSub().isBlank()) {

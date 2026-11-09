@@ -41,6 +41,7 @@ public class AdventureEntity {
     @Column(name = "has_starting_point", nullable = false)
     private boolean hasStartingPoint = false;
 
+    @Column(name = "average_rating", insertable = false, updatable = false)
     private Double averageRating;
     private Integer averageTimeInSeconds;
 }

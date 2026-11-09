@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
 import com.cityscape.geoszabaduloszobabackend.service.SettingsService;
+import com.cityscape.geoszabaduloszobabackend.service.AccountService;
 import com.cityscape.geoszabaduloszobabackend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -17,6 +18,24 @@ public class SettingsAPI {
 
     private final SettingsService settingsService;
     private final UserService userService;
+    private final AccountService accountService;
+
+    @GetMapping("/account")
+    public AccountService.AccountInfo account() {
+        return accountService.info();
+    }
+
+    @PostMapping("/account/verify-email")
+    public ResponseEntity<Void> verifyEmail() {
+        accountService.verifyEmail();
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/account")
+    public ResponseEntity<Void> deleteAccount(@RequestBody Map<String, String> body) {
+        accountService.deleteAccount(body.get("confirmation"));
+        return ResponseEntity.accepted().build();
+    }
 
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, String> uploadAvatar(@RequestPart("file") MultipartFile file) throws Exception {

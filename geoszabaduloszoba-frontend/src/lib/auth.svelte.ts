@@ -41,6 +41,10 @@ export const auth = {
 		get username() { return keycloak.tokenParsed?.preferred_username as string | undefined; },
     get fullName() { return keycloak.tokenParsed?.name as string | undefined; },
     init,
+    accountDeleted: () => {
+        keycloak.clearSession();
+        window.location.replace('/');
+    },
     login: () => keycloak.login(),
     register: () => keycloak.register(),
     logout

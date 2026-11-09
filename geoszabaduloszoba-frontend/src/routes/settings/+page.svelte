@@ -8,6 +8,76 @@
 	let uploadLoading = $state(false);
 	let description = $state("");
 	let message = $state({ text: "", type: "" });
+	let account = $state<{ email: string | null; emailVerified: boolean } | null>(null);
+	let accountLoading = $state(false);
+	let accountError = $state('');
+	let accountNotice = $state('');
+	let sendingEmail = $state(false);
+	let resendAvailableAt = $state(0);
+	let now = $state(Date.now());
+	let deletingAccount = $state(false);
+	let confirmation = $state('');
+	let deletionError = $state('');
+	let deleteDialog: HTMLDialogElement;
+	const resendSeconds = $derived(Math.max(0, Math.ceil((resendAvailableAt - now) / 1000)));
+
+	async function fetchAccount() {
+		if (!auth.token || accountLoading) return;
+		accountLoading = true;
+		accountError = '';
+		try {
+			const response = await fetch('https://api.zsomborszintai.com/settings/account', {
+				headers: { Authorization: `Bearer ${auth.token}` }
+			});
+			if (!response.ok) throw new Error('A fiókadatokat nem sikerült betölteni. Próbáld újra.');
+			account = await response.json();
+		} catch (error) {
+			accountError = error instanceof Error ? error.message : 'Hálózati hiba történt.';
+		} finally {
+			accountLoading = false;
+		}
+	}
+
+	async function sendVerificationEmail() {
+		if (!auth.token || sendingEmail || resendSeconds > 0) return;
+		sendingEmail = true;
+		accountError = '';
+		accountNotice = '';
+		try {
+			const response = await fetch('https://api.zsomborszintai.com/settings/account/verify-email', {
+				method: 'POST', headers: { Authorization: `Bearer ${auth.token}` }
+			});
+			if (response.status === 429) {
+				resendAvailableAt = Date.now() + 60_000;
+				throw new Error('Várj egy percet az újraküldés előtt.');
+			}
+			if (!response.ok) throw new Error('Az e-mail küldése sikertelen. Próbáld újra később.');
+			resendAvailableAt = Date.now() + 60_000;
+			accountNotice = 'A megerősítő e-mailt elküldtük. Nyisd meg a benne található linket, majd frissítsd az állapotot.';
+		} catch (error) {
+			accountError = error instanceof Error ? error.message : 'Hálózati hiba történt.';
+		} finally {
+			sendingEmail = false;
+		}
+	}
+
+	async function deleteAccount() {
+		if (!auth.token || deletingAccount || confirmation !== 'TÖRLÉS') return;
+		deletingAccount = true;
+		deletionError = '';
+		try {
+			const response = await fetch('https://api.zsomborszintai.com/settings/account', {
+				method: 'DELETE',
+				headers: { Authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' },
+				body: JSON.stringify({ confirmation })
+			});
+			if (!response.ok) throw new Error('A törlési kérelmet nem sikerült elküldeni. Próbáld újra.');
+			auth.accountDeleted();
+		} catch (error) {
+			deletionError = error instanceof Error ? error.message : 'Hálózati hiba történt.';
+			deletingAccount = false;
+		}
+	}
 
 	const defaultAvatar = '/images/default-avatar.png';
 
@@ -504,6 +574,11 @@
 	}
 
 	onMount(fetchCurrentSettings);
+	onMount(() => {
+		void fetchAccount();
+		const timer = window.setInterval(() => { now = Date.now(); }, 1000);
+		return () => window.clearInterval(timer);
+	});
 </script>
 
 <section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
@@ -536,7 +611,7 @@
 							alt="Profilkép"
 							class="w-full h-full object-cover"
 							onerror={(event) => {
-								const image = event.currentTarget;
+								const image = event.currentTarget as HTMLImageElement;
 								const fallback = new URL(defaultAvatar, window.location.origin).href;
 
 								if (image.src !== fallback) {
@@ -588,6 +663,30 @@
 			>
 				Változtatások mentése
 			</button>
+		</section>
+		<section class="bg-white p-6 rounded-[40px] shadow-sm space-y-4 text-[#2F5D50]" aria-labelledby="email-heading">
+			<h3 id="email-heading" class="font-black uppercase tracking-widest">E-mail-megerősítés</h3>
+			{#if account}
+				<p class="break-all">{account.email || 'Nincs megadott e-mail-cím'}</p>
+				<p class="font-bold">{account.emailVerified ? 'Megerősítve' : 'Nincs megerősítve'}</p>
+				{#if !account.emailVerified && account.email}
+					<button type="button" onclick={sendVerificationEmail} disabled={sendingEmail || resendSeconds > 0}
+						class="w-full rounded-2xl bg-[#2F5D50] p-4 text-white font-bold disabled:opacity-50">
+						{sendingEmail ? 'Küldés...' : resendSeconds > 0 ? `Újraküldés ${resendSeconds} mp múlva` : 'Megerősítő e-mail küldése'}
+					</button>
+				{/if}
+			{/if}
+			<button type="button" onclick={fetchAccount} disabled={accountLoading}
+				class="underline font-bold disabled:opacity-50">{accountLoading ? 'Betöltés...' : 'Állapot frissítése'}</button>
+			{#if accountError}<p role="alert" class="text-red-700">{accountError}</p>{/if}
+			{#if accountNotice}<p role="status">{accountNotice}</p>{/if}
+		</section>
+
+		<section class="bg-white p-6 rounded-[40px] shadow-sm border border-red-200 space-y-4" aria-labelledby="delete-heading">
+			<h3 id="delete-heading" class="font-black uppercase tracking-widest text-red-800">Fiók törlése</h3>
+			<p class="text-[#8D7462]">A fiókod és a hozzá tartozó adatok véglegesen törlődnek.</p>
+			<button type="button" onclick={() => { confirmation = ''; deletionError = ''; deleteDialog.showModal(); }}
+				class="w-full rounded-2xl border border-red-700 p-4 text-red-800 font-bold">Fiók törlése</button>
 		</section>
 	</div>
 	{#if message.text}
@@ -667,6 +766,26 @@
 				{uploadLoading ? 'Feltöltés...' : 'Mentés'}
 			</button>
 		</footer>
+	</div>
+</dialog>
+
+<dialog bind:this={deleteDialog} aria-labelledby="delete-dialog-heading" aria-describedby="delete-dialog-description"
+	class="avatar-dialog font-josefin p-6"
+	oncancel={(event) => { if (deletingAccount) event.preventDefault(); }}>
+	<div class="p-6 space-y-4">
+		<h2 id="delete-dialog-heading" class="text-xl font-black text-red-800">Végleg törlöd a fiókodat?</h2>
+		<p id="delete-dialog-description">Törlődik a profilod, az összes saját kalandod és listád, az értékeléseid, követéseid és játékadataid. A saját kalandjaid mások listáiról és játékelőzményeiből is eltűnnek. A művelet nem vonható vissza.</p>
+		<label for="delete-confirmation" class="block font-bold">A megerősítéshez írd be: TÖRLÉS</label>
+		<input id="delete-confirmation" bind:value={confirmation} autocomplete="off" disabled={deletingAccount}
+			class="w-full rounded-xl border border-red-300 bg-white p-3" />
+		{#if deletionError}<p role="alert" class="text-red-700">{deletionError}</p>{/if}
+		<p role="status">{deletingAccount ? 'Törlési kérelem feldolgozása...' : ''}</p>
+		<div class="flex gap-3">
+			<button type="button" onclick={() => deleteDialog.close()} disabled={deletingAccount}
+				class="flex-1 rounded-xl border p-3 font-bold">Mégse</button>
+			<button type="button" onclick={deleteAccount} disabled={deletingAccount || confirmation !== 'TÖRLÉS'}
+				class="flex-1 rounded-xl bg-red-800 p-3 font-bold text-white disabled:opacity-50">Végleges törlés</button>
+		</div>
 	</div>
 </dialog>
 

@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.config;
 
 import lombok.RequiredArgsConstructor;
+import com.cityscape.geoszabaduloszobabackend.repository.AccountDeletionRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -23,6 +24,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final KeycloakJwtConverter keycloakJwtConverter;
+    private final AccountDeletionRepository accountDeletions;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -44,6 +46,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .addFilterAfter(new DeletedAccountFilter(accountDeletions), BearerTokenAuthenticationFilter.class)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

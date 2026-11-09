@@ -90,6 +90,24 @@ public class KeycloakAdminService {
         return getById(keycloakSub).getUsername();
     }
 
+    public void sendVerificationEmail(String sub) {
+        try {
+            keycloak.realm(realm).users().get(sub).sendVerifyEmail();
+        } catch (WebApplicationException | ProcessingException e) {
+            throw unavailable(e);
+        }
+    }
+
+    public void deleteAccount(String sub) {
+        try {
+            keycloak.realm(realm).users().get(sub).remove();
+        } catch (NotFoundException ignored) {
+            // A previous attempt may already have removed the account.
+        } catch (WebApplicationException | ProcessingException e) {
+            throw unavailable(e);
+        }
+    }
+
     private ResponseStatusException unavailable(Exception cause) {
         return new ResponseStatusException(
                 HttpStatus.SERVICE_UNAVAILABLE,

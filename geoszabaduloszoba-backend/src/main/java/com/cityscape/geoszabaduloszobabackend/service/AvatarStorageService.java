@@ -44,6 +44,15 @@ public class AvatarStorageService {
         return "avatar_" + id + "_" + System.currentTimeMillis() + "." + extension;
     }
 
+    public void deleteUserAvatars(Long userId) throws Exception {
+        // Also remove older uploads, whose keys are no longer stored in the profile.
+        for (var result : minioClient.listObjects(ListObjectsArgs.builder()
+                .bucket(properties.getBucketName()).prefix("avatar_" + userId + "_").recursive(true).build())) {
+            minioClient.removeObject(RemoveObjectArgs.builder().bucket(properties.getBucketName())
+                    .object(result.get().objectName()).build());
+        }
+    }
+
     /**
      * Feltölti a nyers fájlt a MinIO-ba.
      */

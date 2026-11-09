@@ -27,6 +27,10 @@ const keycloak = {
 			realKeycloak.logout();
 		}
 	},
+
+	clearSession() {
+		realKeycloak?.clearToken();
+	},
 	login() {
 		return realKeycloak?.login({ redirectUri: window.location.origin + '/dashboard' });
 	},

@@ -363,7 +363,7 @@
 						<h2 class="label-city mb-1">Átlagos értékelés</h2>
 						<p class="font-bold text-[#2F5D50] flex items-center gap-2">
 							<StarSolid class="w-5 h-5 text-yellow-500" />
-							{adventure.averageRating > 0 ? `${Number(adventure.averageRating).toLocaleString('hu-HU', { maximumFractionDigits: 1 })} / 5` : 'Még nincs értékelés'}
+							{adventure.averageRating > 0 ? `${Number(adventure.averageRating).toLocaleString('hu-HU', { maximumFractionDigits: 1 })} / 5` : '-'}
 						</p>
 					</section>
 					<section class="min-w-0 bg-white/60 p-4 rounded-2xl border border-[#2F5D50]/5 shadow-sm">

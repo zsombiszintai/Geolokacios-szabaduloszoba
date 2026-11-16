@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import {
 		ChevronLeftOutline,
+		ChevronRightOutline,
 		UserCircleSolid,
 		StarSolid,
 		DotsHorizontalOutline,
@@ -17,6 +18,9 @@
 
 	let menuOpen = $state<boolean>(false);
 	let listSelectorOpen = $state<boolean>(false);
+	let listCreateOpen = $state(false);
+	let newListTitle = $state('');
+	let isCreatingList = $state(false);
 	let myLists = $state<any[]>([]);
 	let searchQuery = $state<string>("");
 	let errorMessage = $state<string>("");
@@ -205,9 +209,11 @@
 	}
 
 	function toggleMenu() {
+		if (isCreatingList) return;
 		menuOpen = !menuOpen;
 		if (!menuOpen) {
 			listSelectorOpen = false;
+			listCreateOpen = false;
 			errorMessage = "";
 		}
 	}
@@ -229,6 +235,41 @@
 		errorMessage = "";
 		await fetchMyLists();
 		listSelectorOpen = true;
+	}
+
+	async function createListWithAdventure(event: SubmitEvent) {
+		event.preventDefault();
+		if (isCreatingList || !adventure) return;
+		const title = newListTitle.trim();
+		if (!title) {
+			errorMessage = 'Adj nevet a listának!';
+			return;
+		}
+		isCreatingList = true;
+		errorMessage = '';
+		try {
+			const response = await fetch('https://api.zsomborszintai.com/lists', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${auth.token}`
+				},
+				body: JSON.stringify({ title, description: '', adventureIds: [adventure.id] })
+			});
+			if (!response.ok) {
+				errorMessage = 'Nem sikerült létrehozni a listát. Próbáld újra!';
+				return;
+			}
+			newListTitle = '';
+			searchQuery = '';
+			listCreateOpen = false;
+			await fetchMyLists();
+		} catch (error) {
+			console.error('Lista létrehozási hiba:', error);
+			errorMessage = 'Nem sikerült elérni a szervert.';
+		} finally {
+			isCreatingList = false;
+		}
 	}
 
 	async function fetchMyLists() {
@@ -283,7 +324,30 @@
 			{#if menuOpen}
 				<div class="absolute right-0 top-11 w-64 max-w-[calc(100vw-3rem)] z-50">
 
-					{#if listSelectorOpen}
+					{#if listCreateOpen}
+						<section class="bg-city-cream text-city-green rounded-2xl shadow-2xl p-3 w-full border border-[#2F5D50]/10">
+							<button type="button" disabled={isCreatingList}
+								class="flex items-center gap-2 rounded-lg px-2 py-2 mb-2 text-left text-sm font-bold hover:bg-[#2F5D50]/5 disabled:opacity-50"
+								onclick={() => { listCreateOpen = false; errorMessage = ''; }}>
+								<ChevronLeftOutline class="w-4 h-4 shrink-0" />
+								<span>Vissza a listákhoz</span>
+							</button>
+							<form onsubmit={createListWithAdventure} class="space-y-3">
+								<h2 class="px-2 text-sm font-bold">Új lista létrehozása</h2>
+								{#if errorMessage}
+									<p role="alert" class="text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg">{errorMessage}</p>
+								{/if}
+								<label for="new-list-title" class="block px-2 text-xs font-bold">Lista neve</label>
+								<input id="new-list-title" type="text" required bind:value={newListTitle} disabled={isCreatingList}
+									placeholder="Lista neve..." class="w-full bg-white text-sm text-city-green px-3 py-2 rounded-lg border border-[#2F5D50]/20 focus:ring-1 focus:ring-emerald-500" />
+								<p class="px-2 text-xs break-words">A listához hozzáadjuk: {adventure.title}</p>
+								<button type="submit" disabled={isCreatingList || !newListTitle.trim()}
+									class="w-full bg-city-green text-white py-2.5 rounded-lg text-sm font-bold disabled:opacity-50">
+									{isCreatingList ? 'Létrehozás...' : 'Lista létrehozása'}
+								</button>
+							</form>
+						</section>
+					{:else if listSelectorOpen}
 						<section class="bg-city-cream text-city-green rounded-2xl shadow-2xl p-3 w-full border border-[#2F5D50]/10 flex flex-col max-h-80">
 							<button
 								type="button"
@@ -310,7 +374,7 @@
 								/>
 							</search>
 
-							<button class="flex items-center gap-2 w-full text-left px-2 py-2 text-xs font-bold text-city-green hover:bg-[#2F5D50]/5 rounded-lg transition-colors mb-1">
+							<button onclick={() => { listCreateOpen = true; errorMessage = ''; }} class="flex items-center gap-2 w-full text-left px-2 py-2 text-xs font-bold text-city-green hover:bg-[#2F5D50]/5 rounded-lg transition-colors mb-1">
 								<PlusOutline class="w-4 h-4" />
 								<span>Új lista létrehozása</span>
 							</button>
@@ -340,7 +404,10 @@
 							class="w-full text-left px-4 py-2.5 text-sm font-bold text-city-green hover:bg-[#2F5D50]/5 transition-colors"
 							onclick={openListSelector}
 						>
-							<span>Mentés listára</span>
+							<span class="flex items-center justify-between gap-2">
+								<span>Mentés listára</span>
+								<ChevronRightOutline class="w-4 h-4 shrink-0" />
+							</span>
 						</button>
 						<button
 							class="w-full text-left px-4 py-2.5 text-sm font-bold text-city-green hover:bg-[#2F5D50]/5 transition-colors"

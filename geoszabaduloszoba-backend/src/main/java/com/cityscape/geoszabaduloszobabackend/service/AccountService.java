@@ -55,7 +55,6 @@ public class AccountService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A megerősítéshez írd be: TÖRLÉS");
         }
         String sub = users.getCurrentUserId();
-        // Commit the request before touching either external system.
         var deletion = new AccountDeletionEntity();
         deletion.setSubject(sub);
         deletions.saveAndFlush(deletion);

@@ -260,7 +260,7 @@
 	</svelte:head>
 
 {#if adventure}
-	<section class="flex flex-col min-h-screen bg-[#F5F2EA] font-josefin p-6 pt-6 pb-6">
+	<section class="flex flex-col min-h-screen bg-[#F5F2EA] font-josefin p-6 pt-6 pb-28">
 
 		<button
 			class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8 w-fit"
@@ -470,7 +470,7 @@
 			</section>
 		</div>
 
-		<footer class="fixed bottom-0 left-0 right-0 p-16 bg-gradient-to-t from-[#F5F2EA] via-[#F5F2EA] to-transparent">
+		<footer class="fixed bottom-20 left-0 right-0 z-40 mx-auto w-full max-w-md px-6 pt-4 pb-2 bg-gradient-to-t from-[#F5F2EA] via-[#F5F2EA] to-transparent">
 			{#if startError}
 				<p
 					role="alert"
@@ -482,7 +482,7 @@
 
 			<button
 				type="button"
-				class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black text-xl shadow-xl active:scale-[0.97] transition-all uppercase tracking-widest disabled:opacity-50"
+				class="w-full bg-[#2F5D50] text-white px-4 py-3 rounded-xl font-black text-sm shadow-lg active:scale-[0.97] transition-all uppercase tracking-wider disabled:opacity-50"
 				onclick={startAdventure}
 				disabled={isStarting}
 			>

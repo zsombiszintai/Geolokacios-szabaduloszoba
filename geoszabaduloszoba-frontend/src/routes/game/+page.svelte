@@ -521,7 +521,7 @@
 	});
 </script>
 
-<section class="flex flex-col h-[calc(100vh-128px)] bg-[#F5F2EA] font-josefin overflow-hidden relative">
+<section class="game-page isolate flex min-h-0 flex-col bg-[#F5F2EA] font-josefin overflow-hidden relative">
 	{#if saveError}
 		<p
 			role="alert"
@@ -541,7 +541,7 @@
 		</span>
 	</header>
 
-	<section class="flex-grow m-2 mb-6 rounded-3xl overflow-hidden shadow-2xl border-4 border-[#775D4D] relative bg-gray-200">
+	<section class="flex-1 min-h-0 m-2 rounded-3xl overflow-hidden shadow-2xl border-4 border-[#775D4D] relative bg-gray-200">
 
 		<button
 			onclick={exitGame}
@@ -702,7 +702,7 @@
 </section>
 
 <style>
-    :global(body) { margin: 0; padding: 0; height: 100vh; width: 100vw; overflow: hidden; position: fixed; }
+    .game-page { height: calc(100vh - 10rem); height: calc(100dvh - 10rem); }
     #map-container { height: 100%; width: 100%; }
     :global(.leaflet-control-container) { display: none !important; }
 </style>

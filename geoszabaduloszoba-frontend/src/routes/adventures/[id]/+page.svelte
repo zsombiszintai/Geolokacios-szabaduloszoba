@@ -270,7 +270,7 @@
 			<span class="font-bold">Vissza</span>
 		</button>
 
-		<div class="absolute right-0">
+		<div class="absolute right-6">
 			<button
 				class="p-2 text-[#8D7462] hover:text-[#2F5D50] hover:bg-[#2F5D50]/5 rounded-xl transition-all"
 				aria-label="További opciók"
@@ -281,10 +281,18 @@
 			</button>
 
 			{#if menuOpen}
-				<div class="absolute right-0 top-11 flex items-start gap-2 z-50">
+				<div class="absolute right-0 top-11 w-64 max-w-[calc(100vw-3rem)] z-50">
 
 					{#if listSelectorOpen}
-						<section class="bg-city-cream text-city-green rounded-2xl shadow-2xl p-3 w-64 border border-[#2F5D50]/10 flex flex-col max-h-80">
+						<section class="bg-city-cream text-city-green rounded-2xl shadow-2xl p-3 w-full border border-[#2F5D50]/10 flex flex-col max-h-80">
+							<button
+								type="button"
+								class="flex items-center gap-2 rounded-lg px-2 py-2 mb-2 text-left text-sm font-bold hover:bg-[#2F5D50]/5 transition-colors"
+								onclick={() => { listSelectorOpen = false; errorMessage = ''; }}
+							>
+								<ChevronLeftOutline class="w-4 h-4 shrink-0" />
+								<span>Vissza</span>
+							</button>
 
 							{#if errorMessage}
 								<p role="alert" class="text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg mb-2 border border-red-200">
@@ -309,7 +317,7 @@
 
 							<hr class="border-[#2F5D50]/10 my-1" />
 
-							<div class="overflow-y-auto flex-1 space-y-0.5 pr-1">
+							<div class="min-h-0 overflow-y-auto flex-1 space-y-0.5 pr-1">
 								{#each filteredLists as list}
 									<button
 										class="w-full text-left px-2 py-2 text-sm font-semibold rounded-lg hover:bg-[#2F5D50]/5 transition-colors text-city-green flex justify-between items-center gap-2"
@@ -325,14 +333,13 @@
 								{/each}
 							</div>
 						</section>
-					{/if}
+					{:else}
 
-					<nav class="bg-city-cream text-white rounded-2xl shadow-2xl py-2 w-52 border border-[#2F5D50]/10">
+					<nav class="bg-city-cream text-white rounded-2xl shadow-2xl py-2 w-full border border-[#2F5D50]/10">
 						<button
-							class="w-full text-left px-4 py-2.5 text-sm font-bold text-city-green hover:bg-[#2F5D50]/5 transition-colors flex justify-between items-center"
+							class="w-full text-left px-4 py-2.5 text-sm font-bold text-city-green hover:bg-[#2F5D50]/5 transition-colors"
 							onclick={openListSelector}
 						>
-							<ChevronLeftOutline class="w-4 h-4" />
 							<span>Mentés listára</span>
 						</button>
 						<button
@@ -342,6 +349,7 @@
 							Kaland megosztása
 						</button>
 					</nav>
+					{/if}
 				</div>
 			{/if}
 		</div>

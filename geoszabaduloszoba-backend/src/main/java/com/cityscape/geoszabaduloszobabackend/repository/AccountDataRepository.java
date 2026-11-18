@@ -26,3 +26,4 @@ public interface AccountDataRepository extends JpaRepository<UserEntity, Long> {
     @Query(value = "CALL public.anonymize_and_delete_personal_data(:userId)", nativeQuery = true)
     void anonymizeAndDeletePersonalData(@Param("userId") Long userId);
 }
+//asddd

@@ -333,7 +333,7 @@
 					bind:value={searchQuery}
 					onfocus={() => isExpanded = true}
 					placeholder="Keresés..."
-					class="flex-1 bg-transparent border-none outline-none text-[#2F5D50] py-2 font-bold placeholder:text-[#2F5D50]/40"
+					class="flex-1 bg-transparent border-none outline-none text-[#2F5D50] py-2 font-bold placeholder:text-[#2F5D50]/40 [&::-webkit-search-cancel-button]:hidden"
 				/>
 
 				{#if searchQuery}

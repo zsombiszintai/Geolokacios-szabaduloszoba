@@ -29,7 +29,7 @@ html.login-pf,
     padding: 48px 20px;
 }
 
-/* A realm megjelenítési neve */
+/* Megjelenítési név */
 .login-pf #kc-header-wrapper {
     color: var(--city-green);
     font-size: 28px;
@@ -124,6 +124,11 @@ html.login-pf,
 .login-pf :focus-visible {
     outline: 3px solid var(--city-brown);
     outline-offset: 3px;
+}
+
+.login-pf :is(#kc-form-login, #kc-register-form)
+    :is(input:not([type]), input[type="text"], input[type="email"], input[type="password"]):focus {
+    outline: none;
 }
 
 .login-pf input[aria-invalid="true"] {

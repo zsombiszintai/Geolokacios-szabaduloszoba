@@ -6,11 +6,15 @@ import com.cityscape.geoszabaduloszobabackend.repository.AccountDataRepository;
 import com.cityscape.geoszabaduloszobabackend.service.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,11 +22,23 @@ import javax.sql.DataSource;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@DataJpaTest(properties = {
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "spring.datasource.password=", "spring.jpa.show-sql=false"
-})
+@DataJpaTest(properties = "spring.jpa.show-sql=false")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class AccountServiceTest {
+    @DynamicPropertySource
+    static void accountTestDatabase(DynamicPropertyRegistry properties) {
+        String postgresUrl = System.getenv("ACCOUNT_TEST_POSTGRES_URL");
+        boolean postgres = postgresUrl != null && postgresUrl.startsWith("jdbc:postgresql:");
+        properties.add("spring.datasource.url", () -> postgres ? postgresUrl : "jdbc:h2:mem:account_service_test");
+        properties.add("spring.datasource.driver-class-name", () -> postgres ? "org.postgresql.Driver" : "org.h2.Driver");
+        properties.add("spring.datasource.username", () -> postgres
+                ? System.getenv().getOrDefault("ACCOUNT_TEST_POSTGRES_USER", "postgres") : "sa");
+        properties.add("spring.datasource.password", () -> postgres
+                ? System.getenv().getOrDefault("ACCOUNT_TEST_POSTGRES_PASSWORD", "") : "");
+        properties.add("spring.jpa.properties.hibernate.dialect", () -> postgres
+                ? "org.hibernate.dialect.PostgreSQLDialect" : "org.hibernate.dialect.H2Dialect");
+        properties.add("spring.jpa.hibernate.ddl-auto", () -> postgres ? "validate" : "create-drop");
+    }
     @Autowired TestEntityManager entities;
     @Autowired AccountDeletionRepository deletions;
     @Autowired DataSource dataSource;
@@ -46,6 +62,7 @@ class AccountServiceTest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "ACCOUNT_TEST_POSTGRES_URL", matches = "jdbc:postgresql:.+")
     void anonymizesPublicContentAndPreservesReviewsAndOtherPlayersHistory() throws Exception {
         var owner = user("owner");
         var other = user("other");
@@ -122,6 +139,7 @@ class AccountServiceTest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "ACCOUNT_TEST_POSTGRES_URL", matches = "jdbc:postgresql:.+")
     void multipleDeletedUsersShareOneAnonymousOwnerWithoutLosingTheirRatings() {
         var owner = user("owner");
         var other = user("other");

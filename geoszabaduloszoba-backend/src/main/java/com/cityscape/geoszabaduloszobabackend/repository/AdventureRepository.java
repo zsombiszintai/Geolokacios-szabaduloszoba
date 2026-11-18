@@ -18,8 +18,7 @@ import java.util.Optional;
 @Repository
 public interface AdventureRepository extends JpaRepository<AdventureEntity, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select a from AdventureEntity a where a.id = :id")
-    Optional<AdventureEntity> findByIdForUpdate(@Param("id") Long id);
+    Optional<AdventureEntity> findAdventureById(Long id);
 
     List<AdventureEntity> findByTitleContainingIgnoreCase(String query);
 

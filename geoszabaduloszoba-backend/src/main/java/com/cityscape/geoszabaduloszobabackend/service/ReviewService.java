@@ -29,7 +29,7 @@ public class ReviewService {
         }
         var user = userRepository.findByKeycloakSub(userService.getCurrentUserId())
                 .orElseThrow(() -> new RuntimeException("Felhasználó nem található"));
-        var adventure = adventureRepository.findByIdForUpdate(adventureId)
+        var adventure = adventureRepository.findAdventureById(adventureId)
                 .orElseThrow(() -> new RuntimeException("Kaland nem található"));
         var previous = reviewRepository.findByAdventureIdAndUserIdOrderByIdDesc(adventureId, user.getId());
         var saved = previous.isEmpty() ? new ReviewEntity() : previous.get(0);

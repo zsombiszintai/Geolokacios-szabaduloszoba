@@ -4,13 +4,14 @@
 	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte.js';
 	import { page } from '$app/state';
-	import { onMount } from 'svelte';
+	import LikedItems from './LikedItems.svelte';
 	import { goto } from '$app/navigation';
 	import { ChevronRightOutline, StarSolid } from 'flowbite-svelte-icons';
 
 	let items = $state<any[]>([]);
 	let loading = $state(true);
 	let listError = $state('');
+	let retry = $state(0);
 
 	const type = $derived(page.params.type ?? '');
 
@@ -19,13 +20,14 @@
 		'abandoned-adventure': 'Félbehagyott kalandok',
 		'created': 'Saját kalandok',
 		'lists': 'Saját listák',
+		'likes': 'Kedvelések',
 		'rated': 'Értékelt kalandok',
 		'reviewed': 'Vélemények',
 		'followers': 'Követők',
 		'following': 'Követés'
 	};
 
-	async function fetchListData() {
+	async function fetchListData(signal: AbortSignal) {
 		if (!auth.token) {
 			loading = false;
 			listError = 'A lista megtekintéséhez jelentkezz be.';
@@ -48,6 +50,7 @@
 
 		try {
 			const res = await fetch(url, {
+				signal,
 				headers: {
 					Authorization: `Bearer ${auth.token}`,
 					Accept: 'application/json'
@@ -70,20 +73,31 @@
 				throw new Error('A szerver nem listát adott vissza.');
 			}
 
-			items = data;
+			if (!signal.aborted) items = data;
 		} catch (error) {
+			if (signal.aborted) return;
 			listError = error instanceof Error
 				? error.message
 				: 'A lista betöltése sikertelen.';
 
 			console.error('Hiba a lista betöltésekor:', error);
 		} finally {
-			loading = false;
+			if (!signal.aborted) loading = false;
 		}
 	}
 
-	onMount(fetchListData);
+	$effect(() => {
+		if (type === 'likes') return;
+		retry;
+		const controller = new AbortController();
+		void fetchListData(controller.signal);
+		return () => controller.abort();
+	});
 </script>
+
+<svelte:head>
+	<title>{titles[type] || 'Lista'} | CityScape</title>
+</svelte:head>
 
 <section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
 	<BackButton label="Vissza a profilra" boxed />
@@ -95,6 +109,9 @@
 		<span aria-hidden="true" class="block w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></span>
 	</header>
 
+	{#if type === 'likes'}
+		<LikedItems />
+	{:else}
 	<div class="space-y-4">
 		{#if loading}
 			<div class="text-center py-20">
@@ -106,7 +123,7 @@
 					{listError}
 				</p>
 				<button
-					onclick={() => fetchListData()}
+					onclick={() => retry += 1}
 					class="mt-4 bg-[#2F5D50] text-white px-5 py-3 rounded-xl"
 				>
 					Újrapróbálás
@@ -174,4 +191,5 @@
 			{/each}
 		{/if}
 	</div>
+	{/if}
 </section>

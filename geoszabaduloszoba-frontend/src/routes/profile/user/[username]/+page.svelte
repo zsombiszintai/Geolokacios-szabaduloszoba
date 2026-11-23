@@ -218,6 +218,15 @@
 					</span>
 				</a>
 			{/each}
+			{#if isOwnProfile}
+				<a
+					href="/profile/list/likes"
+					class="flex items-center justify-between rounded-2xl border border-[#2F5D50]/5 bg-city-brown/90 p-5 text-[#F5F2EA] shadow-sm transition-all active:scale-[0.98]"
+				>
+					<span class="text-sm font-bold uppercase tracking-wider">Kedvelések</span>
+					<ChevronRightOutline class="size-5 opacity-40" aria-hidden="true" />
+				</a>
+			{/if}
 		</nav>
 	{/if}
 </section>

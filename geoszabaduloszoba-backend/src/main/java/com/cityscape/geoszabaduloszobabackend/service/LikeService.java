@@ -1,5 +1,6 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
+import com.cityscape.geoszabaduloszobabackend.model.dto.LikedItemDTO;
 import com.cityscape.geoszabaduloszobabackend.model.entity.LikeEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.model.enums.LikeType;
@@ -15,6 +16,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class LikeService {
@@ -24,6 +31,29 @@ public class LikeService {
     private final UserRepository userRepository;
     private final UserService userService;
     private final EntityManager entityManager;
+
+    @Transactional(readOnly = true)
+    public List<LikedItemDTO> getMyLikes(LikeType type) {
+        List<LikeEntity> likes = userRepository.findByKeycloakSub(userService.getCurrentUserId())
+                .map(user -> likeRepository.findAllByLiker_IdAndTypeOrderByLikeDateDescIdDesc(user.getId(), type))
+                .orElseGet(List::of);
+        if (likes.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> ids = likes.stream().map(LikeEntity::getLikedId).toList();
+        List<LikedItemDTO> items = switch (type) {
+            case ADVENTURE -> adventureRepository.findAllById(ids).stream()
+                    .map(adventure -> new LikedItemDTO(adventure.getId(), adventure.getTitle(), adventure.getDescription()))
+                    .toList();
+            case LIST -> listRepository.findAllById(ids).stream()
+                    .map(list -> new LikedItemDTO(list.getId(), list.getTitle(), list.getDescription()))
+                    .toList();
+        };
+        Map<Long, LikedItemDTO> byId = items.stream()
+                .collect(Collectors.toMap(LikedItemDTO::id, Function.identity()));
+        return ids.stream().map(byId::get).filter(Objects::nonNull).toList();
+    }
 
     @Transactional(readOnly = true)
     public boolean isLiked(LikeType type, Long likedId) {

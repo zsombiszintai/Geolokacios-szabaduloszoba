@@ -32,4 +32,14 @@ public class LikeEntity {
 
     @Column(name = "like_date", nullable = false, updatable = false)
     private Instant likeDate;
+
+    protected LikeEntity() {
+    }
+
+    public LikeEntity(UserEntity liker, Long likedId, LikeType type) {
+        this.liker = liker;
+        this.likedId = likedId;
+        this.type = type;
+        this.likeDate = Instant.now();
+    }
 }

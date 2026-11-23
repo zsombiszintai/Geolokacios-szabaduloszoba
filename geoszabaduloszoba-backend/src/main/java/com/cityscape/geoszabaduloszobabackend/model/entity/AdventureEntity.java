@@ -43,5 +43,7 @@ public class AdventureEntity {
 
     @Column(name = "average_rating", insertable = false, updatable = false)
     private Double averageRating;
+
+    @Column(name = "average_time_in_seconds", insertable = false, updatable = false)
     private Integer averageTimeInSeconds;
 }

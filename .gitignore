@@ -48,3 +48,4 @@ development/minio_data/
 .mc/
 
 geoszabaduloszoba-backend/src/main/resources/application-local.yml
+/geoszabaduloszoba-backend/sql/

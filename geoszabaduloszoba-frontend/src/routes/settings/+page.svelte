@@ -1,8 +1,10 @@
 <script lang="ts">
+	import BackButton from '$lib/components/BackButton.svelte';
+	import Avatar from '$lib/components/Avatar.svelte';
 	import { auth } from '$lib/auth.svelte.js';
 	import { onMount, onDestroy } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { CameraPhotoOutline, ChevronLeftOutline } from 'flowbite-svelte-icons';
+	import { CameraPhotoOutline } from 'flowbite-svelte-icons';
 
 	let profile = $state<any>(null);
 	let uploadLoading = $state(false);
@@ -78,8 +80,6 @@
 			deletingAccount = false;
 		}
 	}
-
-	const defaultAvatar = '/images/default-avatar.png';
 
 	let cropDialog: HTMLDialogElement;
 	let cropCanvas = $state<HTMLCanvasElement>();
@@ -182,12 +182,6 @@
 		unlockPageScroll();
 		pointers.clear();
 	});
-
-	function getAvatarSrc(value: unknown): string {
-		return typeof value === 'string' && value.startsWith('https://')
-			? value
-			: defaultAvatar;
-	}
 
 	function getGesture() {
 		const points = [...pointers.values()];
@@ -582,16 +576,7 @@
 </script>
 
 <section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
-	<button
-		type="button"
-		class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8"
-		onclick={() => window.history.back()}
-	>
-		<span class="block p-2 rounded-xl bg-white shadow-sm group-hover:shadow-md transition-all">
-			<ChevronLeftOutline width="20" height="20" class="" aria-hidden="true" />
-		</span>
-		<span class="text-[11px] font-black uppercase tracking-widest">Vissza a profilra</span>
-	</button>
+	<BackButton label="Vissza a profilra" boxed />
 
 	<header class="mb-8">
 		<h2 class="text-3xl font-black text-[#2F5D50] leading-none uppercase tracking-tighter">
@@ -606,19 +591,7 @@
 			<div class="relative group">
 				<div class="w-32 h-32 rounded-full overflow-hidden border-4 border-[#F5F2EA] shadow-lg rotate-3 group-hover:rotate-0 transition-transform duration-500">
 					{#if profile}
-						<img
-							src={getAvatarSrc(profile.profilePictureUrl)}
-							alt="Profilkép"
-							class="w-full h-full object-cover"
-							onerror={(event) => {
-								const image = event.currentTarget as HTMLImageElement;
-								const fallback = new URL(defaultAvatar, window.location.origin).href;
-
-								if (image.src !== fallback) {
-									image.src = fallback;
-								}
-							}}
-						/>
+						<Avatar src={profile.profilePictureUrl} alt="Profilkép" httpsOnly />
 					{:else}
 						<span aria-hidden="true" class="block w-full h-full bg-[#8D7462]/10 animate-pulse"></span>
 					{/if}

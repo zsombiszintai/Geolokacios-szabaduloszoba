@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadingState from '$lib/components/LoadingState.svelte';
  import { ArrowLeftOutline, CloseOutline } from 'flowbite-svelte-icons';
 	import { onMount, tick } from 'svelte';
 	import { auth } from '$lib/auth.svelte.js';
@@ -265,9 +266,7 @@
 
 <section class="min-h-screen bg-[#F5F2EA] px-6 pt-16 pb-32">
 	{#if loading}
-		<div class="flex items-center justify-center min-h-[50vh]">
-			<span aria-hidden="true" class="block w-10 h-10 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></span>
-		</div>
+		<LoadingState message="Kaland betöltése..." class="min-h-[50vh]" visuallyHiddenMessage />
 	{:else}
 		<nav class="fixed top-16 left-0 w-full z-[100] p-4">
 			<button

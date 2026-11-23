@@ -1,8 +1,10 @@
 <script lang="ts">
+	import BackButton from '$lib/components/BackButton.svelte';
+	import LoadingState from '$lib/components/LoadingState.svelte';
 	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte.js';
 	import { page } from '$app/state';
-	import { ChevronLeftOutline, ChevronRightOutline, DotsHorizontalOutline } from 'flowbite-svelte-icons';
+	import { ChevronRightOutline, DotsHorizontalOutline } from 'flowbite-svelte-icons';
 	import LikeButton from '$lib/components/LikeButton.svelte';
 
 	type AdventureSummary = {
@@ -124,24 +126,10 @@
 
 <section class="min-h-screen bg-[#F5F2EA] font-josefin px-6 pt-6 pb-24">
 	<div class="max-w-md mx-auto">
-		<button
-			class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8 w-fit"
-			onclick={() => window.history.back()}
-		>
-			<ChevronLeftOutline class="w-5 h-5 transition-transform group-hover:-translate-x-1" />
-			<span class="font-bold">Vissza</span>
-		</button>
+		<BackButton />
 
 		{#if loading}
-			<div class="flex flex-col items-center justify-center py-24 gap-4">
-				<span aria-hidden="true"
-					class="block w-10 h-10 rounded-full border-4 border-[#2F5D50] border-t-transparent animate-spin"
-				></span>
-
-				<p class="text-[#2F5D50] font-bold" role="status">
-					Lista betöltése...
-				</p>
-			</div>
+			<LoadingState message="Lista betöltése..." />
 		{:else if error}
 			<div class="bg-white rounded-3xl p-8 text-center shadow-sm">
 				<p class="text-[#2F5D50] font-bold mb-5" role="alert">

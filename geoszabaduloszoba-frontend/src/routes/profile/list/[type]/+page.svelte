@@ -1,10 +1,12 @@
 <script lang="ts">
+	import BackButton from '$lib/components/BackButton.svelte';
+	import Avatar from '$lib/components/Avatar.svelte';
 	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte.js';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { ChevronRightOutline, StarSolid, ChevronLeftOutline } from 'flowbite-svelte-icons';
+	import { ChevronRightOutline, StarSolid } from 'flowbite-svelte-icons';
 
 	let items = $state<any[]>([]);
 	let loading = $state(true);
@@ -84,16 +86,7 @@
 </script>
 
 <section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-6">
-	<button
-		type="button"
-		class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8"
-		onclick={() => window.history.back()}
-	>
-		<span class="block p-2 rounded-xl bg-white shadow-sm group-hover:shadow-md transition-all">
-			<ChevronLeftOutline width="20" height="20" class="" aria-hidden="true" />
-		</span>
-		<span class="text-[11px] font-black uppercase tracking-widest">Vissza a profilra</span>
-	</button>
+	<BackButton label="Vissza a profilra" boxed />
 
 	<header class="mb-8">
 		<h2 class="text-3xl font-black text-[#2F5D50] leading-none uppercase tracking-tighter">
@@ -143,11 +136,7 @@
 							onclick={() => goto(`/profile/user/${item.username}`)}
 						>
 							<span class="w-14 h-14 bg-[#8D7462]/10 rounded-full flex items-center justify-center overflow-hidden border-2 border-[#F5F2EA]">
-								<img
-									src={item.profilePictureUrl || '/images/default-avatar.png'}
-									alt="avatar"
-									class="w-full h-full object-cover"
-								/>
+								<Avatar src={item.profilePictureUrl} alt="avatar" />
 							</span>
 							<span class="flex-1">
 								<span class="font-black text-[#2F5D50] text-lg block">{item.username}</span>

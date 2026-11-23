@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/auth.svelte';
 	import { goto } from '$app/navigation';
@@ -317,18 +318,13 @@
 	{/if}
 
 	{#if showDeleteModal}
-		<div class="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-			<section class="bg-[#F5F2EA] w-full max-w-sm rounded-3xl p-8 shadow-2xl border-2 border-[#8D7462]">
-				<h3 class="text-[#2F5D50] text-xl font-bold mb-4">Biztosan törlöd?</h3>
-				<p class="text-[#8D7462] mb-8 leading-relaxed text-sm">
-					Ez a művelet végleges. A {itemToDelete?.type === 'adventure' ? 'kaland' : 'lista'} minden adata törlődik a rendszerből.
-				</p>
-				<footer class="flex gap-4">
-					<button onclick={() => showDeleteModal = false} class="flex-1 py-3 rounded-xl font-bold text-gray-400">Mégse</button>
-					<button onclick={executeDelete} class="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white shadow-lg active:scale-95 transition-all">Törlés</button>
-				</footer>
-			</section>
-		</div>
+		<ConfirmDialog
+			title="Biztosan törlöd?"
+			description={`Ez a művelet végleges. A ${itemToDelete?.type === 'adventure' ? 'kaland' : 'lista'} minden adata törlődik a rendszerből.`}
+			confirmLabel="Törlés"
+			onCancel={() => { showDeleteModal = false; itemToDelete = null; }}
+			onConfirm={executeDelete}
+		/>
 	{/if}
 
 </section>

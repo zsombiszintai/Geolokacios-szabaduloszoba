@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Avatar from '$lib/components/Avatar.svelte';
+	import LoadingState from '$lib/components/LoadingState.svelte';
 	import { auth } from '$lib/auth.svelte.js';
 	import { untrack } from 'svelte';
 	import { page } from '$app/state';
@@ -24,14 +26,6 @@
 		usernameParam === 'me' ||
 		(stats && auth.username && stats.username === auth.username)
 	);
-	const defaultAvatar = '/images/default-avatar.png';
-
-	function getAvatarSrc(value: unknown): string {
-		if (typeof value !== 'string') return defaultAvatar;
-
-		return value.startsWith('https://') ? value : defaultAvatar;
-	}
-
 	async function checkFollowStatus() {
 		if (isOwnProfile || !stats?.id) return;
 		try {
@@ -140,10 +134,7 @@
 
 <section class="min-h-screen bg-[#F5F2EA] font-josefin pb-24 px-6 pt-12">
 	{#if loading}
-		<div class="flex flex-col justify-center items-center h-[60vh] gap-4">
-			<span aria-hidden="true" class="block w-12 h-12 border-4 border-[#2F5D50] border-t-transparent rounded-full animate-spin"></span>
-			<p class="font-bold text-[#2F5D50]">Profil betöltése...</p>
-		</div>
+		<LoadingState message="Profil betöltése..." class="h-[60vh]" large />
 	{:else if profileError}
 		<div class="flex flex-col justify-center items-center h-[60vh] gap-4 text-center">
 			<p class="font-bold text-[#2F5D50]" role="alert">
@@ -161,19 +152,7 @@
 		<section class="flex flex-col items-center text-center mb-8">
 			<div class="relative mb-4">
 				<span class="w-28 h-28 bg-white rounded-full border-4 border-[#2F5D50]/10 shadow-xl flex items-center justify-center overflow-hidden">
-					<img
-						src={getAvatarSrc(stats.profilePictureUrl)}
-						alt="Profilkép"
-						class="w-full h-full object-cover"
-						onerror={(event) => {
-							const image = event.currentTarget as HTMLImageElement;
-							const fallbackUrl = new URL(defaultAvatar, window.location.origin).href;
-
-							if (image.src !== fallbackUrl) {
-							image.src = fallbackUrl;
-							}
-						}}
-					/>
+					<Avatar src={stats.profilePictureUrl} alt="Profilkép" httpsOnly />
 				</span>
 			</div>
 

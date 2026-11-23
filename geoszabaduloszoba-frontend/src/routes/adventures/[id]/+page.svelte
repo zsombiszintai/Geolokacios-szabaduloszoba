@@ -1,4 +1,6 @@
 <script lang="ts">
+	import BackButton from '$lib/components/BackButton.svelte';
+	import Avatar from '$lib/components/Avatar.svelte';
 	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte';
 	import { page } from '$app/state';
@@ -304,13 +306,7 @@
 {#if adventure}
 	<section class="flex flex-col min-h-screen bg-[#F5F2EA] font-josefin p-6 pt-6 pb-28">
 
-		<button
-			class="flex items-center gap-2 text-[#8D7462] hover:text-[#2F5D50] transition-colors group mb-8 w-fit"
-			onclick={() => window.history.back()}
-		>
-			<ChevronLeftOutline class="w-5 h-5 transition-transform group-hover:-translate-x-1" />
-			<span class="font-bold">Vissza</span>
-		</button>
+		<BackButton />
 
 		<div class="absolute right-6 flex items-center gap-1">
 			{#key adventure.id}
@@ -474,17 +470,10 @@
 						<h2 class="label-city mb-1">Készítő</h2>
 
 						<span class="flex items-center gap-2 min-w-0">
-							<img
-								src={adventure.creatorProfilePictureUrl || '/images/default-avatar.png'}
+							<Avatar
+								src={adventure.creatorProfilePictureUrl}
 								alt="A készítő profilképe"
 								class="w-8 h-8 shrink-0 rounded-full object-cover border border-[#2F5D50]/10"
-								onerror={(event) => {
-									const image = event.currentTarget as HTMLImageElement;
-
-									if (image.getAttribute('src') !== '/images/default-avatar.png') {
-										image.src = '/images/default-avatar.png';
-									}
-								}}
 							/>
 
 							{#if adventure.creatorName && !['Ismeretlen', 'Törölt felhasználó'].includes(adventure.creatorName)}

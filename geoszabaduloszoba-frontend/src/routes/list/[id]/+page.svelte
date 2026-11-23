@@ -2,7 +2,8 @@
 	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte.js';
 	import { page } from '$app/state';
-	import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+	import { ChevronLeftOutline, ChevronRightOutline, DotsHorizontalOutline } from 'flowbite-svelte-icons';
+	import LikeButton from '$lib/components/LikeButton.svelte';
 
 	type AdventureSummary = {
 		id: number;
@@ -22,6 +23,18 @@
 	let loading = $state(true);
 	let error = $state('');
 	let retry = $state(0);
+	let menuOpen = $state(false);
+	let shareMessage = $state('');
+
+	async function copyListLink() {
+		try {
+			await navigator.clipboard.writeText(window.location.href);
+			shareMessage = 'A lista hivatkozása a vágólapra került.';
+			menuOpen = false;
+		} catch {
+			shareMessage = 'A hivatkozás másolása sikertelen.';
+		}
+	}
 
 	async function fetchList(
 		id: string,
@@ -80,6 +93,8 @@
 		retry;
 
 		list = null;
+		menuOpen = false;
+		shareMessage = '';
 		error = '';
 		loading = true;
 
@@ -142,16 +157,40 @@
 				</button>
 			</div>
 		{:else if list}
-			<header class="mb-8">
+			<header class="relative mb-8">
+				<div class="absolute right-0 top-0 flex items-center gap-1">
+					{#key list.id}
+						<LikeButton type="LIST" likedId={String(list.id)} />
+					{/key}
+					<button
+						type="button"
+						class="rounded-xl p-2 text-[#8D7462] hover:bg-[#2F5D50]/5 hover:text-[#2F5D50]"
+						aria-label="További opciók"
+						aria-expanded={menuOpen}
+						onclick={() => { menuOpen = !menuOpen; shareMessage = ''; }}
+					>
+						<DotsHorizontalOutline class="size-6" />
+					</button>
+					{#if menuOpen}
+						<div class="absolute right-0 top-11 z-50 w-max rounded-xl bg-white p-2 shadow-lg">
+							<button type="button" class="rounded-lg px-3 py-2 text-sm font-bold text-city-green hover:bg-city-green/5" onclick={copyListLink}>
+								Hivatkozás másolása
+							</button>
+						</div>
+					{/if}
+				</div>
 				<p class="text-[10px] font-black uppercase tracking-[0.2em] text-[#8D7462] mb-3">
 					Kalandlista
 				</p>
 
-				<h1 class="text-3xl font-black text-[#2F5D50] leading-tight break-words">
+				<h1 class="pr-24 text-3xl font-black text-[#2F5D50] leading-tight break-words">
 					{list.title}
 				</h1>
 
 				<span aria-hidden="true" class="block w-12 h-1.5 bg-[#8D7462] mt-4 rounded-full"></span>
+				{#if shareMessage}
+					<p class="mt-2 text-sm text-city-green" role="status">{shareMessage}</p>
+				{/if}
 			</header>
 
 			{#if list.description}

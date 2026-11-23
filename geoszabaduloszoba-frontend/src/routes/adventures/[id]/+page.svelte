@@ -2,6 +2,7 @@
 	import { translateDifficulty } from '$lib/i18n/difficulty';
 	import { auth } from '$lib/auth.svelte';
 	import { page } from '$app/state';
+	import LikeButton from '$lib/components/LikeButton.svelte';
 	import {
 		ChevronLeftOutline,
 		ChevronRightOutline,
@@ -311,7 +312,10 @@
 			<span class="font-bold">Vissza</span>
 		</button>
 
-		<div class="absolute right-6">
+		<div class="absolute right-6 flex items-center gap-1">
+			{#key adventure.id}
+				<LikeButton type="ADVENTURE" likedId={String(adventure.id)} />
+			{/key}
 			<button
 				class="p-2 text-[#8D7462] hover:text-[#2F5D50] hover:bg-[#2F5D50]/5 rounded-xl transition-all"
 				aria-label="További opciók"

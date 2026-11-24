@@ -148,7 +148,7 @@ public class GameService {
                         "Állomás nem található."
                 ));
 
-        if (!station.getAdventure().getId()
+        if (station.getSeqNumber() < 1 || !station.getAdventure().getId()
                 .equals(session.getAdventure().getId())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,

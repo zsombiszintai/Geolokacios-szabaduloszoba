@@ -12,9 +12,8 @@ public interface StationRepository extends JpaRepository<StationEntity, Long> {
 
     Optional<StationEntity> findByAdventureIdAndSeqNumber(Long adventureId, Integer seqNumber);
 
-    List<StationEntity> findAllByAdventureIdOrderBySeqNumberAsc(Long adventureId);
+    List<StationEntity> findAllByAdventureIdAndSeqNumberGreaterThanOrderBySeqNumberAsc(Long adventureId, int seqNumber);
 
     void deleteByAdventureId(Long id);
 
-    List<StationEntity> findByAdventureIdOrderBySeqNumberAsc(Long id);
 }

@@ -20,6 +20,5 @@ public class AdventureProfileDTO {
     private List<StationDTO> stations;
     private List<ReviewDTO> reviews;
 
-    private boolean hasStartingPoint;
 
 }

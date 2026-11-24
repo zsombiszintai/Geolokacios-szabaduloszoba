@@ -3,6 +3,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import type { Map as LeafletMap, Marker } from 'leaflet';
+	import type { RoutingControl, RoutingMachine } from 'leaflet-routing-machine';
 	import 'leaflet/dist/leaflet.css';
 	import { goto } from '$app/navigation';
 	import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
@@ -17,7 +18,7 @@
 	let map: LeafletMap | undefined;
 	let playerMarker: Marker | undefined;
 	let targetMarker: Marker | null = null;
-	let routingControl: any = null;
+	let routingControl: RoutingControl | null = null;
 	let watchId: number | undefined;
 
 	let locationError = $state('');
@@ -51,7 +52,8 @@
 
 		targetMarker = L.marker([end.lat, end.lon], { icon: stationIcon }).addTo(map);
 
-		routingControl = L.Routing.control({
+		const { Routing } = L as typeof L & RoutingMachine;
+		routingControl = Routing.control({
 			waypoints: [L.latLng(start.lat, start.lon), L.latLng(end.lat, end.lon)],
 			lineOptions: { styles: [{ color: '#2F5D50', weight: 6, opacity: 0.8 }] },
 			addWaypoints: false,
@@ -148,11 +150,10 @@
 				throw new Error('Nincs elérhető állomás.');
 			}
 
-			const station = [...data.stations].sort(
-				(a, b) => a.seqNumber - b.seqNumber
-			)[0];
+			const station = data.stations.find((item: { seqNumber: number }) => item.seqNumber === 1);
 
 			if (
+				!station ||
 				!Number.isFinite(station.latitude) ||
 				!Number.isFinite(station.longitude)
 			) {

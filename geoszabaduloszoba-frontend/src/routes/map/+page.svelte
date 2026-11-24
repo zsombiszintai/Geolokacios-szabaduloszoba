@@ -1,5 +1,5 @@
 <script lang="ts">
- import { SearchOutline, CloseOutline } from 'flowbite-svelte-icons';
+	import { SearchOutline, CloseOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
 	import { auth } from '$lib/auth.svelte';
 	import 'leaflet/dist/leaflet.css';
 	import { goto } from '$app/navigation';
@@ -15,6 +15,9 @@
 	let searchQuery = $state("");
 	let searchType = $state("adventure");
 	let isExpanded = $state(false);
+	const searchHref = $derived(
+		'/search?' + new URLSearchParams({ q: searchQuery.trim(), type: searchType }).toString()
+	);
 
 	let searchResults = $state<any[]>([]);
 	let isSearching = $state(false);
@@ -40,7 +43,7 @@
 			return;
 		}
 
-		void goto(`/adventures?search=${encodeURIComponent(query)}`);
+		void goto(searchHref);
 	}
 
 	async function performSearch(
@@ -392,6 +395,13 @@
 						{/if}
 					</ul>
 				{/if}
+				<a
+					href={searchHref}
+					class="flex min-h-11 shrink-0 items-center justify-between gap-3 border-t border-[#2F5D50]/10 px-4 text-sm font-bold text-[#2F5D50] hover:bg-white focus-visible:outline focus-visible:-outline-offset-2"
+				>
+					Bővebb nézet
+					<ChevronRightOutline class="h-5 w-5" aria-hidden="true" />
+				</a>
 			{/if}
 		</form>
 	</section>

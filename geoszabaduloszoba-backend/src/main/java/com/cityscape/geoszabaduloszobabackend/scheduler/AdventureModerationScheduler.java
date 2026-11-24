@@ -44,7 +44,8 @@ public class AdventureModerationScheduler {
 
         for (AdventureEntity adventure : pendingList) {
             try {
-                List<StationEntity> stations = stationRepository.findByAdventureIdOrderBySeqNumberAsc(adventure.getId());
+                List<StationEntity> stations = stationRepository
+                        .findAllByAdventureIdAndSeqNumberGreaterThanOrderBySeqNumberAsc(adventure.getId(), 0);
 
                 boolean distanceOk = moderationService.checkStationDistances(stations, MAX_STATION_DISTANCE_KM);
                 if (!distanceOk) {

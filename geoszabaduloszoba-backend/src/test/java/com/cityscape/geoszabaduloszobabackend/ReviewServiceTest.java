@@ -52,7 +52,7 @@ class ReviewServiceTest {
         var mapper = new ApiMapper(new ObjectMapper());
         adventure.setAverageRating(4.5); // The API forwards the database value, independently of the reviews.
         var dto = mapper.toDto(new AdventureDetails(adventure, List.of(),
-                reviews.findByAdventureId(adventure.getId()), UserEntity.DELETED_NAME, null));
+                reviews.findByAdventureId(adventure.getId()), UserEntity.DELETED_NAME, null, 0));
         assertThat(dto.getAverageRating()).isEqualTo(4.5);
         assertThat(dto.getReviews()).anySatisfy(review -> assertThat(review.authorName()).isEqualTo(UserEntity.DELETED_NAME));
         assertThatThrownBy(() -> service.saveReview(adventure.getId(), rating(6)))

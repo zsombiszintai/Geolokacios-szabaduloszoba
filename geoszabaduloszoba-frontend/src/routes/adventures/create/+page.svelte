@@ -1,5 +1,5 @@
 <script lang="ts">
- import { ArrowLeftOutline, CloseOutline, CheckOutline, PlusOutline } from 'flowbite-svelte-icons';
+ import { ArrowLeftOutline, CloseOutline, PlusOutline } from 'flowbite-svelte-icons';
 	import { onDestroy, tick } from 'svelte';
 	import 'leaflet/dist/leaflet.css';
 	import { auth } from '$lib/auth.svelte.js';
@@ -25,10 +25,6 @@
 		longitude: number;
 	};
 
-	let hasStartingPoint = $state(false);
-	let startingPoint = $state<Coordinates | null>(null);
-
-	let selectingStartingPoint = $state(false);
 	let selectedPosition = $state<Coordinates | null>(null);
 	let mapError = $state('');
 
@@ -58,7 +54,6 @@
 	]);
 
 	let hasContent = $derived(
-		hasStartingPoint ||
 		title.trim() !== '' ||
 		description.trim() !== '' ||
 		stations.some(s =>
@@ -80,45 +75,17 @@
 	}
 
 	function buildStationsPayload() {
-		const playableStations = stations.map((station, index) => ({
+		return stations.map((station, index) => ({
 			latitude: station.latitude,
 			longitude: station.longitude,
 			seqNumber: index + 1,
-			content: station.content
+			content: index === stations.length - 1 ? null : station.content
 		}));
-
-		if (!hasStartingPoint) {
-			return playableStations;
-		}
-
-		if (!startingPoint) {
-			throw new Error('Jelöld ki a kezdőállomást!');
-		}
-
-		return [
-			{
-				latitude: startingPoint.latitude,
-				longitude: startingPoint.longitude,
-				seqNumber: 0,
-				content: {
-					riddle: '',
-					explanation: '',
-					hints: []
-				}
-			},
-			...playableStations
-		];
 	}
 
 	async function saveDraft() {
 		if (!auth.token) {
 			errorMessage = 'A mentéshez jelentkezz be!';
-			showLeaveModal = false;
-			return;
-		}
-
-		if (hasStartingPoint && !startingPoint) {
-			errorMessage = 'Jelöld ki a kezdőállomást!';
 			showLeaveModal = false;
 			return;
 		}
@@ -190,7 +157,7 @@
         box-sizing:border-box;
         border:4px solid white;
         border-radius:50%;
-        background:${selectingStartingPoint ? '#2F5D50' : '#dc2626'};
+        background:#dc2626;
         box-shadow:0 2px 12px rgba(0,0,0,.45);
       "></div>
     `,
@@ -216,28 +183,18 @@
 		});
 	}
 
-	async function openMap(index: number | null) {
+	async function openMap(index: number) {
 		const requestId = ++mapRequestId;
 
 		destroyMap();
 
-		selectingStartingPoint = index === null;
 		activeStationIndex = index;
 		mapError = '';
 
-		if (index === null) {
-			selectedPosition = startingPoint ? { ...startingPoint } : null;
-		} else {
-			const station = stations[index];
-
-			selectedPosition =
-				station.latitude !== null && station.longitude !== null
-					? {
-						latitude: station.latitude,
-						longitude: station.longitude
-					}
-					: null;
-		}
+		const station = stations[index];
+		selectedPosition = station.latitude !== null && station.longitude !== null
+			? { latitude: station.latitude, longitude: station.longitude }
+			: null;
 
 		showMapModal = true;
 		await tick();
@@ -255,7 +212,6 @@
 
 			const center =
 				selectedPosition ??
-				(hasStartingPoint ? startingPoint : null) ??
 				(firstLocatedStation
 					? {
 						latitude: firstLocatedStation.latitude!,
@@ -323,24 +279,12 @@
 			return;
 		}
 
-		if (selectingStartingPoint) {
-			startingPoint = { ...selectedPosition };
-			hasStartingPoint = true;
-		} else if (activeStationIndex !== null) {
+		if (activeStationIndex !== null) {
 			stations[activeStationIndex].latitude = selectedPosition.latitude;
 			stations[activeStationIndex].longitude = selectedPosition.longitude;
 		}
 
 		closeMap();
-	}
-
-	function toggleStartingPoint() {
-		if (hasStartingPoint) {
-			hasStartingPoint = false;
-			startingPoint = null;
-		} else {
-			void openMap(null);
-		}
 	}
 
 	onDestroy(() => {
@@ -372,13 +316,8 @@
 			return;
 		}
 
-		if (hasStartingPoint && !startingPoint) {
-			errorMessage = 'Jelöld ki a kezdőállomást!';
-			return;
-		}
-
 		if (stations.length === 0) {
-			errorMessage = 'Legalább egy rejtvényes állomás szükséges!';
+			errorMessage = 'Legalább egy állomás szükséges!';
 			return;
 		}
 
@@ -388,6 +327,8 @@
 				errorMessage = `A(z) ${i + 1}. állomás helyszíne nincs kijelölve!`;
 				return;
 			}
+			if (i === stations.length - 1) continue;
+
 			if (!s.content.riddle.trim()) {
 				errorMessage = `A(z) ${i + 1}. állomás rejtvénye hiányzik!`;
 				return;
@@ -493,47 +434,6 @@
 		<input type="range" min="0" max="2" bind:value={difficulty} class="slider-city w-full" />
 	</section>
 
-	<section class="mb-8 bg-white p-6 rounded-[2rem] shadow-sm">
-		<button
-			type="button"
-			role="checkbox"
-			aria-checked={hasStartingPoint}
-			onclick={toggleStartingPoint}
-			class="w-full flex items-center gap-3 text-left text-[#2F5D50] font-black"
-		>
-    <span
-			aria-hidden="true"
-	    class="w-7 h-7 shrink-0 rounded-lg border-2 border-[#2F5D50] flex items-center justify-center
-        {hasStartingPoint ? 'bg-[#2F5D50] text-white' : 'bg-white'}"
-		>
-      {#if hasStartingPoint}<CheckOutline class="w-5 h-5" />{:else}<PlusOutline class="w-5 h-5" />{/if}
-    </span>
-
-			Kezdőállomás hozzáadása
-		</button>
-
-		<p class="mt-3 text-sm text-[#8D7462]">
-			{hasStartingPoint
-				? 'A játék előtt ide navigáljuk a játékost.'
-				: 'Kezdőállomás nélkül rögtön a játék indul.'}
-		</p>
-
-		{#if hasStartingPoint && startingPoint}
-			<p class="mt-3 text-xs text-[#8D7462]">
-				{startingPoint.latitude.toFixed(6)},
-				{startingPoint.longitude.toFixed(6)}
-			</p>
-
-			<button
-				type="button"
-				onclick={() => openMap(null)}
-				class="mt-3 bg-[#2F5D50] text-white px-5 py-3 rounded-xl font-bold text-sm"
-			>
-				Helyszín módosítása
-			</button>
-		{/if}
-	</section>
-
 	<section class="space-y-6">
 		<header class="flex justify-between items-center px-2">
 			<h2 class="label-city">Állomások ({stations.length})</h2>
@@ -548,7 +448,7 @@
             </span>
 						<hgroup>
 							<p class="text-[10px] font-black text-white/50 uppercase tracking-widest leading-none">Állomás</p>
-							<h3 class="text-white font-black text-xl tracking-tight">Helyszín</h3>
+							<h3 class="text-white font-black text-xl tracking-tight">{i === stations.length - 1 ? 'Célállomás' : i === 0 ? 'Kezdőállomás' : 'Helyszín'}</h3>
 						</hgroup>
 					</div>
 					{#if stations.length > 1}
@@ -559,32 +459,36 @@
 				</header>
 
 				<fieldset class="min-w-0 space-y-5">
-					<fieldset class="min-w-0 space-y-2">
-						<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">feladvány</legend>
-						<textarea
-							aria-label="Feladvány" class="input-card-inner min-h-[80px]"
-							placeholder="Add meg a rejtvényt..."
-							bind:value={station.content.riddle}
-						></textarea>
-					</fieldset>
+					{#if i === stations.length - 1}
+						<p class="text-sm text-white">A kaland az ideérkezéssel ér véget.</p>
+					{:else}
+						<fieldset class="min-w-0 space-y-2">
+							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">feladvány</legend>
+							<textarea
+								aria-label="Feladvány" class="input-card-inner min-h-[80px]"
+								placeholder="Add meg a rejtvényt..."
+								bind:value={station.content.riddle}
+							></textarea>
+						</fieldset>
 
-					<fieldset class="min-w-0 space-y-2">
-						<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Segítségek</legend>
-						<span class="grid gap-2">
-							<input class="input-card-inner text-sm" aria-label="1. Könnyű nyom" placeholder="1. Könnyű nyom" bind:value={station.content.hints[0]} />
-							<input class="input-card-inner text-sm" aria-label="2. Konkrétabb segítség" placeholder="2. Konkrétabb segítség" bind:value={station.content.hints[1]} />
-							<input class="input-card-inner text-sm" aria-label="3. Szinte a megoldás" placeholder="3. Szinte a megoldás" bind:value={station.content.hints[2]} />
-						</span>
-					</fieldset>
+						<fieldset class="min-w-0 space-y-2">
+							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Segítségek</legend>
+							<span class="grid gap-2">
+								<input class="input-card-inner text-sm" aria-label="1. Könnyű nyom" placeholder="1. Könnyű nyom" bind:value={station.content.hints[0]} />
+								<input class="input-card-inner text-sm" aria-label="2. Konkrétabb segítség" placeholder="2. Konkrétabb segítség" bind:value={station.content.hints[1]} />
+								<input class="input-card-inner text-sm" aria-label="3. Szinte a megoldás" placeholder="3. Szinte a megoldás" bind:value={station.content.hints[2]} />
+							</span>
+						</fieldset>
 
-					<fieldset class="min-w-0 space-y-2">
-						<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Magyarázat</legend>
-						<textarea
-							aria-label="Magyarázat" class="input-card-inner min-h-[60px]"
-							placeholder="Add meg a rejtvény magyarázatát..."
-							bind:value={station.content.explanation}
-						></textarea>
-					</fieldset>
+						<fieldset class="min-w-0 space-y-2">
+							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Magyarázat</legend>
+							<textarea
+								aria-label="Magyarázat" class="input-card-inner min-h-[60px]"
+								placeholder="Add meg a rejtvény magyarázatát..."
+								bind:value={station.content.explanation}
+							></textarea>
+						</fieldset>
+					{/if}
 
 					<button
 						type="button"
@@ -593,7 +497,7 @@
 						 ? 'bg-[#2F5D50]'
 						 : 'bg-white/10 border-2 border-dashed border-white/20'} text-white font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-[0.98]"
 					>
-						{station.latitude !== 0 ? 'Helyszín rögzítve' : 'Jelöld ki a térképen'}
+						{station.latitude !== null && station.longitude !== null ? 'Helyszín rögzítve' : 'Jelöld ki a térképen'}
 					</button>
 				</fieldset>
 			</article>
@@ -628,9 +532,7 @@
 		>
 			<header class="p-4 shrink-0">
 				<h3 class="font-black text-[#2F5D50]">
-					{selectingStartingPoint
-						? 'Kezdőállomás kijelölése'
-						: `${(activeStationIndex ?? 0) + 1}. állomás kijelölése`}
+					{(activeStationIndex ?? 0) + 1}. állomás kijelölése
 				</h3>
 			</header>
 

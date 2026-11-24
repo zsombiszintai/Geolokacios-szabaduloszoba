@@ -31,11 +31,6 @@
 	let isStarting = $state(false);
 	let startError = $state('');
 
-	let startedSession: {
-		adventureId: string;
-		sessionId: number;
-	} | null = null;
-
 	let filteredLists = $derived(
 		searchQuery.trim() === ""
 			? myLists
@@ -57,17 +52,7 @@
 			return;
 		}
 
-		const id = String(adventure.id);
-
-		const startingStation = adventure.stations.find(
-			(station: any) => station.seqNumber === 0
-		);
-
-		const hasPlayableStation = adventure.stations.some(
-			(station: any) => station.seqNumber > 0
-		);
-
-		if (!hasPlayableStation) {
+		if (!adventure.stations.some((station: { seqNumber: number }) => station.seqNumber === 1)) {
 			startError = 'A kalandnak nincs játszható állomása.';
 			return;
 		}
@@ -75,43 +60,7 @@
 		isStarting = true;
 
 		try {
-			if (startingStation) {
-				await goto(`/game/navigation?id=${encodeURIComponent(id)}`);
-				return;
-			}
-
-			if (startedSession?.adventureId !== id) {
-				const response = await fetch(
-					`https://api.zsomborszintai.com/api/game/start/${encodeURIComponent(id)}`,
-					{
-						method: 'POST',
-						headers: {
-							Authorization: `Bearer ${auth.token}`
-						}
-					}
-				);
-
-				if (!response.ok) {
-					throw new Error(
-						`A játék indítása sikertelen (HTTP ${response.status}).`
-					);
-				}
-
-				const sessionId = await response.json();
-
-				if (!Number.isSafeInteger(sessionId) || sessionId <= 0) {
-					throw new Error('A szerver hibás játékmenet-azonosítót adott vissza.');
-				}
-
-				startedSession = {
-					adventureId: id,
-					sessionId
-				};
-			}
-
-			await goto(
-				`/game?sessionId=${startedSession.sessionId}&adventureId=${encodeURIComponent(id)}`
-			);
+			await goto('/game/navigation?id=' + encodeURIComponent(String(adventure.id)));
 		} catch (error) {
 			console.error('Játékindítási hiba:', error);
 

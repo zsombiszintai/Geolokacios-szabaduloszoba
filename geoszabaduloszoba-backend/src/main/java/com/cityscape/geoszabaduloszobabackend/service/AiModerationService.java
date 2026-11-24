@@ -62,7 +62,7 @@ public class AiModerationService {
                     .sorted(Comparator.comparingInt(StationEntity::getSeqNumber))
                     .toList();
 
-            for (StationEntity station : sortedStations) {
+            for (StationEntity station : sortedStations.subList(0, sortedStations.size() - 1)) {
                 stationsText.append(station.getSeqNumber())
                         .append(". Állomás: ")
                         .append(station.getContent())
@@ -83,7 +83,8 @@ public class AiModerationService {
                                 1. isProfane: Van-e benne trágár, vulgáris vagy sértő kifejezés? (boolean: true/false)
                                 2. profanityDetails: Ha isProfane = true, írd le a sértő kifejezést. Ha false, értéke legyen null.
                                 3. isSolvable:\s
-                                   - Kincskereső/szabadulószoba szempontból van-e valós, értelmes, megoldható feladvány vagy kincs leírás?
+                                   - A felsorolt állomásokon van-e valós, értelmes, megoldható feladvány?
+                                   - A célállomás a megérkezéssel teljesül, így nincs felsorolva. Egyetlen állomásból álló kalandnál a cím és a leírás alapján értékeld a kalandot.
                                    - KRITIKUS SZABÁLY: Ha a cím, a leírás vagy bármelyik állomás tartalma halandzsa, tesztszöveg (pl. "asd", "123", értelmetlen betűhalmaz), túlságosan hiányos, vagy nem tartalmaz semmilyen érdemi leírást/feladványt, az isSolvable kötelezően FALSE!
                                 4. solvabilityDetails: Ha isSolvable = false, írd le pontosan, miért lett elutasítva (pl. "A leírás vagy állomás csak tesztszöveget tartalmaz ('asd')."). Ha true, értéke legyen null.
                                 5. overallApproved: KIZÁRÓLAG akkor true, ha isProfane = false ÉS isSolvable = true! Különben false.

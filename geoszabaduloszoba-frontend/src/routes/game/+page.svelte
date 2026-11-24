@@ -33,6 +33,7 @@
 	let L: typeof import('leaflet');
 	let map: LeafletMap | undefined;
 	let playerMarker: Marker | undefined;
+	let destinationMarker: Marker | undefined;
 	let watchId: number | undefined;
 	let timerInterval: ReturnType<typeof setInterval> | undefined;
 
@@ -60,6 +61,9 @@
 		if (allStations.length === 0 || lastStationId === null) return null;
 		return allStations.find(s => s.id === lastStationId);
 	});
+	const isFinalStation = $derived(
+		lastStationId !== null && lastStationId === allStations.at(-1)?.id
+	);
 
 	const currentStationPoints = $derived(() => {
 		if (compassUsedAtCurrentStation) return 0;
@@ -85,14 +89,7 @@
 	}
 
 	async function nextStation() {
-		if (finishing) return;
-
-		if (finished) {
-			await goto('/dashboard');
-			return;
-		}
-
-		if (!isExplanationOpen) return;
+		if (!isExplanationOpen || isFinalStation) return;
 
 		const currentIndex = allStations.findIndex(
 			station => station.id === lastStationId
@@ -100,33 +97,20 @@
 
 		if (currentIndex < 0) return;
 
-		const earnedPoints = currentStationPoints();
-		const isLast = currentIndex === allStations.length - 1;
+		accumulatedPoints += currentStationPoints();
+		isExplanationOpen = false;
+		lastStationId = allStations[currentIndex + 1].id;
+		activeHintsCount = 0;
+		currentHintViewIndex = 0;
+		compassUsedAtCurrentStation = false;
+		isRiddleOpen = !isFinalStation;
+		if (userPos) updateLocation(userPos.lat, userPos.lon, false);
+		await syncGameProgress();
+		if (userPos && isFinalStation) updateLocation(userPos.lat, userPos.lon);
+	}
 
-		if (!isLast) {
-			accumulatedPoints += earnedPoints;
-
-			isExplanationOpen = false;
-			lastStationId = allStations[currentIndex + 1].id;
-
-			activeHintsCount = 0;
-			currentHintViewIndex = 0;
-			compassUsedAtCurrentStation = false;
-			isRiddleOpen = true;
-
-			const target = currentTarget();
-
-			if (userPos && target) {
-				distanceInMeters = calculateDistance(userPos, {
-					lat: target.latitude,
-					lon: target.longitude
-				});
-			}
-
-			await syncGameProgress();
-			return;
-		}
-
+	async function finishGame() {
+		if (!isFinalStation || finishing || finished) return;
 		if (!auth.token) {
 			finishError = 'A mentéshez bejelentkezés szükséges.';
 			return;
@@ -135,8 +119,6 @@
 		finishing = true;
 		finishError = '';
 		clearInterval(timerInterval);
-
-		const finalPoints = accumulatedPoints + earnedPoints;
 
 		await progressSaveQueue;
 
@@ -154,7 +136,7 @@
 						lastStationId,
 						elapsedSec,
 						distanceInMeters: Math.round(distanceInMeters),
-						points: finalPoints
+						points: accumulatedPoints
 					})
 				}
 			);
@@ -163,7 +145,6 @@
 				throw new Error(`A befejezés mentése sikertelen (HTTP ${res.status}).`);
 			}
 
-			accumulatedPoints = finalPoints;
 			finished = true;
 		} catch (error) {
 			finishError = error instanceof Error
@@ -178,7 +159,7 @@
 		await goto('/dashboard');
 	}
 
-	function updateLocation(newLat: number, newLon: number) {
+	function updateLocation(newLat: number, newLon: number, checkArrival = true) {
 		const isFirstFix = userPos === null;
 		userPos = { lat: newLat, lon: newLon };
 
@@ -196,16 +177,33 @@
 
 			distanceInMeters = calculateDistance(userPos, { lat: target.latitude, lon: target.longitude });
 
+			if (isFinalStation && map && !destinationMarker) {
+				destinationMarker = L.marker([target.latitude, target.longitude], {
+					title: 'Célállomás',
+					alt: 'Célállomás'
+				}).addTo(map).bindTooltip('Célállomás');
+				map.fitBounds([[newLat, newLon], [target.latitude, target.longitude]], {
+					padding: [36, 36],
+					maxZoom: 17
+				});
+			}
+
 			if (
+				checkArrival &&
+				!gameLoading &&
 				distanceInMeters < 15 &&
 				locationAccuracy !== null &&
 				locationAccuracy <= 20 &&
 				!locationError &&
 				!isExplanationOpen
 			) {
-				isExplanationOpen = true;
 				isRiddleOpen = false;
 				isHintModalOpen = false;
+				if (isFinalStation) {
+					if (!finishError) void finishGame();
+				} else {
+					isExplanationOpen = true;
+				}
 			}
 		}
 
@@ -389,15 +387,6 @@
 				const saved = await sessionResponse.json();
 				if (disposed) return;
 
-				console.log('Betöltött játékmenet:', {
-					requestedSessionId: activeSessionId,
-					returnedSessionId: saved.sessionId,
-					adventureId: saved.adventureId,
-					lastStationId: saved.lastStationId,
-					elapsedSec: saved.elapsedSec,
-					points: saved.points
-				});
-
 				if (saved.completed) {
 					throw new Error('Ezt a játékmenetet már befejezted.');
 				}
@@ -445,12 +434,6 @@
 				allStations = stations;
 				lastStationId = savedStation.id;
 
-				console.log('Kiválasztott állomás:', {
-					id: savedStation.id,
-					seqNumber: savedStation.seqNumber,
-					riddle: savedStation.content?.riddle
-				});
-
 				elapsedSec = saved.elapsedSec ?? 0;
 				accumulatedPoints = saved.points ?? 0;
 				distanceInMeters = saved.distanceInMeters ?? 0;
@@ -461,10 +444,11 @@
 
 				isExplanationOpen = false;
 				isHintModalOpen = false;
-				isRiddleOpen = true;
+				isRiddleOpen = !isFinalStation;
 
 				gameError = '';
 				gameLoading = false;
+				if (userPos) updateLocation(userPos.lat, userPos.lon);
 			} catch (error) {
 				if (disposed) return;
 
@@ -586,6 +570,16 @@
 			</div>
 		{/if}
 
+		{#if isFinalStation}
+			<div class="absolute inset-x-4 bottom-6 z-[450] rounded-xl bg-[#F5F2EA] p-4 text-center font-bold text-[#2F5D50] shadow">
+				{#if finishError}
+					<p role="alert" class="text-red-700">{finishError}</p>
+					<button onclick={finishGame} class="mt-2 underline">Befejezés újrapróbálása</button>
+				{:else}
+					<p role="status">{finishing ? 'A teljesítés mentése…' : 'Menj a térképen jelölt célállomáshoz!'}</p>
+				{/if}
+			</div>
+		{:else}
 		<nav class="absolute bottom-6 left-0 right-0 px-6 flex justify-between items-center z-[450]">
 			<button onclick={() => isRiddleOpen = true} class="bg-city-brown w-14 h-14 rounded-full shadow-xl flex items-center justify-center border-2 border-city-cream">
 				<QuestionCircleOutline class="w-8 h-8 text-white" />
@@ -595,6 +589,7 @@
 				<LightbulbOutline class="w-8 h-8 text-white" />
 			</button>
 		</nav>
+		{/if}
 
 		{#if isRiddleOpen}
 			<div class="absolute inset-0 z-[500] bg-[#775D4D]/90 backdrop-blur-sm flex items-center justify-center p-6 text-center">
@@ -676,24 +671,12 @@
 						{currentTarget()?.content?.explanation}
 					</p>
 
-					{#if finishError}
-						<p role="alert" class="text-red-600 text-sm font-bold mb-3">
-							{finishError}
-						</p>
-					{/if}
-
 					<button
 						onclick={nextStation}
 						disabled={finishing}
 						class="w-full bg-[#2F5D50] text-white py-4 rounded-2xl font-black uppercase disabled:opacity-50"
 					>
-						{finishing
-							? 'Mentés...'
-							: finished
-								? 'Vissza a főoldalra'
-								: allStations.indexOf(currentTarget()) === allStations.length - 1
-									? 'Befejezés'
-									: 'Következő állomás'}
+						Következő állomás
 					</button>
 				</section>
 			</div>

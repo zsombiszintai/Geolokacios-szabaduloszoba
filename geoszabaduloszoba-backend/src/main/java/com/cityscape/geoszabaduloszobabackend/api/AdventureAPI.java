@@ -1,5 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
+import com.cityscape.geoszabaduloszobabackend.model.enums.Difficulty;
+
 import com.cityscape.geoszabaduloszobabackend.model.dto.AbandonedAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.NearbyAdventureDTO;
@@ -55,10 +57,11 @@ public class AdventureAPI {
     @GetMapping("/search/page")
     public PageDTO<NearbyAdventureDTO> searchPage(
             @RequestParam String query,
-            @RequestParam Double lat,
-            @RequestParam Double lon,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lon,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return PageDTO.from(adventureService.searchNearbyPage(query, lat, lon, page, size).map(apiMapper::toDto));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Difficulty difficulty) {
+        return PageDTO.from(adventureService.searchNearbyPage(query, lat, lon, page, size, difficulty).map(apiMapper::toDto));
     }
 }

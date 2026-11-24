@@ -25,15 +25,15 @@ class ApiContractTest {
         adventure.setTitle("Kaland");
         adventure.setDifficulty(Difficulty.EASY);
         adventure.setAverageTimeInSeconds(3661);
-        var start = station(0, null);
         var playable = station(1, "invalid-json");
-        var dto = mapper.toDto(new AdventureDetails(adventure, List.of(start, playable), List.of(), "creator", null));
+        var finish = station(2, "{\"riddle\":\"Legacy final riddle\"}");
+        var dto = mapper.toDto(new AdventureDetails(adventure, List.of(playable, finish), List.of(), "creator", null, 125));
         assertThat(dto.getAverageTime()).isEqualTo("1 h 1 m 1 s");
         assertThat(dto.getAverageRating()).isEqualTo(0.0);
         assertThat(dto.getDifficulty()).isEqualTo("EASY");
-        assertThat(dto.isHasStartingPoint()).isTrue();
-        assertThat(dto.getStations().get(0).content()).isNull();
-        assertThat(dto.getStations().get(1).content().getRiddle()).isEqualTo("Hiba a tartalom betöltésekor");
+        assertThat(dto.getDistanceInMeters()).isEqualTo(125.0);
+        assertThat(dto.getStations().get(0).content().getRiddle()).isEqualTo("Hiba a tartalom betöltésekor");
+        assertThat(dto.getStations().get(1).content()).isNull();
         assertThat(dto.getRatingDistribution()).isNull();
     }
 
@@ -41,13 +41,14 @@ class ApiContractTest {
     void editMappingFindsLastPlayableStationAndKeepsMalformedContentFailure() {
         var adventure = new AdventureEntity();
         var first = station(1, "{\"riddle\":\"R\",\"hints\":[]}");
-        var last = station(2, " ");
-        var dto = mapper.toDto(new AdventureEdit(adventure, List.of(last, station(0, null), first)));
+        var last = station(2, "old invalid content");
+        var dto = mapper.toDto(new AdventureEdit(adventure, List.of(first, last)));
         assertThat(dto.getDifficulty()).isEqualTo("EASY");
-        assertThat(dto.getStations().get(0).isLastStation()).isTrue();
-        assertThat(dto.getStations().get(1).isLastStation()).isFalse();
-        assertThat(dto.getStations().get(2).content().getRiddle()).isEqualTo("R");
-        assertThatThrownBy(() -> mapper.toDto(new AdventureEdit(adventure, List.of(station(1, "bad-json")))))
+        assertThat(dto.getStations().get(0).isLastStation()).isFalse();
+        assertThat(dto.getStations().get(0).content().getRiddle()).isEqualTo("R");
+        assertThat(dto.getStations().get(1).isLastStation()).isTrue();
+        assertThat(dto.getStations().get(1).content()).isNull();
+        assertThatThrownBy(() -> mapper.toDto(new AdventureEdit(adventure, List.of(station(1, "bad-json"), last))))
                 .isInstanceOf(RuntimeException.class).hasMessage("Hiba a StationContent JSON-nal");
     }
 

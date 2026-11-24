@@ -1,5 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
+import com.cityscape.geoszabaduloszobabackend.model.enums.Difficulty;
+
 import com.cityscape.geoszabaduloszobabackend.model.domain.*;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AiModerationResponseEntity;
@@ -62,7 +64,7 @@ public class AdventureService{
                 .filter(session -> !session.isCompleted())
                 .map(session -> new AbandonedAdventure(session,
                         stationRepository.findById(session.getLastStationId())
-                                .map(StationEntity::getSeqNumber).orElse(1)))
+                                .map(StationEntity::getSeqNumber).filter(sequence -> sequence > 0).orElse(1)))
                 .toList();
     }
 
@@ -103,11 +105,7 @@ public class AdventureService{
                 .map(adv -> {
                     Optional<StationEntity> startStation =
                             stationRepository.findByAdventureIdAndSeqNumber(
-                                    adv.getId(), 0
-                            ).or(() ->
-                                    stationRepository.findByAdventureIdAndSeqNumber(
-                                            adv.getId(), 1
-                                    )
+                                    adv.getId(), 1
                             );
 
                     if (startStation.isEmpty()) {
@@ -148,10 +146,10 @@ public class AdventureService{
         AdventureEntity adventure = adventureRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kaland nem található"));
         UserEntity creator = adventure.getCreator();
-        return new AdventureDetails(adventure,
-                stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id),
+        var stations = stationRepository.findAllByAdventureIdAndSeqNumberGreaterThanOrderBySeqNumberAsc(id, 0);
+        return new AdventureDetails(adventure, stations,
                 reviewRepository.findByAdventureId(id), resolveCreatorName(creator),
-                formatAvatarUrl(creator != null ? creator.getProfilePictureUrl() : null));
+                formatAvatarUrl(creator != null ? creator.getProfilePictureUrl() : null), calculateTotalDistance(stations));
     }
 
     @Transactional
@@ -167,9 +165,6 @@ public class AdventureService{
         UserEntity user = userService.getOrCreateCurrentUser();
 
         adventure.setCreator(user);
-        adventure.setHasStartingPoint(
-                containsStartingPoint(preparedStations)
-        );
         adventure.setTotalDistance(
                 calculateTotalDistance(preparedStations)
         );
@@ -203,7 +198,8 @@ public class AdventureService{
         if (!adventure.getCreator().getId().equals(currentUser.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nincs jogosultságod a kaland szerkesztéséhez!");
         }
-        return new AdventureEdit(adventure, stationRepository.findAllByAdventureIdOrderBySeqNumberAsc(id));
+        return new AdventureEdit(adventure,
+                stationRepository.findAllByAdventureIdAndSeqNumberGreaterThanOrderBySeqNumberAsc(id, 0));
     }
 
     @Transactional
@@ -239,9 +235,6 @@ public class AdventureService{
         existing.setDifficulty(updatedAdventure.getDifficulty());
         existing.setStatus(status);
 
-        existing.setHasStartingPoint(
-                containsStartingPoint(preparedStations)
-        );
         existing.setTotalDistance(
                 calculateTotalDistance(preparedStations)
         );
@@ -261,14 +254,14 @@ public class AdventureService{
 
 
     @Transactional(readOnly = true)
-    public Page<NearbyAdventureResult> searchNearbyPage(String query, Double lat, Double lon, int page, int size) {
+    public Page<NearbyAdventureResult> searchNearbyPage(String query, Double lat, Double lon,
+                                                        int page, int size, Difficulty difficulty) {
         var pageable = SearchPagination.request(page, size);
         String term = query == null ? "" : query.trim();
         // Match Spring Data's literal substring semantics for '%' and '_'.
         term = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-        return adventureRepository.searchPublicWithLocation(term, pageable).map(adventure -> {
-            StationEntity station = stationRepository.findByAdventureIdAndSeqNumber(adventure.getId(), 0)
-                    .or(() -> stationRepository.findByAdventureIdAndSeqNumber(adventure.getId(), 1))
+        return adventureRepository.searchPublicWithLocation(term, difficulty, pageable).map(adventure -> {
+            StationEntity station = stationRepository.findByAdventureIdAndSeqNumber(adventure.getId(), 1)
                     .orElseThrow();
             Integer distance = lat != null && lon != null
                     ? calculateDistance(lat, lon, station.getLatitude(), station.getLongitude()) : null;
@@ -290,14 +283,14 @@ public class AdventureService{
 
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Legalább egy rejtvényes állomás szükséges."
+                    "Legalább egy állomás szükséges."
             );
         }
 
         for (StationEntity station : stations) {
             if (station == null
                     || station.getSeqNumber() == null
-                    || station.getSeqNumber() < 0) {
+                    || station.getSeqNumber() < 1) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Hiányzó vagy hibás állomássorszám."
@@ -309,19 +302,10 @@ public class AdventureService{
                 .sorted(Comparator.comparingInt(StationEntity::getSeqNumber))
                 .toList();
 
-        int firstSequence = sorted.get(0).getSeqNumber();
-
-        if (firstSequence != 0 && firstSequence != 1) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Az állomások számozása 0-val vagy 1-gyel kezdődjön."
-            );
-        }
-
         for (int i = 0; i < sorted.size(); i++) {
             StationEntity station = sorted.get(i);
 
-            if (station.getSeqNumber() != firstSequence + i) {
+            if (station.getSeqNumber() != i + 1) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Az állomások sorszámai legyenek folytonosak és egyediek."
@@ -331,11 +315,8 @@ public class AdventureService{
             Double latitude = station.getLatitude();
             Double longitude = station.getLongitude();
 
-            boolean missingLocationAllowed =
-                    draft && station.getSeqNumber() > 0;
-
             if (latitude == null || longitude == null) {
-                if (!missingLocationAllowed
+                if (!draft
                         || latitude != null
                         || longitude != null) {
                     throw new ResponseStatusException(
@@ -358,23 +339,10 @@ public class AdventureService{
 
         StationEntity last = sorted.get(sorted.size() - 1);
 
-        if (last.getSeqNumber() > 0) {
-            last.setLastStation(true);
-        } else if (!draft) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "A kezdőpont mellé legalább egy rejtvényes állomás szükséges."
-            );
-        }
+        last.setLastStation(true);
+        last.setContent(null);
 
         return sorted;
-    }
-
-    private boolean containsStartingPoint(List<StationEntity> stations) {
-        return stations.stream()
-                .anyMatch(station ->
-                        Integer.valueOf(0).equals(station.getSeqNumber())
-                );
     }
 
     private double calculateTotalDistance(List<StationEntity> stations) {

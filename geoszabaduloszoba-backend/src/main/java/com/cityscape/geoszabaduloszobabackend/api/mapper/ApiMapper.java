@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.IntStream;
 
 @Component
 @RequiredArgsConstructor
@@ -105,14 +105,15 @@ public class ApiMapper {
         dto.setTitle(adventure.getTitle());
         dto.setDescription(adventure.getDescription());
         dto.setAverageTime(formatTime(adventure.getAverageTimeInSeconds()));
-        dto.setDistanceInMeters(adventure.getTotalDistance());
+        dto.setDistanceInMeters(source.routeDistance());
         dto.setDifficulty(adventure.getDifficulty() == null ? "UNKNOWN" : adventure.getDifficulty().name());
         dto.setCreatorName(source.creatorName());
         dto.setCreatorProfilePictureUrl(source.creatorAvatarUrl());
         dto.setAverageRating(adventure.getAverageRating() == null ? 0.0 : adventure.getAverageRating());
-        dto.setHasStartingPoint(hasStartingPoint(source.stations()));
         dto.setReviews(source.reviews().stream().map(this::toDto).toList());
-        dto.setStations(source.stations().stream().map(this::toStationDto).toList());
+        var stations = source.stations();
+        dto.setStations(IntStream.range(0, stations.size())
+                .mapToObj(i -> toStationDto(stations.get(i), i == stations.size() - 1)).toList());
         return dto;
     }
 
@@ -123,12 +124,13 @@ public class ApiMapper {
         dto.setDescription(adventure.getDescription());
         dto.setDifficulty(adventure.getDifficulty() == null ? "EASY" : adventure.getDifficulty().name());
         dto.setStatus(adventure.getStatus());
-        dto.setHasStartingPoint(hasStartingPoint(source.stations()));
-        int lastSequence = source.stations().stream().map(StationEntity::getSeqNumber)
-                .filter(Objects::nonNull).filter(sequence -> sequence > 0).max(Integer::compareTo).orElse(-1);
-        dto.setStations(source.stations().stream().map(station -> new StationCreateDTO(
-                station.getSeqNumber(), readContentForEdit(station.getContent()), station.getLatitude(), station.getLongitude(),
-                station.getSeqNumber() != null && station.getSeqNumber() > 0 && station.getSeqNumber() == lastSequence)).toList());
+        var stations = source.stations();
+        dto.setStations(IntStream.range(0, stations.size()).mapToObj(i -> {
+            var station = stations.get(i);
+            boolean last = i == stations.size() - 1;
+            return new StationCreateDTO(station.getSeqNumber(), last ? null : readContentForEdit(station.getContent()),
+                    station.getLatitude(), station.getLongitude(), last);
+        }).toList());
         return dto;
     }
 
@@ -138,18 +140,14 @@ public class ApiMapper {
         catch (Exception exception) { throw new RuntimeException("Hiba a StationContent JSON-nal"); }
     }
 
-    private StationDTO toStationDto(StationEntity station) {
+    private StationDTO toStationDto(StationEntity station, boolean last) {
         StationContent content = null;
         try {
-            if (station.getContent() != null) content = STATION_CONTENT_READER.readValue(station.getContent());
+            if (!last && station.getContent() != null) content = STATION_CONTENT_READER.readValue(station.getContent());
         } catch (Exception exception) {
             content = new StationContent("Hiba a tartalom betöltésekor", "", List.of());
         }
         return new StationDTO(station.getId(), station.getLatitude(), station.getLongitude(), content, station.getSeqNumber());
-    }
-
-    private boolean hasStartingPoint(List<StationEntity> stations) {
-        return stations.stream().anyMatch(station -> Integer.valueOf(0).equals(station.getSeqNumber()));
     }
 
     private String formatTime(Integer totalSeconds) {

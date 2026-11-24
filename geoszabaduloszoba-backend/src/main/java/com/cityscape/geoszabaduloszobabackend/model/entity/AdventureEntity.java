@@ -38,8 +38,11 @@ public class AdventureEntity {
     @Column(nullable = false)
     private Double totalDistance = 0.0;
 
-    @Column(name = "has_starting_point", nullable = false)
-    private boolean hasStartingPoint = false;
+    // Existing schemas require a value in this column when inserting an adventure.
+    @Column(name = "has_starting_point", nullable = false, updatable = false)
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private boolean legacyStartingPoint;
 
     @Column(name = "average_rating", insertable = false, updatable = false)
     private Double averageRating;

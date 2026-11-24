@@ -72,7 +72,7 @@ public class SearchService {
         if (query == null || query.isBlank() || type == null || type.isBlank()) return Page.empty(pageable);
         String term = query.trim().toLowerCase(Locale.ROOT);
         return switch (type.trim().toUpperCase(Locale.ROOT)) {
-            case "ADVENTURE" -> adventureService.searchNearbyPage(term, lat, lon, page, size)
+            case "ADVENTURE" -> adventureService.searchNearbyPage(term, lat, lon, page, size, null)
                     .map(adventure -> SearchResult.builder().id(adventure.id()).title(adventure.title())
                             .lat(adventure.advLat()).lon(adventure.advLon()).type("ADVENTURE").build());
             case "LIST" -> listRepository.findByTitleContainingIgnoreCase(term, pageable)

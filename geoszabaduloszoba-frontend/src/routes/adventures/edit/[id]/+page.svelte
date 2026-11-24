@@ -31,8 +31,8 @@
 
 	interface Station {
 		id: string;
-		latitude: number;
-		longitude: number;
+		latitude: number | null;
+		longitude: number | null;
 		content: StationContent;
 	}
 
@@ -61,8 +61,8 @@
 				if (data.stations && data.stations.length > 0) {
 					stations = data.stations.map((s: any) => ({
 						id: crypto.randomUUID(),
-						latitude: s.latitude || 0,
-						longitude: s.longitude || 0,
+						latitude: s.latitude ?? null,
+						longitude: s.longitude ?? null,
 						content: {
 							riddle: s.content?.riddle || "",
 							explanation: s.content?.explanation || "",
@@ -103,7 +103,7 @@
 				latitude: s.latitude,
 				longitude: s.longitude,
 				seqNumber: index + 1,
-				content: s.content
+				content: index === stations.length - 1 ? null : s.content
 			}))
 		};
 
@@ -145,14 +145,14 @@
 		if (map) map.remove();
 
 		const currentStation = stations[activeStationIndex!];
-		const initialView: [number, number] = currentStation.latitude !== 0
+		const initialView: [number, number] = currentStation.latitude !== null && currentStation.longitude !== null
 			? [currentStation.latitude, currentStation.longitude]
 			: [46.076, 18.228];
 
 		map = L.map('map-selector').setView(initialView, 14);
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-		if (currentStation.latitude !== 0) {
+		if (currentStation.latitude !== null && currentStation.longitude !== null) {
 			tempMarker = L.marker(initialView).addTo(map);
 		}
 
@@ -169,7 +169,7 @@
 	}
 
 	function saveAndClose() {
-		if (activeStationIndex !== null && stations[activeStationIndex].latitude === 0) {
+		if (activeStationIndex !== null && stations[activeStationIndex].latitude === null) {
 			alert("Kérlek, bökj rá a helyszínre a térképen!");
 			return;
 		}
@@ -179,8 +179,8 @@
 	function addStation() {
 		stations = [...stations, {
 			id: crypto.randomUUID(),
-			latitude: 0,
-			longitude: 0,
+			latitude: null,
+			longitude: null,
 			content: { riddle: "", explanation: "", hints: ["", "", ""] }
 		}];
 	}
@@ -200,12 +200,19 @@
 			return;
 		}
 
+		if (stations.length === 0) {
+			errorMessage = 'Legalább egy állomás szükséges!';
+			return;
+		}
+
 		for (let i = 0; i < stations.length; i++) {
 			const s = stations[i];
-			if (s.latitude === 0) {
+			if (s.latitude === null || s.longitude === null) {
 				errorMessage = `A(z) ${i + 1}. állomás helyszíne nincs kijelölve!`;
 				return;
 			}
+			if (i === stations.length - 1) continue;
+
 			if (!s.content.riddle.trim()) {
 				errorMessage = `A(z) ${i + 1}. állomás rejtvénye hiányzik!`;
 				return;
@@ -232,7 +239,7 @@
 				latitude: s.latitude,
 				longitude: s.longitude,
 				seqNumber: index + 1,
-				content: s.content
+				content: index === stations.length - 1 ? null : s.content
 			}))
 		};
 
@@ -327,7 +334,7 @@
              </span>
 							<hgroup>
 								<p class="text-[10px] font-black text-white/50 uppercase tracking-widest leading-none">Állomás</p>
-								<h3 class="text-white font-black text-xl tracking-tight">Helyszín</h3>
+								<h3 class="text-white font-black text-xl tracking-tight">{i === stations.length - 1 ? 'Célállomás' : i === 0 ? 'Kezdőállomás' : 'Helyszín'}</h3>
 							</hgroup>
 						</div>
 						{#if stations.length > 1}
@@ -338,39 +345,43 @@
 					</header>
 
 					<fieldset class="min-w-0 space-y-5">
-						<fieldset class="min-w-0 space-y-2">
-							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">feladvány</legend>
-							<textarea
-								aria-label="Feladvány" class="input-card-inner min-h-[80px]"
-								placeholder="Add meg a rejtvényt..."
-								bind:value={station.content.riddle}
-							></textarea>
-						</fieldset>
+						{#if i === stations.length - 1}
+							<p class="text-sm text-white">A kaland az ideérkezéssel ér véget.</p>
+						{:else}
+							<fieldset class="min-w-0 space-y-2">
+								<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">feladvány</legend>
+								<textarea
+									aria-label="Feladvány" class="input-card-inner min-h-[80px]"
+									placeholder="Add meg a rejtvényt..."
+									bind:value={station.content.riddle}
+								></textarea>
+							</fieldset>
 
-						<fieldset class="min-w-0 space-y-2">
-							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Segítségek</legend>
-							<span class="grid gap-2">
-								<input class="input-card-inner text-sm" aria-label="1. Könnyű nyom" placeholder="1. Könnyű nyom" bind:value={station.content.hints[0]} />
-								<input class="input-card-inner text-sm" aria-label="2. Konkrétabb segítség" placeholder="2. Konkrétabb segítség" bind:value={station.content.hints[1]} />
-								<input class="input-card-inner text-sm" aria-label="3. Szinte a megoldás" placeholder="3. Szinte a megoldás" bind:value={station.content.hints[2]} />
-							</span>
-						</fieldset>
+							<fieldset class="min-w-0 space-y-2">
+								<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Segítségek</legend>
+								<span class="grid gap-2">
+									<input class="input-card-inner text-sm" aria-label="1. Könnyű nyom" placeholder="1. Könnyű nyom" bind:value={station.content.hints[0]} />
+									<input class="input-card-inner text-sm" aria-label="2. Konkrétabb segítség" placeholder="2. Konkrétabb segítség" bind:value={station.content.hints[1]} />
+									<input class="input-card-inner text-sm" aria-label="3. Szinte a megoldás" placeholder="3. Szinte a megoldás" bind:value={station.content.hints[2]} />
+								</span>
+							</fieldset>
 
-						<fieldset class="min-w-0 space-y-2">
-							<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Magyarázat</legend>
-							<textarea
-								aria-label="Magyarázat" class="input-card-inner min-h-[60px]"
-								placeholder="Add meg a rejtvény magyarázatát..."
-								bind:value={station.content.explanation}
-							></textarea>
-						</fieldset>
+							<fieldset class="min-w-0 space-y-2">
+								<legend class="text-[10px] font-black text-[#F5F2EA]/60 uppercase ml-2">Magyarázat</legend>
+								<textarea
+									aria-label="Magyarázat" class="input-card-inner min-h-[60px]"
+									placeholder="Add meg a rejtvény magyarázatát..."
+									bind:value={station.content.explanation}
+								></textarea>
+							</fieldset>
+						{/if}
 
 						<button
 							type="button"
 							onclick={() => openMap(i)}
-							class="w-full py-4 rounded-2xl {station.latitude !== 0 ? 'bg-[#2F5D50]' : 'bg-white/10 border-2 border-dashed border-white/20'} text-white font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-[0.98]"
+							class="w-full py-4 rounded-2xl {station.latitude !== null ? 'bg-[#2F5D50]' : 'bg-white/10 border-2 border-dashed border-white/20'} text-white font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-[0.98]"
 						>
-							{station.latitude !== 0 ? 'Helyszín rögzítve' : 'Jelöld ki a térképen'}
+							{station.latitude !== null ? 'Helyszín rögzítve' : 'Jelöld ki a térképen'}
 						</button>
 					</fieldset>
 				</article>

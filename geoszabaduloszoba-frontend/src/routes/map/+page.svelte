@@ -350,7 +350,7 @@
 			</span>
 
 			{#if isExpanded}
-				<nav class="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar shrink-0 border-t border-[#2F5D50]/5 pt-3">
+				<nav class="mx-4 flex shrink-0 gap-2 overflow-x-auto border-t border-[#2F5D50]/10 px-2 py-3 no-scrollbar">
 					{#each ['adventure', 'user', 'list'] as type}
 						<button
 							type="button"

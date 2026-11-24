@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend;
 
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
+import com.cityscape.geoszabaduloszobabackend.model.entity.CompletedAdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.StationEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.model.enums.Difficulty;
@@ -37,14 +38,15 @@ class PagedSearchRepositoryTest {
         adventure("City empty", "PUBLIC");
         entities.flush();
 
-        var page = repository.searchPublicWithLocation("city", null, SearchPagination.request(0, 1));
+        var page = repository.searchPublicWithLocation("city", null, null, null, null, SearchPagination.request(0, 1));
         assertThat(page.getTotalElements()).isEqualTo(2);
         assertThat(page.getTotalPages()).isEqualTo(2);
-        assertThat(page.getContent()).extracting(AdventureEntity::getId).containsExactly(first.getId());
-        var next = repository.searchPublicWithLocation("city", null, SearchPagination.request(1, 1));
-        assertThat(next.getContent()).extracting(AdventureEntity::getId).containsExactly(fallback.getId());
+        assertThat(page.getContent()).extracting(match -> match.getAdventure().getId()).containsExactly(first.getId());
+        var next = repository.searchPublicWithLocation("city", null, null, null, null, SearchPagination.request(1, 1));
+        assertThat(next.getContent()).extracting(match -> match.getAdventure().getId()).containsExactly(fallback.getId());
         assertThat(next.isLast()).isTrue();
-        assertThat(repository.searchPublicWithLocation("city", null, SearchPagination.request(2, 1)).getContent()).isEmpty();
+        assertThat(repository.searchPublicWithLocation("city", null, null, null, null,
+                SearchPagination.request(2, 1)).getContent()).isEmpty();
     }
 
     @Test
@@ -52,9 +54,10 @@ class PagedSearchRepositoryTest {
         station(adventure("City 100%_done", "PUBLIC"), 1, 47.0, 19.0);
         station(adventure("City 100-other", "PUBLIC"), 1, 47.0, 19.0);
         entities.flush();
-        assertThat(repository.searchPublicWithLocation("CITY", null, SearchPagination.request(0, 20)).getTotalElements()).isEqualTo(2);
-        assertThat(repository.searchPublicWithLocation("100\\%\\_", null, SearchPagination.request(0, 20)).getTotalElements()).isEqualTo(1);
-        assertThat(repository.searchPublicWithLocation("", null, SearchPagination.request(0, 20)).getTotalElements()).isEqualTo(2);
+        var pageable = SearchPagination.request(0, 20);
+        assertThat(repository.searchPublicWithLocation("CITY", null, null, null, null, pageable).getTotalElements()).isEqualTo(2);
+        assertThat(repository.searchPublicWithLocation("100\\%\\_", null, null, null, null, pageable).getTotalElements()).isEqualTo(1);
+        assertThat(repository.searchPublicWithLocation("", null, null, null, null, pageable).getTotalElements()).isEqualTo(2);
     }
 
     @Test
@@ -65,9 +68,44 @@ class PagedSearchRepositoryTest {
         station(hard, 1, 47.0, 19.0);
         entities.flush();
 
-        var page = repository.searchPublicWithLocation("", Difficulty.HARD, SearchPagination.request(0, 1));
+        var page = repository.searchPublicWithLocation("", Difficulty.HARD, null, null, null, SearchPagination.request(0, 1));
         assertThat(page.getTotalElements()).isEqualTo(1);
-        assertThat(page.getContent()).extracting(AdventureEntity::getId).containsExactly(hard.getId());
+        assertThat(page.getContent()).extracting(match -> match.getAdventure().getId()).containsExactly(hard.getId());
+    }
+
+    @Test
+    void combinesAdvancedFiltersBeforePagingAndIncludesBoundaryValues() {
+        var unrated = adventure("Unrated", "PUBLIC");
+        station(unrated, 1, 47.0, 19.0);
+        adventureWithStats("Too long", 4.5, 3_001, 3_600);
+        adventureWithStats("Too slow", 4.5, 3_000, 3_601);
+        adventureWithStats("Too low", 4.4, 3_000, 3_600);
+        var match = adventureWithStats("Matches all filters", 4.5, 3_000, 3_600);
+
+        var page = repository.searchPublicWithLocation("", null, 4.5, 3_000.0, 3_600,
+                SearchPagination.request(0, 1));
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent()).extracting(result -> result.getAdventure().getId()).containsExactly(match.getId());
+        assertThat(page.getContent().get(0).getAverageDuration()).isEqualTo(3_600.0);
+    }
+
+    private AdventureEntity adventureWithStats(String title, double rating, double distance, int duration) {
+        var adventure = adventure(title, "PUBLIC");
+        adventure.setTotalDistance(distance);
+        station(adventure, 1, 47.0, 19.0);
+        entities.flush();
+        entities.getEntityManager().createNativeQuery("""
+                update adventure set average_rating = :rating where id = :id
+                """)
+                .setParameter("rating", rating)
+                .setParameter("id", adventure.getId())
+                .executeUpdate();
+        var completion = new CompletedAdventureEntity();
+        completion.setAdventure(adventure);
+        completion.setUser(adventure.getCreator());
+        completion.setDurationSec(duration);
+        entities.persist(completion);
+        return adventure;
     }
 
     private AdventureEntity adventure(String title, String status) {

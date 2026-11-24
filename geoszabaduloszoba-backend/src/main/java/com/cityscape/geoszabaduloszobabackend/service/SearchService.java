@@ -1,6 +1,7 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
 import com.cityscape.geoszabaduloszobabackend.model.domain.SearchResult;
+import com.cityscape.geoszabaduloszobabackend.model.domain.AdventureSearchFilters;
 import com.cityscape.geoszabaduloszobabackend.model.entity.UserEntity;
 import com.cityscape.geoszabaduloszobabackend.repository.ListRepository;
 import com.cityscape.geoszabaduloszobabackend.repository.UserRepository;
@@ -72,7 +73,7 @@ public class SearchService {
         if (query == null || query.isBlank() || type == null || type.isBlank()) return Page.empty(pageable);
         String term = query.trim().toLowerCase(Locale.ROOT);
         return switch (type.trim().toUpperCase(Locale.ROOT)) {
-            case "ADVENTURE" -> adventureService.searchNearbyPage(term, lat, lon, page, size, null)
+            case "ADVENTURE" -> adventureService.searchNearbyPage(term, lat, lon, page, size, AdventureSearchFilters.NONE)
                     .map(adventure -> SearchResult.builder().id(adventure.id()).title(adventure.title())
                             .lat(adventure.advLat()).lon(adventure.advLon()).type("ADVENTURE").build());
             case "LIST" -> listRepository.findByTitleContainingIgnoreCase(term, pageable)

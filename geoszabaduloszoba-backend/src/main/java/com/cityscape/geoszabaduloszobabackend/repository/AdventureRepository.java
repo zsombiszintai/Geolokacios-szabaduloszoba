@@ -30,10 +30,26 @@ public interface AdventureRepository extends JpaRepository<AdventureEntity, Long
 
     List<AdventureEntity> findTop3ByStatusOrderByIdAsc(String pending);
 
-    @Query("""
-        select adventure from AdventureEntity adventure
+    interface SearchMatch {
+        AdventureEntity getAdventure();
+        Double getAverageDuration();
+    }
+
+    String AVERAGE_DURATION = """
+        coalesce((select avg(completion.durationSec) from CompletedAdventureEntity completion
+                  where completion.adventure = adventure and completion.durationSec > 0),
+                 adventure.averageTimeInSeconds)
+        """;
+
+    String SEARCH_CONDITIONS = """
+        from AdventureEntity adventure
         where adventure.status = 'PUBLIC'
           and (:difficulty is null or adventure.difficulty = :difficulty)
+          and (:minRating is null or adventure.averageRating >= :minRating)
+          and (:maxDistanceMeters is null or adventure.totalDistance <= :maxDistanceMeters)
+          and (:maxDurationSeconds is null or
+        """ + AVERAGE_DURATION + """
+               between 1 and :maxDurationSeconds)
           and (:query = '' or lower(adventure.title) like lower(concat('%', :query, '%')) escape '\\')
           and exists (
               select station.id from StationEntity station
@@ -41,9 +57,16 @@ public interface AdventureRepository extends JpaRepository<AdventureEntity, Long
                 and station.latitude is not null and station.longitude is not null
                 and station.seqNumber = 1
           )
-        """)
-    Page<AdventureEntity> searchPublicWithLocation(@Param("query") String query,
-                                                    @Param("difficulty") Difficulty difficulty, Pageable pageable);
+        """;
+
+    @Query(value = "select adventure as adventure, " + AVERAGE_DURATION + " as averageDuration " + SEARCH_CONDITIONS,
+           countQuery = "select count(adventure) " + SEARCH_CONDITIONS)
+    Page<SearchMatch> searchPublicWithLocation(@Param("query") String query,
+                                                    @Param("difficulty") Difficulty difficulty,
+                                                    @Param("minRating") Double minRating,
+                                                    @Param("maxDistanceMeters") Double maxDistanceMeters,
+                                                    @Param("maxDurationSeconds") Integer maxDurationSeconds,
+                                                    Pageable pageable);
 
 }
 //asddd

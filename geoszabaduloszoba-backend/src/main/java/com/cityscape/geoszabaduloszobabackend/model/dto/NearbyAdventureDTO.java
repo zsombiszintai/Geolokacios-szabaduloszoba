@@ -7,5 +7,7 @@ public record NearbyAdventureDTO(
         Integer distanceInMeters,
         Integer averageTime,
         Double advLon,
-        Double advLat
+        Double advLat,
+        Double averageRating,
+        Double routeDistanceMeters
 ) {}

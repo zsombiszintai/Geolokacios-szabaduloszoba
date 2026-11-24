@@ -1,7 +1,5 @@
 package com.cityscape.geoszabaduloszobabackend.service;
 
-import com.cityscape.geoszabaduloszobabackend.model.enums.Difficulty;
-
 import com.cityscape.geoszabaduloszobabackend.model.domain.*;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AdventureEntity;
 import com.cityscape.geoszabaduloszobabackend.model.entity.AiModerationResponseEntity;
@@ -134,7 +132,9 @@ public class AdventureService{
                             distanceInMeters,
                             adv.getAverageTimeInSeconds(),
                             advLon,
-                            advLat
+                            advLat,
+                            adv.getAverageRating(),
+                            adv.getTotalDistance()
                     );
                 })
                 .filter(Objects::nonNull)
@@ -255,18 +255,23 @@ public class AdventureService{
 
     @Transactional(readOnly = true)
     public Page<NearbyAdventureResult> searchNearbyPage(String query, Double lat, Double lon,
-                                                        int page, int size, Difficulty difficulty) {
+                                                        int page, int size, AdventureSearchFilters filters) {
         var pageable = SearchPagination.request(page, size);
         String term = query == null ? "" : query.trim();
         // Match Spring Data's literal substring semantics for '%' and '_'.
         term = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-        return adventureRepository.searchPublicWithLocation(term, difficulty, pageable).map(adventure -> {
+        return adventureRepository.searchPublicWithLocation(term, filters.difficulty(), filters.minRating(),
+                filters.maxDistanceMeters(), filters.maxDurationSeconds(), pageable).map(match -> {
+            var adventure = match.getAdventure();
             StationEntity station = stationRepository.findByAdventureIdAndSeqNumber(adventure.getId(), 1)
                     .orElseThrow();
             Integer distance = lat != null && lon != null
                     ? calculateDistance(lat, lon, station.getLatitude(), station.getLongitude()) : null;
+            Double averageDuration = match.getAverageDuration();
+            Integer averageTime = averageDuration == null ? null : (int) Math.ceil(averageDuration);
             return new NearbyAdventureResult(adventure.getId(), adventure.getTitle(), distance,
-                    adventure.getAverageTimeInSeconds(), station.getLongitude(), station.getLatitude());
+                    averageTime, station.getLongitude(), station.getLatitude(),
+                    adventure.getAverageRating(), adventure.getTotalDistance());
         });
     }
 

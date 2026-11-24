@@ -18,7 +18,7 @@ public class ApiMapper {
 
     public NearbyAdventureDTO toDto(NearbyAdventureResult source) {
         return new NearbyAdventureDTO(source.id(), source.title(), source.distanceInMeters(),
-                source.averageTime(), source.advLon(), source.advLat());
+                source.averageTime(), source.advLon(), source.advLat(), source.averageRating(), source.routeDistanceMeters());
     }
 
     public SearchDTO toDto(SearchResult source) {

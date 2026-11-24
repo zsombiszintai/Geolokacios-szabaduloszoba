@@ -1,6 +1,9 @@
 package com.cityscape.geoszabaduloszobabackend.api;
 
 import com.cityscape.geoszabaduloszobabackend.model.enums.Difficulty;
+import com.cityscape.geoszabaduloszobabackend.model.domain.AdventureSearchFilters;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.cityscape.geoszabaduloszobabackend.model.dto.AbandonedAdventureDTO;
 import com.cityscape.geoszabaduloszobabackend.model.dto.AdventureProfileDTO;
@@ -61,7 +64,16 @@ public class AdventureAPI {
             @RequestParam(required = false) Double lon,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) Difficulty difficulty) {
-        return PageDTO.from(adventureService.searchNearbyPage(query, lat, lon, page, size, difficulty).map(apiMapper::toDto));
+            @RequestParam(required = false) Difficulty difficulty,
+            @RequestParam(required = false) Double minRating,
+            @RequestParam(required = false) Double maxDistanceMeters,
+            @RequestParam(required = false) Integer maxDurationSeconds) {
+        if ((minRating != null && (!Double.isFinite(minRating) || minRating < 1 || minRating > 5))
+                || (maxDistanceMeters != null && (!Double.isFinite(maxDistanceMeters) || maxDistanceMeters <= 0))
+                || (maxDurationSeconds != null && maxDurationSeconds <= 0)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Érvénytelen keresési szűrő.");
+        }
+        var filters = new AdventureSearchFilters(difficulty, minRating, maxDistanceMeters, maxDurationSeconds);
+        return PageDTO.from(adventureService.searchNearbyPage(query, lat, lon, page, size, filters).map(apiMapper::toDto));
     }
 }

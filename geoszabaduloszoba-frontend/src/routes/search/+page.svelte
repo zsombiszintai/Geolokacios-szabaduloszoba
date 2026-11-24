@@ -1,19 +1,30 @@
 <script lang="ts">
+	import BackButton from '$lib/components/BackButton.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { auth } from '$lib/auth.svelte';
 	import { translateDifficulty } from '$lib/i18n/difficulty';
-	import { ChevronRightOutline } from 'flowbite-svelte-icons';
+	import { ChevronDownOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
 
 	const types = { adventure: 'Kalandok', user: 'Játékosok', list: 'Listák' };
 	const difficulties = ['EASY', 'MEDIUM', 'HARD'];
 	type SearchType = keyof typeof types;
-	type Result = { id: number; title: string; averageTime?: number | null };
+	type Result = {
+		id: number;
+		title: string;
+		averageTime?: number | null;
+		averageRating?: number | null;
+		routeDistanceMeters?: number | null;
+	};
+	const numberFormat = new Intl.NumberFormat('hu-HU', { maximumFractionDigits: 2 });
 	type ResultPage = { content: Result[]; totalElements: number; totalPages: number };
 
 	const query = $derived(page.url.searchParams.get('q')?.trim() ?? '');
 	const type = $derived(parseType(page.url.searchParams.get('type')));
 	const difficulty = $derived(page.url.searchParams.get('difficulty') ?? '');
+	const advancedFields = ['minRating', 'maxDistanceKm', 'maxDurationMinutes'] as const;
+	const advancedValues = $derived(advancedFields.map((field) => page.url.searchParams.get(field) ?? ''));
+	const hasAdvancedFilters = $derived(advancedValues.some((value) => value !== ''));
 	const pageParam = $derived(Number(page.url.searchParams.get('page') ?? 0));
 	const pageIndex = $derived(Number.isSafeInteger(pageParam) && pageParam >= 0 ? pageParam : 0);
 	let draftType = $state<SearchType>('adventure');
@@ -40,6 +51,12 @@
 		const selectedDifficulty = fields.get('difficulty');
 		if (draftType === 'adventure' && selectedDifficulty) {
 			params.set('difficulty', String(selectedDifficulty));
+		}
+		if (draftType === 'adventure') {
+			for (const field of advancedFields) {
+				const value = String(fields.get(field) ?? '').trim();
+				if (value) params.set(field, value);
+			}
 		}
 		const href = '/search?' + params.toString();
 		if (href === page.url.pathname + page.url.search) {
@@ -89,6 +106,12 @@
 		if (isAdventure && difficulties.includes(difficulty)) {
 			url.searchParams.set('difficulty', difficulty);
 		}
+		if (isAdventure) {
+			const [rating, distanceKm, durationMinutes] = advancedValues;
+			if (rating) url.searchParams.set('minRating', rating);
+			if (distanceKm) url.searchParams.set('maxDistanceMeters', String(Math.round(Number(distanceKm) * 1000)));
+			if (durationMinutes) url.searchParams.set('maxDurationSeconds', String(Number(durationMinutes) * 60));
+		}
 
 		results = null;
 		error = '';
@@ -107,11 +130,11 @@
 </svelte:head>
 
 <section class="mx-auto max-w-3xl px-6 py-6 text-[#2F5D50]">
-	<a href="/map" class="text-sm font-bold underline underline-offset-4">Vissza a térképhez</a>
+	<BackButton label="Vissza a térképre" boxed />
 	<h1 class="mb-5 mt-3 text-3xl font-black">Keresés</h1>
 
-	{#key JSON.stringify([query, type, difficulty])}
-		<form onsubmit={submit} class="grid gap-4 rounded-2xl border border-[#2F5D50]/10 bg-white/80 p-4 sm:grid-cols-2">
+	{#key JSON.stringify([query, type, difficulty, advancedValues])}
+		<form onsubmit={submit} class="grid gap-5 rounded-2xl border border-[#2F5D50]/10 bg-white/80 p-5 sm:grid-cols-2 sm:p-6">
 			<label class="grid gap-1 text-sm font-bold sm:col-span-2">
 				Keresőkifejezés
 				<input name="q" type="search" value={query} required={draftType !== 'adventure'}
@@ -120,22 +143,54 @@
 			</label>
 			<label class="grid gap-1 text-sm font-bold">
 				Találat típusa
-				<select bind:value={draftType} class="min-h-11 rounded-xl border border-[#2F5D50]/25 bg-white px-3">
-					{#each Object.entries(types) as [value, label]}
-						<option {value}>{label}</option>
-					{/each}
-				</select>
+				<span class="relative">
+					<select bind:value={draftType} class="min-h-11 w-full appearance-none rounded-xl border border-[#2F5D50]/25 bg-white pl-4 pr-11">
+						{#each Object.entries(types) as [value, label]}
+							<option {value}>{label}</option>
+						{/each}
+					</select>
+					<ChevronDownOutline class="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2" aria-hidden="true" />
+				</span>
 			</label>
 			{#if draftType === 'adventure'}
 				<label class="grid gap-1 text-sm font-bold">
 					Nehézség
-					<select name="difficulty" value={difficulty} class="min-h-11 rounded-xl border border-[#2F5D50]/25 bg-white px-3">
-						<option value="">Bármelyik</option>
-						{#each difficulties as value}
-							<option {value}>{translateDifficulty(value)}</option>
-						{/each}
-					</select>
+					<span class="relative">
+						<select name="difficulty" value={difficulty} class="min-h-11 w-full appearance-none rounded-xl border border-[#2F5D50]/25 bg-white pl-4 pr-11">
+							<option value="">Bármelyik</option>
+							{#each difficulties as value}
+								<option {value}>{translateDifficulty(value)}</option>
+							{/each}
+						</select>
+						<ChevronDownOutline class="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2" aria-hidden="true" />
+					</span>
 				</label>
+				<details open={hasAdvancedFilters} class="group rounded-xl border border-[#2F5D50]/15 sm:col-span-2">
+					<summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-bold [&::-webkit-details-marker]:hidden">
+						Bővített keresés
+						<ChevronDownOutline class="h-5 w-5 shrink-0 group-open:rotate-180" aria-hidden="true" />
+					</summary>
+					<div class="grid gap-4 border-t border-[#2F5D50]/10 p-4 sm:grid-cols-3">
+						<label class="grid gap-1 text-sm font-bold">
+							Minimum értékelés
+							<input name="minRating" type="number" min="1" max="5" step="0.1"
+								value={advancedValues[0]} placeholder="1–5"
+								class="min-h-11 w-full rounded-xl border border-[#2F5D50]/25 bg-white px-3" />
+						</label>
+						<label class="grid gap-1 text-sm font-bold">
+							Max. útvonalhossz (km)
+							<input name="maxDistanceKm" type="number" min="0.1" step="0.1"
+								value={advancedValues[1]}
+								class="min-h-11 w-full rounded-xl border border-[#2F5D50]/25 bg-white px-3" />
+						</label>
+						<label class="grid gap-1 text-sm font-bold">
+							Max. átlagidő (perc)
+							<input name="maxDurationMinutes" type="number" min="1" max="35791394" step="1"
+								value={advancedValues[2]}
+								class="min-h-11 w-full rounded-xl border border-[#2F5D50]/25 bg-white px-3" />
+						</label>
+					</div>
+				</details>
 			{/if}
 			<button type="submit" class="min-h-11 rounded-xl bg-[#2F5D50] px-5 font-bold text-white sm:col-span-2 sm:justify-self-end">
 				Keresés
@@ -161,8 +216,18 @@
 								class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-[#2F5D50]/10 bg-white/80 px-4 py-3 font-bold hover:bg-white">
 								<span class="min-w-0 break-words">
 									{result.title}
-									{#if result.averageTime != null && result.averageTime > 0}
-										<span class="block text-sm font-normal">Átlagosan {Math.ceil(result.averageTime / 60)} perc</span>
+									{#if type === 'adventure'}
+										<span class="mt-1 flex flex-wrap gap-x-3 text-sm font-normal">
+											{#if result.averageRating != null && result.averageRating > 0}
+												<span>Értékelés {numberFormat.format(result.averageRating)}/5</span>
+											{/if}
+											{#if result.routeDistanceMeters != null}
+												<span>{numberFormat.format(result.routeDistanceMeters / 1000)} km</span>
+											{/if}
+											{#if result.averageTime != null && result.averageTime > 0}
+												<span>Átlagosan {Math.ceil(result.averageTime / 60)} perc</span>
+											{/if}
+										</span>
 									{/if}
 								</span>
 								<ChevronRightOutline class="h-5 w-5 shrink-0" aria-hidden="true" />

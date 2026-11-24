@@ -46,4 +46,4 @@ public interface AdventureRepository extends JpaRepository<AdventureEntity, Long
                                                     @Param("difficulty") Difficulty difficulty, Pageable pageable);
 
 }
-//asd
+//asddd
